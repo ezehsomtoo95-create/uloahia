@@ -2,12 +2,15 @@ import { Suspense } from "react";
 import { AdminDesktopSidebar } from "@/components/admin/admin-desktop-sidebar";
 import { AdminToastProvider } from "@/components/admin/admin-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { requireAdmin } from "@/lib/admin/auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdmin();
+
   return (
     <AdminToastProvider>
       <ErrorBoundary title="Admin panel unavailable">

@@ -4,7 +4,7 @@ import { ListingCard } from "@/components/listings/listing-card";
 import { CategoryRow } from "@/components/market/category-row";
 import { EmptyState } from "@/components/market/empty-state";
 import { SectionHeader } from "@/components/market/section-header";
-import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
+import { BRAND_NAME } from "@/lib/constants/brand";
 import { getApprovedListings } from "@/lib/data/listings";
 
 export default async function HomePage() {
@@ -35,11 +35,6 @@ export default async function HomePage() {
       </section>
 
       <ListingSection title="New Listings" href="/browse" listings={newListings} />
-
-      <footer className="type-meta pb-2 text-center leading-5">
-        {BRAND_NAME} — {BRAND_TAGLINE.toLowerCase()}. Local buyers and sellers connect
-        here, then continue on WhatsApp.
-      </footer>
     </main>
   );
 }

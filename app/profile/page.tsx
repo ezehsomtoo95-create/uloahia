@@ -3,7 +3,7 @@ import { signOut } from "@/app/profile/actions";
 import { AdminDashboardButton } from "@/components/profile/admin-dashboard-button";
 import { ProfileSupportSettings } from "@/components/profile/profile-support-settings";
 import { BRAND_NAME } from "@/lib/constants/brand";
-import { isAdminPhoneMatch } from "@/lib/constants/admin";
+import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 
@@ -21,7 +21,10 @@ export default async function ProfilePage() {
     : { data: null };
 
   const profilePhone = profile?.phone ?? user?.phone ?? "";
-  const showAdminCard = isAdminPhoneMatch(profilePhone);
+  const { isAdmin: showAdminCard } = resolveAdminAccess({
+    profilePhone: profile?.phone,
+    userPhone: user?.phone,
+  });
 
   return (
     <main className="marketplace-page flex min-h-[calc(100vh-72px)] flex-col pt-3">

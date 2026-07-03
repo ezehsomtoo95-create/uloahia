@@ -1,11 +1,8 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import {
-  ADMIN_PHONE,
-  isAdminPhoneMatch,
-  normalizePhone,
-} from "@/lib/constants/admin";
+import { ADMIN_PHONE, isAdminPhoneMatch, normalizePhone } from "@/lib/constants/admin";
+import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
 
@@ -13,27 +10,8 @@ export function isAdminPhone(phone: string | null | undefined) {
   return isAdminPhoneMatch(phone, ADMIN_PHONE);
 }
 
-export async function assertIsPhoneAdmin(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  profilePhone: string,
-) {
-  const { data, error } = await supabase.rpc("is_phone_admin");
-
-  console.log("[admin] is_phone_admin rpc", {
-    data,
-    error: error?.message ?? null,
-    code: error?.code ?? null,
-    profilePhone: normalizePhone(profilePhone),
-  });
-
-  if (!error && data === true) {
-    return true;
-  }
-
-  const envMatch = isAdminPhoneMatch(profilePhone, ADMIN_PHONE);
-  console.log("[admin] is_phone_admin env fallback", { envMatch });
-
-  return envMatch;
+export function assertIsPhoneAdmin(profilePhone: string) {
+  return isAdminPhoneMatch(profilePhone, ADMIN_PHONE);
 }
 
 async function seedAdminConfig(phone: string) {
@@ -73,9 +51,12 @@ export async function requireAdmin() {
     .maybeSingle();
 
   const profilePhone = profile?.phone ?? user.phone ?? "";
-  const match = isAdminPhoneMatch(profilePhone, ADMIN_PHONE);
+  const { isAdmin } = resolveAdminAccess({
+    profilePhone: profile?.phone,
+    userPhone: user.phone,
+  });
 
-  if (!match) {
+  if (!isAdmin) {
     redirect("/");
   }
 

@@ -14,7 +14,6 @@ import {
 } from "@/lib/data/admin-detail";
 import type { AdminListingDetail, AdminReportDetail, AdminUserDetail } from "@/lib/data/admin-detail";
 import { getAdminTableData } from "@/lib/data/admin-listings";
-import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
 
 function revalidateAdminPaths(listingId?: string) {
@@ -29,10 +28,7 @@ function revalidateAdminPaths(listingId?: string) {
 }
 
 async function assertAdminCanMutate(profilePhone: string) {
-  const userSupabase = await createClient();
-  const isAdmin = await assertIsPhoneAdmin(userSupabase, profilePhone);
-
-  if (!isAdmin) {
+  if (!assertIsPhoneAdmin(profilePhone)) {
     throw new Error("Not authorized for admin mutations.");
   }
 }

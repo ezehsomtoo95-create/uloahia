@@ -3,11 +3,11 @@ import "server-only";
 import { ADMIN_PHONE } from "@/lib/constants/admin";
 import {
   buildAdminCheckDebugInfo,
+  normalizePhone,
   phonesMatch,
   type AdminAccessMethod,
   type AdminCheckDebugInfo,
 } from "@/lib/utils/admin-phone";
-import { createClient } from "@/lib/supabase/server";
 
 export type { AdminAccessMethod, AdminCheckDebugInfo };
 
@@ -22,36 +22,55 @@ type ResolveAdminAccessInput = {
   userPhone?: string | null;
 };
 
-export async function resolveAdminAccess(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+/** Admin UI/route access is granted only when phone matches ADMIN_PHONE env var. */
+export function resolveAdminAccess(
   input: ResolveAdminAccessInput,
-): Promise<AdminAccessResult> {
+): AdminAccessResult {
   const profilePhone = input.profilePhone?.trim() || null;
   const userPhone = input.userPhone?.trim() || null;
+  const adminPhone = ADMIN_PHONE.trim() || null;
   const candidatePhones = [profilePhone, userPhone].filter(Boolean) as string[];
   const debug = buildAdminCheckDebugInfo(profilePhone, userPhone);
 
-  const { data: phoneAdmin, error: phoneAdminError } = await supabase.rpc(
-    "is_phone_admin",
-  );
+  console.log("[resolveAdminAccess] raw phone values", {
+    profilePhone,
+    userPhone,
+    ADMIN_PHONE: adminPhone,
+  });
 
-  if (!phoneAdminError && phoneAdmin === true) {
-    return { isAdmin: true, method: "rpc_is_phone_admin", debug };
+  console.log("[resolveAdminAccess] normalized phone values", {
+    profilePhoneNormalized: profilePhone ? normalizePhone(profilePhone) : null,
+    userPhoneNormalized: userPhone ? normalizePhone(userPhone) : null,
+    adminPhoneNormalized: adminPhone ? normalizePhone(adminPhone) : null,
+  });
+
+  if (!adminPhone) {
+    console.log(
+      "[resolveAdminAccess] ADMIN_PHONE env var is empty — access denied",
+    );
+    return { isAdmin: false, method: "none", debug };
   }
 
-  const { data: jwtAdmin, error: jwtAdminError } = await supabase.rpc("is_admin");
+  for (const phone of candidatePhones) {
+    const normalizedCandidate = normalizePhone(phone);
+    const normalizedAdmin = normalizePhone(adminPhone);
+    const match = phonesMatch(phone, adminPhone);
 
-  if (!jwtAdminError && jwtAdmin === true) {
-    return { isAdmin: true, method: "rpc_is_admin", debug };
-  }
+    console.log("[resolveAdminAccess] env_phone_match comparison", {
+      profilePhone,
+      candidatePhone: phone,
+      ADMIN_PHONE: adminPhone,
+      normalizedCandidate,
+      normalizedAdmin,
+      match,
+    });
 
-  if (ADMIN_PHONE) {
-    for (const phone of candidatePhones) {
-      if (phonesMatch(phone, ADMIN_PHONE)) {
-        return { isAdmin: true, method: "env_phone_match", debug };
-      }
+    if (match) {
+      console.log("[resolveAdminAccess] granted via env_phone_match");
+      return { isAdmin: true, method: "env_phone_match", debug };
     }
   }
 
+  console.log("[resolveAdminAccess] denied", { method: "none", debug });
   return { isAdmin: false, method: "none", debug };
 }

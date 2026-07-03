@@ -35,11 +35,7 @@ export function phonesMatch(
   return normalizedLeft === normalizedRight;
 }
 
-export type AdminAccessMethod =
-  | "rpc_is_phone_admin"
-  | "rpc_is_admin"
-  | "env_phone_match"
-  | "none";
+export type AdminAccessMethod = "env_phone_match" | "none";
 
 export type AdminCheckDebugInfo = {
   profilePhoneMasked: string;
