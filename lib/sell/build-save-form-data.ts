@@ -6,7 +6,7 @@ import type {
   ListingStatus,
 } from "@/lib/types";
 
-export type BuildSaveListingFormDataInput = {
+type BuildSaveListingFormDataInput = {
   listingId?: string;
   originalStatus?: ListingStatus;
   title: string;

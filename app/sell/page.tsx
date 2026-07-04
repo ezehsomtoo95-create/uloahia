@@ -22,7 +22,7 @@ import { SellPhotoGrid } from "@/components/sell/sell-photo-grid";
 import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
-import { prepareSaveListingFormData } from "@/lib/sell/prepare-save-form-data";
+import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
 import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
 import type { EasternState, ListingCondition, ListingCategorySlug, ListingStatus } from "@/lib/types";
@@ -277,47 +277,37 @@ function SellPageContent({ editId }: { editId: string | null }) {
     setIsPublishing(true);
     setErrorMessage("");
 
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        router.push("/login");
-        return;
-      }
-
-      const formData = await prepareSaveListingFormData(form, editId);
-      const result = await saveListingAction(formData);
-
-      if (!result.success) {
-        setErrorMessage(result.error);
-        showSaveToast(result.error);
-        return;
-      }
-
-      router.refresh();
-
-      if (result.data?.mode === "updated") {
-        showSaveToast("Listing updated successfully.");
-        setUpdated(true);
-        return;
-      }
-
-      showSaveToast("Listing submitted for review.");
-      setPublished(true);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Could not publish listing. Check your connection and try again.";
-      console.error("[sell] publish failed", error);
-      setErrorMessage(message);
-      showSaveToast(message);
-    } finally {
+    if (userError || !user) {
       setIsPublishing(false);
+      router.push("/login");
+      return;
     }
+
+    const result = await saveListingAction(buildSaveListingFormData(form, editId));
+
+    setIsPublishing(false);
+
+    if (!result.success) {
+      setErrorMessage(result.error);
+      showSaveToast(result.error);
+      return;
+    }
+
+    router.refresh();
+
+    if (result.data?.mode === "updated") {
+      showSaveToast("Listing updated successfully.");
+      setUpdated(true);
+      return;
+    }
+
+    showSaveToast("Listing submitted for review.");
+    setPublished(true);
   }
 
   if (isLoadingEdit || !form) {

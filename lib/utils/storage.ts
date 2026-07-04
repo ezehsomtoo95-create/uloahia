@@ -41,7 +41,7 @@ export function resolveListingImages(urls: string[]) {
     .filter((url): url is string => Boolean(url));
 }
 
-/** Public storage URL for list cards (uploads are pre-optimized server-side). */
+/** Use the public storage object URL (Supabase render transforms require a paid add-on). */
 export function getListingListImageUrl(
   url: string | null | undefined,
   _variant: ListingListImageVariant = "grid",
@@ -49,7 +49,7 @@ export function getListingListImageUrl(
   return resolveListingImageUrl(url);
 }
 
-/** Public storage URL for listing detail views. */
+/** Use the public storage object URL for listing detail views. */
 export function getListingDetailImageUrl(
   url: string | null | undefined,
   _variant: ListingDetailImageVariant = "hero",
