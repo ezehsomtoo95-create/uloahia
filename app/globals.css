@@ -45,35 +45,35 @@
   --browse-chip-active-border: color-mix(in srgb, var(--primary) 35%, transparent);
   --browse-chip-active-bg: color-mix(in srgb, var(--primary) 18%, transparent);
   --browse-chip-active-text: var(--text-primary);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #181614;
-    --foreground: #f7f1e8;
-    --surface: #211f1c;
-    --surface-raised: #292621;
-    --muted: #b8ada1;
-    --border: #36312b;
-    --primary: #7fc7a1;
-    --primary-foreground: #102118;
-    --indigo: #b8b7ff;
-    --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --surface-primary: #211f1c;
-    --chip-border: rgba(255, 255, 255, 0.14);
-    --chip-bg: var(--surface-primary);
-    --chip-text: rgba(255, 255, 255, 0.7);
-    --chip-active-border: color-mix(in srgb, var(--primary) 35%, rgba(255, 255, 255, 0.14));
-    --chip-active-bg: color-mix(in srgb, var(--primary) 12%, var(--surface-primary));
-    --chip-active-text: #ffffff;
-    --browse-chip-border: rgba(255, 255, 255, 0.12);
-    --browse-chip-bg: rgba(255, 255, 255, 0.06);
-    --browse-chip-text: #f5f5f5;
-    --browse-chip-active-border: color-mix(in srgb, var(--primary) 40%, rgba(255, 255, 255, 0.12));
-    --browse-chip-active-bg: color-mix(in srgb, var(--primary) 22%, rgba(255, 255, 255, 0.06));
-    --browse-chip-active-text: #ffffff;
-  }
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #181614;
+  --foreground: #f7f1e8;
+  --surface: #211f1c;
+  --surface-raised: #292621;
+  --muted: #b8ada1;
+  --border: #36312b;
+  --primary: #7fc7a1;
+  --primary-foreground: #102118;
+  --indigo: #b8b7ff;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --surface-primary: #211f1c;
+  --chip-border: rgba(255, 255, 255, 0.14);
+  --chip-bg: var(--surface-primary);
+  --chip-text: rgba(255, 255, 255, 0.7);
+  --chip-active-border: color-mix(in srgb, var(--primary) 35%, rgba(255, 255, 255, 0.14));
+  --chip-active-bg: color-mix(in srgb, var(--primary) 12%, var(--surface-primary));
+  --chip-active-text: #ffffff;
+  --browse-chip-border: rgba(255, 255, 255, 0.12);
+  --browse-chip-bg: rgba(255, 255, 255, 0.06);
+  --browse-chip-text: #f5f5f5;
+  --browse-chip-active-border: color-mix(in srgb, var(--primary) 40%, rgba(255, 255, 255, 0.12));
+  --browse-chip-active-bg: color-mix(in srgb, var(--primary) 22%, rgba(255, 255, 255, 0.06));
+  --browse-chip-active-text: #ffffff;
 }
 
 * {

@@ -3,7 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import "./marketplace-desktop.css";
 import { AppShell } from "@/components/layout/app-shell";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
+import { themeInitScript } from "@/lib/theme/theme";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -45,9 +47,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AppShell>{children}</AppShell>
+        <ThemeProvider>
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );

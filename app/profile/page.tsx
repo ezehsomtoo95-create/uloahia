@@ -79,6 +79,8 @@ export default async function ProfilePage() {
             </div>
           ) : null}
 
+          <ProfileSupportSettings />
+
           <div className="touch-card w-full overflow-hidden rounded-3xl">
             <form action={signOut}>
               <button
@@ -89,22 +91,24 @@ export default async function ProfilePage() {
               </button>
             </form>
           </div>
+        </>
+      ) : (
+        <>
+          <div className="touch-card overflow-hidden rounded-3xl p-4">
+            <h2 className="text-[16px] font-semibold">Log in to manage your account</h2>
+            <p className="mt-1 text-[13px] leading-5 text-muted">
+              You need an account to sell, save listings, and contact sellers.
+            </p>
+            <Link
+              href="/login"
+              className="mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
+            >
+              Log in
+            </Link>
+          </div>
 
           <ProfileSupportSettings />
         </>
-      ) : (
-        <div className="touch-card overflow-hidden rounded-3xl p-4">
-          <h2 className="text-[16px] font-semibold">Log in to manage your account</h2>
-          <p className="mt-1 text-[13px] leading-5 text-muted">
-            You need an account to sell, save listings, and contact sellers.
-          </p>
-          <Link
-            href="/login"
-            className="mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
-          >
-            Log in
-          </Link>
-        </div>
       )}
     </main>
   );

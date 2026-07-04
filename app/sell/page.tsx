@@ -934,8 +934,37 @@ function CustomSelect({
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    function preventBackgroundTouchMove(event: TouchEvent) {
+      const target = event.target as Node;
+
+      if (
+        panelRef.current?.contains(target) ||
+        rootRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+    }
+
+    document.addEventListener("touchmove", preventBackgroundTouchMove, {
+      passive: false,
+    });
+
+    return () => {
+      document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
+      document.removeEventListener("touchmove", preventBackgroundTouchMove);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
 
     function updatePosition() {
       if (!rootRef.current) {
@@ -970,7 +999,6 @@ function CustomSelect({
     window.addEventListener("resize", updatePosition);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("resize", updatePosition);
     };
   }, [isOpen]);
@@ -1004,7 +1032,7 @@ function CustomSelect({
         ? createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[9999] max-h-[176px] overflow-y-auto rounded-[12px] border border-border bg-surface p-1 shadow-lg [scrollbar-color:var(--primary)_transparent] [scrollbar-width:thin]"
+          className="fixed z-[9999] max-h-[176px] overflow-y-auto overscroll-contain rounded-[12px] border border-border bg-surface p-1 shadow-lg [scrollbar-color:var(--primary)_transparent] [scrollbar-width:thin]"
           style={{
             left: panelPosition.left,
             top: panelPosition.top,

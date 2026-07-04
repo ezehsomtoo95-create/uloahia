@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { deleteOwnAccount } from "@/app/profile/actions";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
+import { DarkModeSettingRow } from "@/components/theme/dark-mode-setting-row";
 import { SUPPORT_WHATSAPP_HREF } from "@/lib/constants/support";
 import { cn } from "@/lib/utils/cn";
 
@@ -45,6 +46,8 @@ export function ProfileSupportSettings() {
             <span>Contact Support</span>
             <ExternalLink size={15} className="shrink-0 text-muted" aria-hidden />
           </a>
+
+          <DarkModeSettingRow />
 
           <div>
             <button
