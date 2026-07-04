@@ -5,6 +5,7 @@ import { z } from "zod";
 import { actionError, actionSuccess, type ActionResult } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
 import { formatZodError, listingIdSchema } from "@/lib/validation/common";
+import { deleteListingStorageFolder } from "@/lib/utils/listing-storage";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -91,6 +92,8 @@ export async function deleteListingWithResult(formData: FormData): Promise<Actio
     if (error) {
       return actionError(error.message);
     }
+
+    await deleteListingStorageFolder(supabase, user.id, listingId);
 
     revalidatePath("/my-listings");
     return actionSuccess();

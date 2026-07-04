@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "4mb",
-    },
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [384, 640, 750, 828, 1080],

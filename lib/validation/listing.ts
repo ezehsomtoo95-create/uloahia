@@ -8,16 +8,9 @@ export const listingConditionSchema = z.enum(
   LISTING_CONDITIONS as [string, ...string[]],
 );
 
-export const listingPhotoInputSchema = z.discriminatedUnion("source", [
-  z.object({
-    source: z.literal("existing"),
-    url: z.string().trim().min(1, "Photo URL is required."),
-  }),
-  z.object({
-    source: z.literal("new"),
-    fieldName: z.string().trim().min(1, "Photo field is required."),
-  }),
-]);
+export const listingPhotoInputSchema = z.object({
+  url: z.string().trim().min(1, "Photo URL is required."),
+});
 
 /** Validates sell-flow listing payloads (create and update). */
 export const ListingSchema = z.object({
@@ -42,7 +35,6 @@ export const ListingSchema = z.object({
 });
 
 export type ListingInput = z.infer<typeof ListingSchema>;
-export type ListingPhotoInput = z.infer<typeof listingPhotoInputSchema>;
 
 export const updateListingSchema = z.object({
   listingId: listingIdSchema,

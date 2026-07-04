@@ -6,11 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
 import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
-import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
+import { ListingSchema, type ListingInput } from "@/lib/validation/listing";
 import {
-  classifyImageFormat,
-  resolveListingImageContentType,
-} from "@/lib/sell/image-format";
+  deleteListingImageStoragePaths,
+  listingImageUrlsToStoragePaths,
+} from "@/lib/utils/listing-storage";
 
 export type SaveListingResult = {
   listingId: string;
@@ -59,121 +59,73 @@ async function assertSellerOwnsListing(listingId: string, sellerId: string) {
   return data;
 }
 
-async function syncListingImages(
-  listingId: string,
-  userId: string,
-  photos: ListingPhotoInput[],
-  formData: FormData,
-) {
+async function syncListingImages(listingId: string, photos: ListingInput["photos"]) {
   const admin = supabaseAdmin();
 
-  console.log("[publish] Image upload started", {
+  console.log("[publish] Syncing listing images", {
     listingId,
     photoCount: photos.length,
   });
 
-  const { error: deleteError } = await admin
+  const { data: existingRows, error: existingError } = await admin
     .from("listing_images")
-    .delete()
+    .select("image_url")
     .eq("listing_id", listingId);
 
-  if (deleteError) {
-    console.error("[publish] Failed to clear existing listing images", deleteError);
-    throw new Error(deleteError.message);
+  if (existingError) {
+    console.error("[publish] Failed to load existing listing images", existingError);
+    throw new Error(existingError.message);
   }
 
-  const imageRows: Array<{
-    listing_id: string;
-    image_url: string;
-    position: number;
-  }> = [];
+  const previousUrls = (existingRows ?? []).map((row) => row.image_url);
+  const nextUrls = photos.map((photo) => photo.url);
+  const removedUrls = previousUrls.filter((url) => !nextUrls.includes(url));
 
-  for (const [position, photo] of photos.entries()) {
-    let imageUrl: string;
+  if (photos.length === 0) {
+    const { error: deleteError } = await admin
+      .from("listing_images")
+      .delete()
+      .eq("listing_id", listingId);
 
-    if (photo.source === "existing") {
-      imageUrl = photo.url;
-      console.log("[publish] Reusing existing image", { position, imageUrl });
-    } else {
-      const fileEntry = formData.get(photo.fieldName);
-
-      if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-        console.error("[publish] Missing photo file in FormData", {
-          position,
-          fieldName: photo.fieldName,
-          fileEntryType: fileEntry === null ? "null" : typeof fileEntry,
-        });
-        throw new Error("One or more photo uploads are missing.");
-      }
-
-      const safeName = fileEntry.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
-      const format = classifyImageFormat(fileEntry.name, fileEntry.type);
-      const contentType = resolveListingImageContentType(fileEntry.name, fileEntry.type);
-
-      console.log("[publish] Uploading image", {
-        position,
-        fieldName: photo.fieldName,
-        fileName: fileEntry.name,
-        fileSize: fileEntry.size,
-        fileType: fileEntry.type || "(empty)",
-        format,
-        isHeic: format === "heic" || format === "heif",
-        isJpeg: format === "jpeg",
-        contentType,
-        path,
-      });
-
-      const buffer = Buffer.from(await fileEntry.arrayBuffer());
-
-      const { error: uploadError } = await admin.storage
-        .from("listing-images")
-        .upload(path, buffer, {
-          contentType,
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("[publish] Supabase storage upload failed", {
-          position,
-          path,
-          uploadError,
-        });
-        throw new Error(uploadError.message);
-      }
-
-      const { data } = admin.storage.from("listing-images").getPublicUrl(path);
-      imageUrl = data.publicUrl;
-
-      console.log("[publish] Image upload finished", {
-        position,
-        path,
-        imageUrl,
-      });
+    if (deleteError) {
+      console.error("[publish] Failed to clear existing listing images", deleteError);
+      throw new Error(deleteError.message);
     }
 
-    imageRows.push({
-      listing_id: listingId,
-      image_url: imageUrl,
-      position,
-    });
-  }
-
-  if (imageRows.length === 0) {
-    console.log("[publish] No images to insert");
+    await deleteListingImageStoragePaths(admin, removedUrls);
     return;
   }
 
-  const { error: imageError } = await admin.from("listing_images").insert(imageRows);
+  const imageRows = photos.map((photo, position) => ({
+    listing_id: listingId,
+    image_url: photo.url,
+    position,
+  }));
 
-  if (imageError) {
-    console.error("[publish] Database image insert failed", imageError);
-    throw new Error(imageError.message);
+  const { error: upsertError } = await admin.from("listing_images").upsert(imageRows);
+
+  if (upsertError) {
+    console.error("[publish] Database image upsert failed", upsertError);
+    throw new Error(upsertError.message);
   }
 
-  console.log("[publish] Database image insert finished", {
+  const { error: staleDeleteError } = await admin
+    .from("listing_images")
+    .delete()
+    .eq("listing_id", listingId)
+    .gte("position", photos.length);
+
+  if (staleDeleteError) {
+    console.error("[publish] Failed to remove stale listing images", staleDeleteError);
+    throw new Error(staleDeleteError.message);
+  }
+
+  await deleteListingImageStoragePaths(admin, removedUrls);
+
+  console.log("[publish] Database image sync finished", {
     listingId,
     rowCount: imageRows.length,
+    removedStorageCount: listingImageUrlsToStoragePaths(removedUrls).length,
   });
 }
 
@@ -181,11 +133,12 @@ async function updateExistingListing(
   input: ListingInput,
   listingId: string,
   userId: string,
-  formData: FormData,
 ): Promise<SaveListingResult> {
   const admin = supabaseAdmin();
   const existing = await assertSellerOwnsListing(listingId, userId);
   const nextStatus = resolveNextStatus(existing.status as ListingStatus);
+
+  await syncListingImages(listingId, input.photos);
 
   const { data: updatedRow, error } = await admin
     .from("listings")
@@ -212,21 +165,20 @@ async function updateExistingListing(
 
   console.log("[publish] Listing updated", { listingId });
 
-  await syncListingImages(listingId, userId, input.photos, formData);
-
   return { listingId, mode: "updated" };
 }
 
-async function createNewListing(
-  input: ListingInput,
-  userId: string,
-  formData: FormData,
-): Promise<SaveListingResult> {
+async function createNewListing(input: ListingInput, userId: string): Promise<SaveListingResult> {
   const admin = supabaseAdmin();
+
+  if (!input.listingId) {
+    throw new Error("Listing id is required to save a new listing.");
+  }
 
   const { data: listing, error } = await admin
     .from("listings")
     .insert({
+      id: input.listingId,
       seller_id: userId,
       title: input.title,
       category: input.category,
@@ -248,43 +200,36 @@ async function createNewListing(
 
   console.log("[publish] Listing inserted", { listingId: listing.id });
 
-  await syncListingImages(listing.id, userId, input.photos, formData);
+  try {
+    await syncListingImages(listing.id, input.photos);
+  } catch (syncError) {
+    await admin.from("listings").delete().eq("id", listing.id);
+    throw syncError;
+  }
 
   return { listingId: listing.id, mode: "created" };
 }
 
-async function saveListingInternal(
-  input: ListingInput,
-  formData: FormData,
-): Promise<SaveListingResult> {
+async function saveListingInternal(input: ListingInput): Promise<SaveListingResult> {
   const user = await requireAuthenticatedUser();
-  const listingId = input.listingId;
 
-  if (input.mode === "update" && !listingId) {
-    throw new Error("Listing id is required to save edits.");
+  if (input.mode === "update") {
+    if (!input.listingId) {
+      throw new Error("Listing id is required to save edits.");
+    }
+
+    return updateExistingListing(input, input.listingId, user.id);
   }
 
-  if (listingId) {
-    return updateExistingListing(input, listingId, user.id, formData);
-  }
-
-  return createNewListing(input, user.id, formData);
+  return createNewListing(input, user.id);
 }
 
-export async function saveListing(formData: FormData): Promise<ActionResult<SaveListingResult>> {
+export async function saveListing(input: ListingInput): Promise<ActionResult<SaveListingResult>> {
   console.log("[publish] Server action entered");
 
   try {
-    const rawPayload = formData.get("data");
-
-    if (typeof rawPayload !== "string" || !rawPayload.trim()) {
-      console.error("[publish] Missing listing payload in FormData");
-      return actionError("Invalid listing payload.");
-    }
-
-    const parsedJson = JSON.parse(rawPayload) as unknown;
-    const input = ListingSchema.parse(parsedJson);
-    const result = await saveListingInternal(input, formData);
+    const parsed = ListingSchema.parse(input);
+    const result = await saveListingInternal(parsed);
 
     revalidatePath("/my-listings", "page");
     revalidatePath(`/listing/${result.listingId}`, "page");
@@ -295,11 +240,6 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
     return actionSuccess(result);
   } catch (error) {
     console.error("[publish] Server action error", error);
-
-    if (error instanceof SyntaxError) {
-      return actionError("Invalid listing payload.");
-    }
-
     return actionError(formatZodError(error));
   }
 }

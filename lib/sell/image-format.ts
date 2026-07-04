@@ -31,13 +31,9 @@ export function classifyImageFormat(fileName: string, mimeType: string): SellPho
   return "other";
 }
 
-export function isHeicFile(file: File): boolean {
+export function shouldConvertHeicToJpeg(file: File): boolean {
   const format = classifyImageFormat(file.name, file.type);
   return format === "heic" || format === "heif";
-}
-
-export function shouldConvertHeicToJpeg(file: File): boolean {
-  return isHeicFile(file);
 }
 
 export function logSellPhotoFile(phase: "selected" | "before-upload" | "converted", file: File) {

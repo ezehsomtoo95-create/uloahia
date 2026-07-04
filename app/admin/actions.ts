@@ -15,6 +15,7 @@ import {
 import type { AdminListingDetail, AdminReportDetail, AdminUserDetail } from "@/lib/data/admin-detail";
 import { getAdminTableData } from "@/lib/data/admin-listings";
 import { supabaseAdmin } from "@/lib/supabase/service";
+import { deleteListingStorageFolder } from "@/lib/utils/listing-storage";
 
 function revalidateAdminPaths(listingId?: string) {
   revalidatePath("/admin");
@@ -39,13 +40,18 @@ async function deleteListingRecord(listingId: string) {
 
   const admin = supabaseAdmin();
 
-  const { error: imageError } = await admin
-    .from("listing_images")
-    .delete()
-    .eq("listing_id", listingId);
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("id, seller_id")
+    .eq("id", listingId)
+    .maybeSingle();
 
-  if (imageError) {
-    throw new Error(imageError.message);
+  if (listingError) {
+    throw new Error(listingError.message);
+  }
+
+  if (!listing) {
+    throw new Error("Listing not found.");
   }
 
   const { error } = await admin.from("listings").delete().eq("id", listingId);
@@ -53,6 +59,8 @@ async function deleteListingRecord(listingId: string) {
   if (error) {
     throw new Error(error.message);
   }
+
+  await deleteListingStorageFolder(admin, listing.seller_id, listingId);
 }
 
 export async function fetchAdminListingDetail(

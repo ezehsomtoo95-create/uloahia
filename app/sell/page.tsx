@@ -22,11 +22,13 @@ import { SellPhotoGrid } from "@/components/sell/sell-photo-grid";
 import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
-import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
+import { buildSaveListingPayload } from "@/lib/sell/build-save-listing-payload";
+import { prepareListingPhoto } from "@/lib/sell/prepare-listing-photo";
+import { logSellPhotoFile } from "@/lib/sell/image-format";
 import {
-  logSellPhotoFile,
-  normalizeCameraPhotoForUpload,
-} from "@/lib/sell/camera-photo";
+  deleteUploadedListingPhotos,
+  uploadListingPhotos,
+} from "@/lib/sell/upload-listing-photos";
 import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
 import type { EasternState, ListingCondition, ListingCategorySlug, ListingStatus } from "@/lib/types";
@@ -185,14 +187,10 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
-      console.log("DB title:", data.title);
-
       const images = [...(data.listing_images ?? [])].sort(
         (first, second) => first.position - second.position,
       );
       const normalizedCategory = normalizeCategorySlug(data.category);
-
-      console.log("Reopened title:", data.title);
 
       setForm({
         listingId: data.id,
@@ -287,6 +285,8 @@ function SellPageContent({ editId }: { editId: string | null }) {
     setIsPublishing(true);
     setErrorMessage("");
 
+    let uploadedPaths: string[] = [];
+
     try {
       const {
         data: { user },
@@ -299,37 +299,51 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
+      const existingListingId = form.listingId ?? editId ?? undefined;
+      const createListingId = existingListingId ? undefined : crypto.randomUUID();
+      const listingId = existingListingId ?? createListingId;
+
+      if (!listingId) {
+        throw new Error("Could not determine listing id for upload.");
+      }
+
       for (const photo of form.photos) {
         if (photo.source === "new") {
           logSellPhotoFile("before-upload", photo.file);
         }
       }
 
-      const formData = buildSaveListingFormData(form, editId);
-      let fileCount = 0;
-      let totalFileBytes = 0;
-
-      for (const value of formData.values()) {
-        if (value instanceof File) {
-          fileCount += 1;
-          totalFileBytes += value.size;
-        }
-      }
-
-      console.log("[publish] FormData created", {
-        fileCount,
-        totalFileBytes,
-        totalFileMb: (totalFileBytes / (1024 * 1024)).toFixed(2),
+      console.log("[publish] Uploading photos to storage", {
+        listingId,
+        photoCount: form.photos.length,
       });
 
-      console.log("[publish] Calling server action...");
-      const result = await saveListingAction(formData);
-      console.log("[publish] Client received response", result);
+      const uploadResult = await uploadListingPhotos(supabase, user.id, listingId, form.photos);
+      uploadedPaths = uploadResult.uploadedPaths;
+
+      const payload = buildSaveListingPayload(form, uploadResult.photos, {
+        editListingId: editId,
+        createListingId,
+      });
+
+      console.log("[publish] Calling server action...", {
+        mode: payload.mode,
+        listingId: payload.listingId,
+        photoCount: payload.photos.length,
+      });
+
+      const dispatchStartedAt = performance.now();
+      const result = await saveListingAction(payload);
+      console.log("[publish] Client received response", {
+        result,
+        dispatchMs: Math.round(performance.now() - dispatchStartedAt),
+      });
 
       if (!result.success) {
         console.error("[publish] Server action returned error", result.error);
         setErrorMessage(result.error);
         showSaveToast(result.error);
+        await deleteUploadedListingPhotos(supabase, uploadedPaths);
         return;
       }
 
@@ -351,9 +365,14 @@ function SellPageContent({ editId }: { editId: string | null }) {
             ? error
             : JSON.stringify(error);
 
-      console.error("[publish] Server action threw before returning", error);
+      console.error("[publish] Publish failed", {
+        error,
+        message,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       setErrorMessage(message);
       showSaveToast(message);
+      await deleteUploadedListingPhotos(supabase, uploadedPaths);
     } finally {
       setIsPublishing(false);
       console.log("[publish] Publish loading reset");
@@ -593,7 +612,7 @@ function PhotosStep({
     try {
       const selectedFiles = files.slice(0, remaining);
       const normalizedFiles = await Promise.all(
-        selectedFiles.map((file) => normalizeCameraPhotoForUpload(file)),
+        selectedFiles.map((file) => prepareListingPhoto(file)),
       );
 
       const nextFiles = normalizedFiles.map((file) => ({
@@ -650,15 +669,12 @@ function DetailsStep({
   setForm: React.Dispatch<React.SetStateAction<SellForm | null>>;
   editId: string | null;
 }) {
-  console.log("Input value:", form.title);
-
   return (
     <div className="space-y-2">
       <Field label="Title">
         <input
           value={form.title}
           onChange={(event) => {
-            console.log("Typing:", event.target.value);
             setForm((prev) => (prev ? { ...prev, title: event.target.value } : prev));
           }}
           autoComplete="off"
