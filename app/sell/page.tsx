@@ -274,40 +274,80 @@ function SellPageContent({ editId }: { editId: string | null }) {
       return;
     }
 
+    console.log("[publish] Publish button clicked", {
+      photoCount: form.photos.length,
+      isEditMode,
+      listingId: form.listingId ?? editId ?? null,
+    });
+
     setIsPublishing(true);
     setErrorMessage("");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
+      if (userError || !user) {
+        console.error("[publish] Auth check failed", userError);
+        router.push("/login");
+        return;
+      }
+
+      const formData = buildSaveListingFormData(form, editId);
+      let fileCount = 0;
+      let totalFileBytes = 0;
+
+      for (const value of formData.values()) {
+        if (value instanceof File) {
+          fileCount += 1;
+          totalFileBytes += value.size;
+        }
+      }
+
+      console.log("[publish] FormData created", {
+        fileCount,
+        totalFileBytes,
+        totalFileMb: (totalFileBytes / (1024 * 1024)).toFixed(2),
+      });
+
+      console.log("[publish] Calling server action...");
+      const result = await saveListingAction(formData);
+      console.log("[publish] Client received response", result);
+
+      if (!result.success) {
+        console.error("[publish] Server action returned error", result.error);
+        setErrorMessage(result.error);
+        showSaveToast(result.error);
+        return;
+      }
+
+      router.refresh();
+
+      if (result.data?.mode === "updated") {
+        showSaveToast("Listing updated successfully.");
+        setUpdated(true);
+        return;
+      }
+
+      showSaveToast("Listing submitted for review.");
+      setPublished(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : typeof error === "string"
+            ? error
+            : JSON.stringify(error);
+
+      console.error("[publish] Server action threw before returning", error);
+      setErrorMessage(message);
+      showSaveToast(message);
+    } finally {
       setIsPublishing(false);
-      router.push("/login");
-      return;
+      console.log("[publish] Publish loading reset");
     }
-
-    const result = await saveListingAction(buildSaveListingFormData(form, editId));
-
-    setIsPublishing(false);
-
-    if (!result.success) {
-      setErrorMessage(result.error);
-      showSaveToast(result.error);
-      return;
-    }
-
-    router.refresh();
-
-    if (result.data?.mode === "updated") {
-      showSaveToast("Listing updated successfully.");
-      setUpdated(true);
-      return;
-    }
-
-    showSaveToast("Listing submitted for review.");
-    setPublished(true);
   }
 
   if (isLoadingEdit || !form) {

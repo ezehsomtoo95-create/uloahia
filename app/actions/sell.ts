@@ -63,12 +63,18 @@ async function syncListingImages(
 ) {
   const admin = supabaseAdmin();
 
+  console.log("[publish] Image upload started", {
+    listingId,
+    photoCount: photos.length,
+  });
+
   const { error: deleteError } = await admin
     .from("listing_images")
     .delete()
     .eq("listing_id", listingId);
 
   if (deleteError) {
+    console.error("[publish] Failed to clear existing listing images", deleteError);
     throw new Error(deleteError.message);
   }
 
@@ -83,15 +89,31 @@ async function syncListingImages(
 
     if (photo.source === "existing") {
       imageUrl = photo.url;
+      console.log("[publish] Reusing existing image", { position, imageUrl });
     } else {
       const fileEntry = formData.get(photo.fieldName);
 
       if (!(fileEntry instanceof File) || fileEntry.size === 0) {
+        console.error("[publish] Missing photo file in FormData", {
+          position,
+          fieldName: photo.fieldName,
+          fileEntryType: fileEntry === null ? "null" : typeof fileEntry,
+        });
         throw new Error("One or more photo uploads are missing.");
       }
 
       const safeName = fileEntry.name.replace(/[^a-zA-Z0-9._-]/g, "-");
       const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
+
+      console.log("[publish] Uploading image", {
+        position,
+        fieldName: photo.fieldName,
+        fileName: fileEntry.name,
+        fileSize: fileEntry.size,
+        contentType: fileEntry.type || "image/jpeg",
+        path,
+      });
+
       const buffer = Buffer.from(await fileEntry.arrayBuffer());
 
       const { error: uploadError } = await admin.storage
@@ -102,11 +124,22 @@ async function syncListingImages(
         });
 
       if (uploadError) {
+        console.error("[publish] Supabase storage upload failed", {
+          position,
+          path,
+          uploadError,
+        });
         throw new Error(uploadError.message);
       }
 
       const { data } = admin.storage.from("listing-images").getPublicUrl(path);
       imageUrl = data.publicUrl;
+
+      console.log("[publish] Image upload finished", {
+        position,
+        path,
+        imageUrl,
+      });
     }
 
     imageRows.push({
@@ -117,14 +150,21 @@ async function syncListingImages(
   }
 
   if (imageRows.length === 0) {
+    console.log("[publish] No images to insert");
     return;
   }
 
   const { error: imageError } = await admin.from("listing_images").insert(imageRows);
 
   if (imageError) {
+    console.error("[publish] Database image insert failed", imageError);
     throw new Error(imageError.message);
   }
+
+  console.log("[publish] Database image insert finished", {
+    listingId,
+    rowCount: imageRows.length,
+  });
 }
 
 async function updateExistingListing(
@@ -156,8 +196,11 @@ async function updateExistingListing(
     .single();
 
   if (error || !updatedRow) {
+    console.error("[publish] Listing update failed", error);
     throw new Error(error?.message ?? "Could not update listing.");
   }
+
+  console.log("[publish] Listing updated", { listingId });
 
   await syncListingImages(listingId, userId, input.photos, formData);
 
@@ -189,8 +232,11 @@ async function createNewListing(
     .single();
 
   if (error || !listing) {
+    console.error("[publish] Listing insert failed", error);
     throw new Error(error?.message ?? "Could not create listing.");
   }
+
+  console.log("[publish] Listing inserted", { listingId: listing.id });
 
   await syncListingImages(listing.id, userId, input.photos, formData);
 
@@ -216,10 +262,13 @@ async function saveListingInternal(
 }
 
 export async function saveListing(formData: FormData): Promise<ActionResult<SaveListingResult>> {
+  console.log("[publish] Server action entered");
+
   try {
     const rawPayload = formData.get("data");
 
     if (typeof rawPayload !== "string" || !rawPayload.trim()) {
+      console.error("[publish] Missing listing payload in FormData");
       return actionError("Invalid listing payload.");
     }
 
@@ -232,8 +281,11 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
     revalidatePath("/browse", "page");
     revalidatePath("/", "layout");
 
+    console.log("[publish] Server action returned", result);
     return actionSuccess(result);
   } catch (error) {
+    console.error("[publish] Server action error", error);
+
     if (error instanceof SyntaxError) {
       return actionError("Invalid listing payload.");
     }
