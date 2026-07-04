@@ -20,7 +20,7 @@ export default async function MyListingsPage() {
   const listings = await getMyListings();
 
   return (
-    <main className="space-y-4 pb-6 pt-3">
+    <main className="marketplace-page space-y-4 pt-3">
       <section className="flex items-start justify-between gap-3">
         <div>
           <h1 className="type-page-title">My listings</h1>

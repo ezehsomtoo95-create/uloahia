@@ -34,10 +34,7 @@ export function DarkModeSettingRow() {
 
   return (
     <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 p-4 text-[14px] font-medium">
-      <div className="flex min-w-0 items-center gap-2">
-        <span>Dark Mode</span>
-        <span className="text-[10px] font-normal text-primary">Debug: Toggle Present</span>
-      </div>
+      <span>Dark Mode</span>
       <button
         type="button"
         role="switch"
