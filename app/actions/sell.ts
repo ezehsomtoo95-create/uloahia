@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/service";
 import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
 import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
+import { optimizeListingUploadImage } from "@/lib/utils/optimize-upload-image";
 
 export type SaveListingResult = {
   listingId: string;
@@ -91,13 +92,15 @@ async function syncListingImages(
       }
 
       const safeName = fileEntry.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
-      const buffer = Buffer.from(await fileEntry.arrayBuffer());
+      const rawBuffer = Buffer.from(await fileEntry.arrayBuffer());
+      const optimized = await optimizeListingUploadImage(rawBuffer);
+      const stem = safeName.replace(/\.[^.]+$/, "") || "photo";
+      const path = `${userId}/${listingId}/${Date.now()}-${position}-${stem}${optimized.extension}`;
 
       const { error: uploadError } = await admin.storage
         .from("listing-images")
-        .upload(path, buffer, {
-          contentType: fileEntry.type || "image/jpeg",
+        .upload(path, optimized.buffer, {
+          contentType: optimized.contentType,
           upsert: false,
         });
 

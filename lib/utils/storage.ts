@@ -12,7 +12,7 @@ const LIST_IMAGE_SIZES: Record<ListingListImageVariant, { width: number; height:
 
 const DETAIL_IMAGE_SIZES: Record<ListingDetailImageVariant, { width: number; height: number }> =
   {
-    hero: { width: 900, height: 900 },
+    hero: { width: 1600, height: 1600 },
     thumb: { width: 144, height: 144 },
   };
 
