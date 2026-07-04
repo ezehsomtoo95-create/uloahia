@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
@@ -9,7 +10,7 @@ import { DarkModeSettingRow } from "@/components/theme/dark-mode-setting-row";
 import { SUPPORT_WHATSAPP_HREF } from "@/lib/constants/support";
 import { cn } from "@/lib/utils/cn";
 
-export function ProfileSupportSettings() {
+export function ProfileSupportSettings({ isLoggedIn }: { isLoggedIn: boolean }) {
   const router = useRouter();
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -49,50 +50,60 @@ export function ProfileSupportSettings() {
 
           <DarkModeSettingRow />
 
-          <div>
-            <button
-              type="button"
-              onClick={() => setPrivacyOpen((open) => !open)}
-              aria-expanded={privacyOpen}
-              className="flex w-full items-center justify-between gap-3 p-4 text-left text-[14px] font-medium"
-            >
-              <span>Privacy & account</span>
-              <ChevronDown
-                size={16}
-                className={cn(
-                  "shrink-0 text-muted transition-transform duration-app",
-                  privacyOpen && "rotate-180",
-                )}
-                aria-hidden
-              />
-            </button>
+          {isLoggedIn ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setPrivacyOpen((open) => !open)}
+                aria-expanded={privacyOpen}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left text-[14px] font-medium"
+              >
+                <span>Privacy & account</span>
+                <ChevronDown
+                  size={16}
+                  className={cn(
+                    "shrink-0 text-muted transition-transform duration-app",
+                    privacyOpen && "rotate-180",
+                  )}
+                  aria-hidden
+                />
+              </button>
 
-            {privacyOpen ? (
-              <div className="space-y-2 border-t border-border bg-background/50 px-4 py-3">
-                <p className="text-[12px] leading-5 text-muted">
-                  Manage sensitive account actions. Deleting your profile permanently
-                  removes your listings and saved data.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    setConfirmOpen(true);
-                  }}
-                  className="inline-flex h-9 items-center rounded-full border border-red-500/30 bg-red-500/5 px-3.5 text-[12px] font-semibold text-red-500"
-                >
-                  Delete profile
-                </button>
-                {error ? (
-                  <p className="text-[12px] leading-5 text-red-500">{error}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+              {privacyOpen ? (
+                <div className="space-y-2 border-t border-border bg-background/50 px-4 py-3">
+                  <p className="text-[12px] leading-5 text-muted">
+                    Manage sensitive account actions. Deleting your profile permanently
+                    removes your listings and saved data.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setConfirmOpen(true);
+                    }}
+                    className="inline-flex h-9 items-center rounded-full border border-red-500/30 bg-red-500/5 px-3.5 text-[12px] font-semibold text-red-500"
+                  >
+                    Delete profile
+                  </button>
+                  {error ? (
+                    <p className="text-[12px] leading-5 text-red-500">{error}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="px-4 py-3 text-[12px] leading-5 text-muted">
+              <Link href="/login?next=/profile" className="font-medium text-primary">
+                Log in
+              </Link>{" "}
+              to manage your privacy settings.
+            </p>
+          )}
         </div>
       </section>
 
-      <AdminConfirmDialog
+      {isLoggedIn ? (
+        <AdminConfirmDialog
         open={confirmOpen}
         title="Delete your profile?"
         description="This permanently removes your account, listings, and saved items. This action cannot be undone."
@@ -106,6 +117,7 @@ export function ProfileSupportSettings() {
         }}
         onConfirm={handleDeleteConfirm}
       />
+      ) : null}
     </>
   );
 }

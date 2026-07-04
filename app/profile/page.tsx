@@ -78,19 +78,6 @@ export default async function ProfilePage() {
               <AdminDashboardButton />
             </div>
           ) : null}
-
-          <ProfileSupportSettings />
-
-          <div className="touch-card w-full overflow-hidden rounded-3xl">
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="block w-full p-3.5 text-left text-[14px] font-medium text-muted"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
         </>
       ) : (
         <>
@@ -106,10 +93,23 @@ export default async function ProfilePage() {
               Log in
             </Link>
           </div>
-
-          <ProfileSupportSettings />
         </>
       )}
+
+      <ProfileSupportSettings isLoggedIn={!!user} />
+
+      {user ? (
+        <div className="touch-card w-full overflow-hidden rounded-3xl">
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="block w-full p-3.5 text-left text-[14px] font-medium text-muted"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      ) : null}
     </main>
   );
 }
