@@ -7,6 +7,10 @@ import { supabaseAdmin } from "@/lib/supabase/service";
 import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
 import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
+import {
+  classifyImageFormat,
+  resolveListingImageContentType,
+} from "@/lib/sell/image-format";
 
 export type SaveListingResult = {
   listingId: string;
@@ -104,13 +108,19 @@ async function syncListingImages(
 
       const safeName = fileEntry.name.replace(/[^a-zA-Z0-9._-]/g, "-");
       const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
+      const format = classifyImageFormat(fileEntry.name, fileEntry.type);
+      const contentType = resolveListingImageContentType(fileEntry.name, fileEntry.type);
 
       console.log("[publish] Uploading image", {
         position,
         fieldName: photo.fieldName,
         fileName: fileEntry.name,
         fileSize: fileEntry.size,
-        contentType: fileEntry.type || "image/jpeg",
+        fileType: fileEntry.type || "(empty)",
+        format,
+        isHeic: format === "heic" || format === "heif",
+        isJpeg: format === "jpeg",
+        contentType,
         path,
       });
 
@@ -119,7 +129,7 @@ async function syncListingImages(
       const { error: uploadError } = await admin.storage
         .from("listing-images")
         .upload(path, buffer, {
-          contentType: fileEntry.type || "image/jpeg",
+          contentType,
           upsert: false,
         });
 

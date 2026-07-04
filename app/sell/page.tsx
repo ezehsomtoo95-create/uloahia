@@ -23,6 +23,10 @@ import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
 import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
+import {
+  logSellPhotoFile,
+  normalizeCameraPhotoForUpload,
+} from "@/lib/sell/camera-photo";
 import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
 import type { EasternState, ListingCondition, ListingCategorySlug, ListingStatus } from "@/lib/types";
@@ -295,6 +299,12 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
+      for (const photo of form.photos) {
+        if (photo.source === "new") {
+          logSellPhotoFile("before-upload", photo.file);
+        }
+      }
+
       const formData = buildSaveListingFormData(form, editId);
       let fileCount = 0;
       let totalFileBytes = 0;
@@ -472,6 +482,10 @@ function SellPageContent({ editId }: { editId: string | null }) {
               photos={form.photos}
               photoPreviews={photoPreviews}
               onPhotosChange={(photos) => setForm((prev) => (prev ? { ...prev, photos } : prev))}
+              onPhotoError={(message) => {
+                setErrorMessage(message);
+                showSaveToast(message);
+              }}
             />
           ) : null}
           {stepIndex === 1 ? (
@@ -561,26 +575,42 @@ function PhotosStep({
   photos,
   photoPreviews,
   onPhotosChange,
+  onPhotoError,
 }: {
   photos: SellPhotoItem[];
   photoPreviews: string[];
   onPhotosChange: (photos: SellPhotoItem[]) => void;
+  onPhotoError: (message: string) => void;
 }) {
   const photoCount = photos.length;
 
-  function addPhotos(files: File[]) {
+  async function addPhotos(files: File[]) {
     const remaining = MAX_SELL_PHOTOS - photos.length;
     if (remaining <= 0) {
       return;
     }
 
-    const nextFiles = files.slice(0, remaining).map((file) => ({
-      source: "new" as const,
-      file,
-      id: createSellPhotoId(),
-    }));
+    try {
+      const selectedFiles = files.slice(0, remaining);
+      const normalizedFiles = await Promise.all(
+        selectedFiles.map((file) => normalizeCameraPhotoForUpload(file)),
+      );
 
-    onPhotosChange([...photos, ...nextFiles]);
+      const nextFiles = normalizedFiles.map((file) => ({
+        source: "new" as const,
+        file,
+        id: createSellPhotoId(),
+      }));
+
+      onPhotosChange([...photos, ...nextFiles]);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not prepare this camera photo for upload.";
+      console.error("[publish] Camera photo normalization failed", error);
+      onPhotoError(message);
+    }
   }
 
   return (
@@ -597,7 +627,7 @@ function PhotosStep({
           multiple
           className="sr-only"
           onChange={(event) => {
-            addPhotos(Array.from(event.target.files ?? []));
+            void addPhotos(Array.from(event.target.files ?? []));
             event.target.value = "";
           }}
         />
