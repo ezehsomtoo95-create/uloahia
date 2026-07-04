@@ -1,4 +1,4 @@
-type AuthMode = "login" | "signup" | "recover";
+type AuthMode = "login" | "signup" | "forgot" | "setup";
 
 export type AuthErrorInput = {
   message: string;
@@ -11,6 +11,7 @@ export type AuthErrorDisplay = {
   text: string;
   showSignupButton?: boolean;
   showLoginButton?: boolean;
+  showSetupPasswordLink?: boolean;
 };
 
 function normalizeErrorMessage(message: string) {
@@ -48,9 +49,17 @@ function isMissingAccountMessage(message: string, code: string) {
   return (
     code === "user_not_found" ||
     message.includes("user not found") ||
-    message.includes("invalid login") ||
     message.includes("no user found") ||
     message.includes("user does not exist")
+  );
+}
+
+function isInvalidCredentialsMessage(message: string, code: string) {
+  return (
+    code === "invalid_credentials" ||
+    message.includes("invalid login credentials") ||
+    message.includes("invalid email or password") ||
+    message.includes("invalid phone or password")
   );
 }
 
@@ -85,16 +94,35 @@ function isLoginSignupNotAllowedMessage(message: string) {
   return message.includes("signups not allowed");
 }
 
+function isWeakPasswordMessage(message: string, code: string) {
+  return (
+    code === "weak_password" ||
+    message.includes("password should be at least") ||
+    message.includes("password is too weak")
+  );
+}
+
 export function mapAuthError(
   error: AuthErrorInput | string,
   mode: AuthMode,
 ): AuthErrorDisplay {
-  const input =
-    typeof error === "string"
-      ? { message: error }
-      : error;
+  const input = typeof error === "string" ? { message: error } : error;
   const message = normalizeErrorMessage(input.message);
   const code = normalizeErrorCode(input.code);
+
+  if (mode === "login" && isInvalidCredentialsMessage(message, code)) {
+    return {
+      title: "Could not log in",
+      text: "Check your phone and password. If you have not set a password yet, verify your phone with OTP first.",
+      showSetupPasswordLink: true,
+    };
+  }
+
+  if (isWeakPasswordMessage(message, code)) {
+    return {
+      text: "Choose a stronger password with at least 8 characters.",
+    };
+  }
 
   if (mode === "signup" && isExistingAccountMessage(message, code)) {
     return {
@@ -116,25 +144,12 @@ export function mapAuthError(
   }
 
   if (
-    mode === "login" &&
-    (isMissingAccountMessage(message, code) ||
-      isLoginSignupNotAllowedMessage(message))
+    (mode === "forgot" || mode === "setup") &&
+    (isMissingAccountMessage(message, code) || isLoginSignupNotAllowedMessage(message))
   ) {
     return {
       title: "No account found",
-      text: "This phone number hasn't created an account yet. Switch to Signup to continue.",
-      showSignupButton: true,
-    };
-  }
-
-  if (
-    mode === "recover" &&
-    (isMissingAccountMessage(message, code) ||
-      isLoginSignupNotAllowedMessage(message))
-  ) {
-    return {
-      title: "No account found",
-      text: "This phone number hasn't created an account yet. Switch to Signup to continue.",
+      text: "This phone number has not created an account yet. Switch to Signup to continue.",
       showSignupButton: true,
     };
   }

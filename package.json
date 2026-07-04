@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "migrate:admin-password": "node scripts/migrate-admin-password.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

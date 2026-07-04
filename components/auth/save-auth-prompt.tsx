@@ -43,34 +43,34 @@ export function SaveAuthPrompt({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 p-4 sm:items-center"
+      className="auth-modal-backdrop fixed inset-0 z-[9999] flex items-end justify-center p-4 sm:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-[16px] border border-border bg-surface p-4 shadow-xl"
+        className="auth-modal w-full max-w-sm"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-auth-title"
       >
-        <h2 id="save-auth-title" className="type-section-title">
+        <h2 id="save-auth-title" className="auth-modal__title">
           Save listings
         </h2>
-        <p className="mt-1 text-[13px] leading-5 text-muted">
+        <p className="auth-modal__text">
           Create an account to keep your saved items.
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="auth-modal__actions">
           <Link
             href={buildAuthHref("login", returnPath)}
             onClick={onClose}
-            className="type-btn flex h-11 items-center justify-center rounded-full border border-border px-3 text-[13px]"
+            className="auth-btn-secondary auth-modal__link"
           >
             Login
           </Link>
           <Link
             href={buildAuthHref("signup", returnPath)}
             onClick={onClose}
-            className="type-btn flex h-11 items-center justify-center rounded-full bg-primary px-3 text-[13px] text-primary-foreground"
+            className="auth-btn-primary auth-modal__link"
           >
             Sign up
           </Link>

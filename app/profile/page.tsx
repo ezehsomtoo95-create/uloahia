@@ -31,7 +31,7 @@ export default async function ProfilePage() {
       <section>
         <h1 className="type-page-title">Profile</h1>
         <p className="type-page-sub mt-1">
-          Phone-based tools for buying and selling on {BRAND_NAME}.
+          Manage your account, listings, and security settings on {BRAND_NAME}.
         </p>
       </section>
 
@@ -57,6 +57,15 @@ export default async function ProfilePage() {
             </Link>
             <Link className="block p-4 text-[14px] font-medium" href="/saved">
               Saved listings
+            </Link>
+            <Link className="block p-4 text-[14px] font-medium" href="/profile/change-phone">
+              Change phone number
+            </Link>
+            <Link
+              className="block p-4 text-[14px] font-medium"
+              href="/login?mode=forgot&next=/profile"
+            >
+              Change password
             </Link>
           </div>
 

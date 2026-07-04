@@ -2,53 +2,64 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { phoneAccountExists } from "@/lib/auth/check-phone-account";
+import { AuthField } from "@/components/auth/auth-field";
+import {
+  AuthCard,
+  AuthFallbackCard,
+  AuthFormStack,
+  AuthGhostButton,
+  AuthHeading,
+  AuthMessageBanner,
+  AuthModeTabs,
+  AuthPageShell,
+  AuthPhoneHint,
+  AuthPrimaryButton,
+  AuthSecondaryButton,
+} from "@/components/auth/auth-primitives";
+import { syncAuthProfile } from "@/lib/auth/profile-sync";
+import {
+  validatePasswordConfirmation,
+} from "@/lib/auth/password";
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
-import { isValidE164Phone, normalizeNigerianPhone } from "@/lib/utils/phone";
 import {
   getSupabaseEnvError,
   mapAuthError,
   type AuthErrorDisplay,
   type AuthErrorInput,
 } from "@/lib/utils/auth-errors";
+import { isValidE164Phone, normalizeNigerianPhone } from "@/lib/utils/phone";
 
-type Mode = "login" | "signup" | "recover";
-type Step = "phone" | "otp";
+type Mode = "login" | "signup" | "forgot" | "setup";
+type Step = "credentials" | "phone" | "otp" | "password";
 
 const MODE_COPY = {
   login: {
-    title: "Log in with phone",
-    helper: "Enter your Nigerian phone number. We'll send an OTP.",
-    button: "Send OTP",
-    shouldCreateUser: false,
+    title: "Log in",
+    helper: "Use your phone number and password.",
   },
   signup: {
     title: "Create account",
     helper: `Use one phone number for one ${BRAND_NAME} account.`,
-    button: "Create account",
-    shouldCreateUser: true,
+    button: "Continue",
   },
-  recover: {
-    title: "Recover access",
-    helper: "Use OTP to access your account again.",
-    button: "Send recovery OTP",
-    shouldCreateUser: false,
+  forgot: {
+    title: "Forgot password",
+    helper: "Verify your phone with OTP, then choose a new password.",
+    button: "Send OTP",
+  },
+  setup: {
+    title: "Set up your password",
+    helper: "Verify your phone with OTP, then create a password for future logins.",
+    button: "Send OTP",
   },
 } as const;
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-[calc(100vh-160px)] items-center py-4">
-          <section className="touch-card w-full p-4">
-            <div className="h-8 w-40 skeleton rounded-full" />
-            <div className="mt-4 h-24 w-full skeleton rounded-app" />
-          </section>
-        </main>
-      }
-    >
+    <Suspense fallback={<AuthFallbackCard />}>
       <LoginPageContent />
     </Suspense>
   );
@@ -60,20 +71,24 @@ function LoginPageContent() {
   const returnPath = getSafeReturnPath(searchParams.get("next"));
   const requestedMode = searchParams.get("mode");
   const supabase = useMemo(() => createClient(), []);
+
   const [mode, setMode] = useState<Mode>(() => {
-    if (requestedMode === "signup") {
-      return "signup";
-    }
-
-    if (requestedMode === "recover") {
-      return "recover";
-    }
-
+    if (requestedMode === "signup") return "signup";
+    if (requestedMode === "forgot") return "forgot";
+    if (requestedMode === "setup") return "setup";
     return "login";
   });
-  const [step, setStep] = useState<Step>("phone");
+  const [step, setStep] = useState<Step>(() =>
+    requestedMode === "signup" ||
+    requestedMode === "forgot" ||
+    requestedMode === "setup"
+      ? "phone"
+      : "credentials",
+  );
   const [phoneInput, setPhoneInput] = useState("");
   const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState("");
   const [authError, setAuthError] = useState<AuthErrorDisplay | null>(null);
@@ -81,11 +96,14 @@ function LoginPageContent() {
 
   const normalizedPhone = normalizeNigerianPhone(phoneInput);
   const copy = MODE_COPY[mode];
+  const usesOtpFlow = mode === "signup" || mode === "forgot" || mode === "setup";
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
-    setStep("phone");
+    setStep(nextMode === "login" ? "credentials" : "phone");
     setOtp("");
+    setPassword("");
+    setPasswordConfirm("");
     setMessage("");
     setAuthError(null);
   }
@@ -95,6 +113,46 @@ function LoginPageContent() {
     setAuthError(mapAuthError(error, mode));
   }
 
+  async function loginWithPassword() {
+    setMessage("");
+    setAuthError(null);
+
+    const envError = getSupabaseEnvError();
+    if (envError) {
+      setMessage(envError);
+      return;
+    }
+
+    if (!normalizedPhone || !isValidE164Phone(normalizedPhone)) {
+      setMessage("Enter a valid Nigerian phone number, for example 08101234567.");
+      return;
+    }
+
+    if (!password) {
+      setMessage("Enter your password.");
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      phone: normalizedPhone,
+      password,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      showAuthError({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+      return;
+    }
+
+    router.push(returnPath);
+    router.refresh();
+  }
+
   async function sendOtp() {
     setMessage("");
     setAuthError(null);
@@ -102,7 +160,6 @@ function LoginPageContent() {
     const envError = getSupabaseEnvError();
     if (envError) {
       setMessage(envError);
-      console.log("signup env error", envError);
       return;
     }
 
@@ -117,52 +174,62 @@ function LoginPageContent() {
     }
 
     setIsLoading(true);
-    const shouldCreateUser = copy.shouldCreateUser;
-    if (mode === "signup") {
-      console.log("signup otp", {
-        phone: normalizedPhone,
-        shouldCreateUser,
-      });
-    } else {
-      console.log("sending otp", normalizedPhone);
-    }
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: normalizedPhone,
-      options: {
-        shouldCreateUser,
-        data:
-          mode === "signup"
-            ? {
-                full_name: fullName.trim(),
-              }
-            : undefined,
-      },
-    });
-    setIsLoading(false);
 
-    if (error) {
+    try {
       if (mode === "signup") {
-        console.log(error);
-        console.log(error.code);
-        console.log(error.message);
-        console.log(error.status);
-      } else {
-        console.log("otp error", error);
-        console.log("otp error code", error.code);
-        console.log("otp error message", error.message);
-        console.log("otp error status", error.status);
+        const exists = await phoneAccountExists(normalizedPhone);
+        if (exists) {
+          setAuthError({
+            text: "This phone number is already registered. Please log in instead.",
+            showLoginButton: true,
+          });
+          return;
+        }
       }
-      showAuthError({
-        message: error.message,
-        code: error.code,
-        status: error.status,
-      });
-      return;
-    }
 
-    setStep("otp");
-    setAuthError(null);
-    setMessage(`OTP sent to ${normalizedPhone}.`);
+      if (mode === "forgot" || mode === "setup") {
+        const exists = await phoneAccountExists(normalizedPhone);
+        if (!exists) {
+          setAuthError({
+            text: "No account was found with this phone number.",
+          });
+          return;
+        }
+      }
+
+      const shouldCreateUser = mode === "signup";
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: normalizedPhone,
+        options: {
+          shouldCreateUser,
+          data:
+            mode === "signup"
+              ? {
+                  full_name: fullName.trim(),
+                }
+              : undefined,
+        },
+      });
+
+      if (error) {
+        showAuthError({
+          message: error.message,
+          code: error.code,
+          status: error.status,
+        });
+        return;
+      }
+
+      setStep("otp");
+      setAuthError(null);
+      setMessage(`OTP sent to ${normalizedPhone}.`);
+    } catch (error) {
+      showAuthError(
+        error instanceof Error ? error.message : "Could not verify phone number.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function verifyOtp() {
@@ -188,9 +255,6 @@ function LoginPageContent() {
 
     if (error || !data.user) {
       setIsLoading(false);
-      if (mode === "signup") {
-        console.log("signup verify error", error);
-      }
       showAuthError(
         error
           ? {
@@ -203,172 +267,311 @@ function LoginPageContent() {
       return;
     }
 
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      phone: normalizedPhone,
-      full_name: fullName.trim() || data.user.user_metadata.full_name || null,
-    });
+    if (mode === "signup") {
+      await syncAuthProfile(supabase, {
+        userId: data.user.id,
+        phone: normalizedPhone,
+        fullName: fullName.trim() || data.user.user_metadata.full_name,
+      });
+    }
 
     setIsLoading(false);
+    setStep("password");
+    setPassword("");
+    setPasswordConfirm("");
+    setMessage("Choose a password for your account.");
+    setAuthError(null);
+  }
+
+  async function savePassword() {
+    setMessage("");
+    setAuthError(null);
+
+    const validation = validatePasswordConfirmation(password, passwordConfirm);
+    if (!validation.ok) {
+      setMessage(validation.message);
+      return;
+    }
+
+    setIsLoading(true);
+    const { data, error } = await supabase.auth.updateUser({ password });
+
+    if (error || !data.user) {
+      setIsLoading(false);
+      showAuthError(
+        error
+          ? {
+              message: error.message,
+              code: error.code,
+              status: error.status,
+            }
+          : "Could not save password.",
+      );
+      return;
+    }
+
+    try {
+      await syncAuthProfile(supabase, {
+        userId: data.user.id,
+        phone: normalizedPhone ?? data.user.phone ?? "",
+        fullName:
+          fullName.trim() ||
+          (typeof data.user.user_metadata.full_name === "string"
+            ? data.user.user_metadata.full_name
+            : null),
+        markPasswordSet: true,
+      });
+    } catch (profileError) {
+      setIsLoading(false);
+      showAuthError(
+        profileError instanceof Error ? profileError.message : "Could not update profile.",
+      );
+      return;
+    }
+
+    setIsLoading(false);
+
+    if (mode === "forgot" || mode === "setup") {
+      router.push(returnPath);
+      router.refresh();
+      return;
+    }
+
     router.push(returnPath);
     router.refresh();
   }
 
+  function handlePrimaryAction() {
+    if (mode === "login" && step === "credentials") {
+      void loginWithPassword();
+      return;
+    }
+
+    if (step === "phone") {
+      void sendOtp();
+      return;
+    }
+
+    if (step === "otp") {
+      void verifyOtp();
+      return;
+    }
+
+    if (step === "password") {
+      void savePassword();
+    }
+  }
+
+  function primaryButtonLabel() {
+    if (isLoading) {
+      return "Please wait...";
+    }
+
+    if (mode === "login") {
+      return "Log in";
+    }
+
+    if (step === "otp") {
+      return "Verify OTP";
+    }
+
+    if (step === "password") {
+      return mode === "signup" ? "Create account" : "Save password";
+    }
+
+    return "Continue";
+  }
+
+  const tabModes = ["login", "signup", "forgot"] as const;
+
+  const headingTitle =
+    step === "otp"
+      ? "Verify OTP"
+      : step === "password"
+        ? "Create password"
+        : copy.title;
+
+  const headingDescription =
+    step === "otp"
+      ? "Enter the code sent to your phone to continue."
+      : step === "password"
+        ? "Use at least 8 characters. You will log in with this password next time."
+        : copy.helper;
+
   return (
-    <main className="flex min-h-[calc(100vh-160px)] items-center py-4">
-      <section className="touch-card w-full p-4">
-        <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-        <h1 className="type-page-title mt-1">
-          {step === "otp" ? "Verify OTP" : copy.title}
-        </h1>
-        <p className="type-page-sub mt-1.5">
-          {step === "otp"
-            ? "Enter the code sent to your phone to continue."
-            : copy.helper}
-        </p>
+    <AuthPageShell>
+      <AuthCard>
+        <AuthHeading
+          eyebrow={BRAND_NAME}
+          title={headingTitle}
+          description={headingDescription}
+        />
 
-        <div className="mt-4 grid grid-cols-3 gap-1 rounded-full border border-border bg-background p-1">
-          {(["login", "signup", "recover"] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => switchMode(item)}
-              className={
-                mode === item
-                  ? "type-btn rounded-full bg-primary px-2 py-2 text-[11px] text-primary-foreground"
-                  : "type-btn rounded-full px-2 py-2 text-[11px] text-muted"
-              }
-            >
-              {item === "login" ? "Login" : item === "signup" ? "Signup" : "Recover"}
-            </button>
-          ))}
-        </div>
+        {mode !== "setup" ? (
+          <AuthModeTabs activeMode={mode} onChange={switchMode} modes={tabModes} />
+        ) : null}
 
-        <div className="mt-4 space-y-3">
+        <AuthFormStack stepKey={`${mode}-${step}`}>
           {mode === "signup" && step === "phone" ? (
             <AuthField label="Full name">
               <input
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className="w-full bg-transparent outline-none"
                 placeholder="Your name"
+                autoComplete="name"
               />
             </AuthField>
           ) : null}
 
-          <AuthField label="Phone number">
-            <input
-              value={phoneInput}
-              onChange={(event) => setPhoneInput(event.target.value)}
-              className="w-full bg-transparent outline-none"
-              inputMode="tel"
-              placeholder="08101234567"
-              disabled={step === "otp"}
-            />
-          </AuthField>
+          {(mode === "login" && step === "credentials") || usesOtpFlow ? (
+            <AuthField label="Phone number">
+              <input
+                value={phoneInput}
+                onChange={(event) => setPhoneInput(event.target.value)}
+                inputMode="tel"
+                placeholder="08101234567"
+                disabled={usesOtpFlow && (step === "otp" || step === "password")}
+                autoComplete="tel"
+              />
+            </AuthField>
+          ) : null}
 
-          {normalizedPhone ? (
-            <p className="text-[12px] font-medium text-muted">
-              We&apos;ll use {normalizedPhone}
-            </p>
+          {normalizedPhone && step !== "password" ? (
+            <AuthPhoneHint
+              prefix={mode === "login" ? "Logging in as" : "Using"}
+              phone={normalizedPhone}
+            />
+          ) : null}
+
+          {mode === "login" && step === "credentials" ? (
+            <AuthField label="Password">
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                placeholder="Your password"
+              />
+            </AuthField>
           ) : null}
 
           {step === "otp" ? (
-            <AuthField label="OTP code">
+            <AuthField label="OTP code" hint="Check your SMS messages for the 6-digit code.">
               <input
                 value={otp}
                 onChange={(event) => setOtp(event.target.value)}
-                className="w-full bg-transparent outline-none"
                 inputMode="numeric"
                 placeholder="6-digit code"
+                autoComplete="one-time-code"
               />
             </AuthField>
           ) : null}
 
+          {step === "password" ? (
+            <>
+              <AuthField label="Password">
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                />
+              </AuthField>
+              <AuthField label="Confirm password">
+                <input
+                  value={passwordConfirm}
+                  onChange={(event) => setPasswordConfirm(event.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Repeat password"
+                />
+              </AuthField>
+            </>
+          ) : null}
+
           {authError ? (
-            <div className="rounded-app border border-border bg-background p-3">
-              {authError.title ? (
-                <p className="text-[13px] font-semibold">{authError.title}</p>
-              ) : null}
-              <p
-                className={
-                  authError.title
-                    ? "mt-1 text-[12px] leading-5 text-muted"
-                    : "text-[12px] leading-5 text-muted"
-                }
-              >
-                {authError.text}
-              </p>
-              {authError.showSignupButton ? (
-                <button
-                  type="button"
-                  onClick={() => switchMode("signup")}
-                  className="type-btn mt-3 h-9 w-full rounded-full bg-primary text-[12px] text-primary-foreground"
-                >
-                  Go to Signup
-                </button>
-              ) : null}
-              {authError.showLoginButton ? (
-                <button
-                  type="button"
-                  onClick={() => switchMode("login")}
-                  className="mt-3 h-9 w-full rounded-full bg-primary text-[12px] font-semibold text-primary-foreground"
-                >
-                  Go to Login
-                </button>
-              ) : null}
-            </div>
+            <AuthMessageBanner
+              tone="error"
+              title={authError.title}
+              actions={
+                <>
+                  {authError.showSignupButton ? (
+                    <AuthSecondaryButton type="button" onClick={() => switchMode("signup")}>
+                      Go to Signup
+                    </AuthSecondaryButton>
+                  ) : null}
+                  {authError.showLoginButton ? (
+                    <AuthPrimaryButton type="button" onClick={() => switchMode("login")}>
+                      Go to Login
+                    </AuthPrimaryButton>
+                  ) : null}
+                  {authError.showSetupPasswordLink ? (
+                    <AuthSecondaryButton type="button" onClick={() => switchMode("setup")}>
+                      Set up password with OTP
+                    </AuthSecondaryButton>
+                  ) : null}
+                </>
+              }
+            >
+              {authError.text}
+            </AuthMessageBanner>
           ) : null}
 
           {message ? (
-            <p className="rounded-app border border-border bg-background p-3 text-[12px] leading-5 text-muted">
-              {message}
-            </p>
+            <AuthMessageBanner tone="info">{message}</AuthMessageBanner>
           ) : null}
 
-          <button
-            disabled={isLoading}
+          <AuthPrimaryButton
             type="button"
-            onClick={() => {
-              if (step === "phone") void sendOtp();
-              if (step === "otp") void verifyOtp();
-            }}
-            className="type-btn h-11 w-full rounded-full bg-primary text-[14px] text-primary-foreground disabled:opacity-60"
+            isLoading={isLoading}
+            onClick={handlePrimaryAction}
           >
-            {isLoading ? "Please wait..." : step === "otp" ? "Verify OTP" : copy.button}
-          </button>
+            {primaryButtonLabel()}
+          </AuthPrimaryButton>
 
-          {step === "otp" ? (
-            <button
+          {mode === "login" && step === "credentials" ? (
+            <div className="auth-link-row">
+              <AuthGhostButton type="button" onClick={() => switchMode("forgot")}>
+                Forgot password?
+              </AuthGhostButton>
+              <AuthGhostButton
+                type="button"
+                className="auth-btn-ghost--muted"
+                onClick={() => switchMode("setup")}
+              >
+                Existing user? Set up your password
+              </AuthGhostButton>
+            </div>
+          ) : null}
+
+          {usesOtpFlow && (step === "otp" || step === "password") ? (
+            <AuthGhostButton
               type="button"
               onClick={() => {
                 setStep("phone");
                 setOtp("");
+                setPassword("");
+                setPasswordConfirm("");
                 setMessage("");
                 setAuthError(null);
               }}
-              className="w-full text-center text-[12px] font-medium text-primary"
             >
               Change phone number
-            </button>
+            </AuthGhostButton>
           ) : null}
-        </div>
-      </section>
-    </main>
-  );
-}
 
-function AuthField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block rounded-app border border-border bg-background px-3 py-2">
-      <span className="mb-1 block text-[11px] font-medium text-muted">{label}</span>
-      <div className="text-[14px] font-normal">{children}</div>
-    </label>
+          {mode === "setup" ? (
+            <AuthGhostButton
+              type="button"
+              className="auth-btn-ghost--muted"
+              onClick={() => switchMode("login")}
+            >
+              Back to login
+            </AuthGhostButton>
+          ) : null}
+        </AuthFormStack>
+      </AuthCard>
+    </AuthPageShell>
   );
 }
