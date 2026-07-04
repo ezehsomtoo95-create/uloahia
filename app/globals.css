@@ -288,6 +288,22 @@ select option:hover {
     padding-bottom: max(96px, calc(72px + env(safe-area-inset-bottom)));
   }
 
+  @media (max-width: 1023px) {
+    .marketplace-page,
+    .marketplace-page--home,
+    .market-browse,
+    .listing-detail-main,
+    .saved-page {
+      min-height: 100dvh;
+      padding-bottom: max(6rem, calc(72px + env(safe-area-inset-bottom)));
+    }
+
+    .admin-desktop-scroll {
+      min-height: 100dvh;
+      padding-bottom: max(6rem, calc(72px + env(safe-area-inset-bottom)));
+    }
+  }
+
   .listing-detail-shell {
     min-height: 100dvh;
     overflow-x: hidden;
@@ -720,7 +736,6 @@ select option:hover {
 
   .market-browse {
     padding-top: max(12px, env(safe-area-inset-top));
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   }
 
   .market-browse-header {
@@ -869,17 +884,9 @@ select option:hover {
   }
 
   .saved-page {
-    min-height: 0;
-    height: calc(100dvh - 3.5rem - 4.5rem - env(safe-area-inset-bottom));
-  }
-
-  .saved-page-scroll {
-    min-height: 0;
-    flex: 1;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .market-listing-card {

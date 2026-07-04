@@ -9,46 +9,44 @@ export function SavedPageContent() {
   const { items, isReady, isAuthenticated } = useSavedListings();
 
   return (
-    <main className="saved-page flex flex-col gap-3 pt-3">
+    <main className="saved-page pt-3">
       <h1 className="type-page-title shrink-0">Saved</h1>
-      <div className="saved-page-scroll">
-        {!isReady ? (
-          <section className="market-feed">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SavedRowSkeleton key={index} />
-            ))}
-          </section>
-        ) : !isAuthenticated ? (
-          <div className="touch-card p-4">
-            <h2 className="text-[16px] font-medium">Sign in to view saved</h2>
-            <Link
-              href={buildAuthHref("login", "/saved")}
-              className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
-            >
-              Login
-            </Link>
-          </div>
-        ) : items.length > 0 ? (
-          <section className="market-feed">
-            {items.map(({ listing }) => (
-              <BrowseListingRow key={listing.id} listing={listing} />
-            ))}
-          </section>
-        ) : (
-          <div className="touch-card p-4">
-            <h2 className="text-[16px] font-medium">Nothing saved</h2>
-            <p className="mt-1 text-[13px] leading-5 text-muted">
-              Save items to view later
-            </p>
-            <Link
-              href="/browse"
-              className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
-            >
-              Browse listings
-            </Link>
-          </div>
-        )}
-      </div>
+      {!isReady ? (
+        <section className="market-feed">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SavedRowSkeleton key={index} />
+          ))}
+        </section>
+      ) : !isAuthenticated ? (
+        <div className="touch-card p-4">
+          <h2 className="text-[16px] font-medium">Sign in to view saved</h2>
+          <Link
+            href={buildAuthHref("login", "/saved")}
+            className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
+          >
+            Login
+          </Link>
+        </div>
+      ) : items.length > 0 ? (
+        <section className="market-feed">
+          {items.map(({ listing }) => (
+            <BrowseListingRow key={listing.id} listing={listing} />
+          ))}
+        </section>
+      ) : (
+        <div className="touch-card p-4">
+          <h2 className="text-[16px] font-medium">Nothing saved</h2>
+          <p className="mt-1 text-[13px] leading-5 text-muted">
+            Save items to view later
+          </p>
+          <Link
+            href="/browse"
+            className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
+          >
+            Browse listings
+          </Link>
+        </div>
+      )}
     </main>
   );
 }

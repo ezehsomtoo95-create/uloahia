@@ -11,7 +11,7 @@ export default async function HomePage() {
   const newListings = await getApprovedListings(24);
 
   return (
-    <main className="marketplace-page--home space-y-3.5 pb-6 pt-3">
+    <main className="marketplace-page--home space-y-3.5 pt-3">
       <section className="space-y-3.5">
         <div className="max-w-[18rem] space-y-1">
           <h1 className="type-hero">Buy. Sell. Furnish your home.</h1>

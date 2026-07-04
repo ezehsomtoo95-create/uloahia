@@ -49,7 +49,7 @@ export default async function ListingDetailsPage({
 
   return (
     <>
-      <main className="listing-detail-main min-h-dvh overflow-x-hidden pb-safe pt-3">
+      <main className="listing-detail-main overflow-x-hidden pt-3">
         <div className="marketplace-listing-body min-w-0 space-y-3">
           {listing.status === "approved" && !isAdmin ? (
             <ListingViewTracker listingId={listing.id} />

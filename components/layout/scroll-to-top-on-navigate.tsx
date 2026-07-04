@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 const SCROLL_CONTAINER_SELECTORS =
-  ".saved-page-scroll, .admin-desktop-main, .admin-desktop-scroll, .listing-detail-main";
+  ".admin-desktop-main, .admin-desktop-scroll, .listing-detail-main";
 
 export function ScrollToTopOnNavigate() {
   const pathname = usePathname();
