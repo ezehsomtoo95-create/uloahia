@@ -8,7 +8,6 @@ import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
 import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
 
-
 export type SaveListingResult = {
   listingId: string;
   mode: "created" | "updated";
@@ -21,8 +20,16 @@ async function requireAuthenticatedUser() {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) {
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!user?.id) {
     throw new Error("Login required.");
+  }
+
+  if (!user.email_confirmed_at) {
+    throw new Error("Verify your email before publishing listings.");
   }
 
   return user;
@@ -56,6 +63,30 @@ async function assertSellerOwnsListing(listingId: string, sellerId: string) {
   return data;
 }
 
+async function uploadListingImage(
+  admin: ReturnType<typeof supabaseAdmin>,
+  userId: string,
+  listingId: string,
+  position: number,
+  file: File,
+) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: uploadError } = await admin.storage.from("listing-images").upload(path, buffer, {
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+
+  if (uploadError) {
+    throw new Error(`Photo upload failed: ${uploadError.message}`);
+  }
+
+  const { data } = admin.storage.from("listing-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 async function syncListingImages(
   listingId: string,
   userId: string,
@@ -70,7 +101,7 @@ async function syncListingImages(
     .eq("listing_id", listingId);
 
   if (deleteError) {
-    throw new Error(deleteError.message);
+    throw new Error(`Could not reset listing photos: ${deleteError.message}`);
   }
 
   const imageRows: Array<{
@@ -80,53 +111,42 @@ async function syncListingImages(
   }> = [];
 
   for (const [position, photo] of photos.entries()) {
-    let imageUrl: string;
+    try {
+      let imageUrl: string;
 
-    if (photo.source === "existing") {
-      imageUrl = photo.url;
-    } else {
-      const fileEntry = formData.get(photo.fieldName);
+      if (photo.source === "existing") {
+        imageUrl = photo.url;
+      } else {
+        const fileEntry = formData.get(photo.fieldName);
 
-      if (!(fileEntry instanceof File) || fileEntry.size === 0) {
-        throw new Error("One or more photo uploads are missing.");
+        if (!(fileEntry instanceof File) || fileEntry.size === 0) {
+          throw new Error("One or more photo uploads are missing.");
+        }
+
+        imageUrl = await uploadListingImage(admin, userId, listingId, position, fileEntry);
       }
 
-      const safeName = fileEntry.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-      const path = `${userId}/${listingId}/${Date.now()}-${position}-${safeName}`;
-      const buffer = Buffer.from(await fileEntry.arrayBuffer());
-
-      const { error: uploadError } = await admin.storage
-        .from("listing-images")
-        .upload(path, buffer, {
-          contentType: fileEntry.type || "image/jpeg",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-
-      const { data } = admin.storage.from("listing-images").getPublicUrl(path);
-      imageUrl = data.publicUrl;
+      imageRows.push({
+        listing_id: listingId,
+        image_url: imageUrl,
+        position,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not process listing photos.";
+      throw new Error(message);
     }
-
-    imageRows.push({
-      listing_id: listingId,
-      image_url: imageUrl,
-      position,
-    });
   }
 
   if (imageRows.length === 0) {
-    return;
+    throw new Error("At least one photo is required.");
   }
 
   const { error: imageError } = await admin.from("listing_images").insert(imageRows);
 
   if (imageError) {
-    throw new Error(imageError.message);
+    throw new Error(`Could not save listing photos: ${imageError.message}`);
   }
-
 }
 
 async function updateExistingListing(
@@ -134,12 +154,10 @@ async function updateExistingListing(
   listingId: string,
   userId: string,
   formData: FormData,
-
 ): Promise<SaveListingResult> {
   const admin = supabaseAdmin();
   const existing = await assertSellerOwnsListing(listingId, userId);
   const nextStatus = resolveNextStatus(existing.status as ListingStatus);
-
 
   const { data: updatedRow, error } = await admin
     .from("listings")
@@ -165,7 +183,6 @@ async function updateExistingListing(
 
   await syncListingImages(listingId, userId, input.photos, formData);
 
-
   return { listingId, mode: "updated" };
 }
 
@@ -175,51 +192,79 @@ async function createNewListing(
   formData: FormData,
 ): Promise<SaveListingResult> {
   const admin = supabaseAdmin();
+  let listingId: string | null = null;
 
-  const { data: listing, error } = await admin
-    .from("listings")
-    .insert({
+  try {
+    const { data: listing, error } = await admin
+      .from("listings")
+      .insert({
+        seller_id: userId,
+        title: input.title,
+        category: input.category,
+        condition: input.condition,
+        price: input.price,
+        description: input.description,
+        state: input.state,
+        city: input.city,
+        area: input.area,
+        status: "pending",
+      })
+      .select("id")
+      .single();
 
-      seller_id: userId,
-      title: input.title,
-      category: input.category,
-      condition: input.condition,
-      price: input.price,
-      description: input.description,
-      state: input.state,
-      city: input.city,
-      area: input.area,
-      status: "pending",
-    })
-    .select("id")
-    .single();
+    if (error || !listing) {
+      throw new Error(error?.message ?? "Could not create listing.");
+    }
 
-  if (error || !listing) {
-    throw new Error(error?.message ?? "Could not create listing.");
+    listingId = listing.id;
+    await syncListingImages(listing.id, userId, input.photos, formData);
+
+    return { listingId: listing.id, mode: "created" };
+  } catch (error) {
+    if (listingId) {
+      await admin.from("listing_images").delete().eq("listing_id", listingId);
+      await admin.from("listings").delete().eq("id", listingId);
+    }
+
+    throw error;
   }
-
-  await syncListingImages(listing.id, userId, input.photos, formData);
-
-
-  return { listingId: listing.id, mode: "created" };
 }
 
 async function saveListingInternal(
   input: ListingInput,
   formData: FormData,
 ): Promise<SaveListingResult> {
-  const user = await requireAuthenticatedUser();
-  const listingId = input.listingId;
+  let user;
 
-  if (input.mode === "update" && !listingId) {
-    throw new Error("Listing id is required to save edits.");
+  try {
+    user = await requireAuthenticatedUser();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Login required.";
+    throw new Error(message);
   }
 
-  if (listingId) {
-    return updateExistingListing(input, listingId, user.id, formData);
-  }
+  try {
+    const listingId = input.listingId;
 
-  return createNewListing(input, user.id, formData);
+    if (input.mode === "update" && !listingId) {
+      throw new Error("Listing id is required to save edits.");
+    }
+
+    if (listingId) {
+      return await updateExistingListing(input, listingId, user.id, formData);
+    }
+
+    return await createNewListing(input, user.id, formData);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      throw new Error(
+        "Listing publish is temporarily unavailable. Please try again later.",
+      );
+    }
+
+    throw error;
+  }
 }
 
 export async function saveListing(formData: FormData): Promise<ActionResult<SaveListingResult>> {
@@ -230,10 +275,16 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
       return actionError("Invalid listing payload.");
     }
 
-    const parsedJson = JSON.parse(rawPayload) as unknown;
+    let parsedJson: unknown;
+
+    try {
+      parsedJson = JSON.parse(rawPayload);
+    } catch {
+      return actionError("Invalid listing payload.");
+    }
+
     const input = ListingSchema.parse(parsedJson);
     const result = await saveListingInternal(input, formData);
-
 
     revalidatePath("/my-listings", "page");
     revalidatePath(`/listing/${result.listingId}`, "page");
@@ -245,7 +296,6 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
     if (error instanceof SyntaxError) {
       return actionError("Invalid listing payload.");
     }
-
 
     return actionError(formatZodError(error));
   }

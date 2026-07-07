@@ -23,6 +23,7 @@ import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
 import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
+import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 
 import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
@@ -91,6 +92,7 @@ function SellPageContent({ editId }: { editId: string | null }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [isLoadingEdit, setIsLoadingEdit] = useState(Boolean(editId));
+  const [hasAuthCheck, setHasAuthCheck] = useState(false);
 
   const isEditMode = Boolean(editId);
   const cities = getCitiesForState(form?.state ?? "Anambra");
@@ -119,17 +121,27 @@ function SellPageContent({ editId }: { editId: string | null }) {
   }, [form]);
 
   useEffect(() => {
-    async function requireUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    let cancelled = false;
 
-      if (!user) {
-        router.push("/login");
+    async function requireUser() {
+      const session = await waitForInitialAuthSession(supabase);
+
+      if (cancelled) {
+        return;
+      }
+
+      setHasAuthCheck(true);
+
+      if (!session?.user) {
+        router.replace("/login?next=/sell");
       }
     }
 
-    requireUser();
+    void requireUser();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, supabase]);
 
   useEffect(() => {
@@ -140,12 +152,11 @@ function SellPageContent({ editId }: { editId: string | null }) {
     let cancelled = false;
 
     async function loadListingForEdit() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const session = await waitForInitialAuthSession(supabase);
+      const user = session?.user;
 
       if (!user) {
-        router.push("/login");
+        router.replace("/login?next=/sell");
         return;
       }
 
@@ -280,41 +291,53 @@ function SellPageContent({ editId }: { editId: string | null }) {
     setIsPublishing(true);
     setErrorMessage("");
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    try {
+      const session = await waitForInitialAuthSession(supabase);
+      const user = session?.user;
 
-    if (userError || !user) {
+      if (!user) {
+        router.replace("/login?next=/sell");
+        return;
+      }
+
+      if (!user.email_confirmed_at) {
+        const message = "Verify your email before publishing listings.";
+        setErrorMessage(message);
+        showSaveToast(message);
+        return;
+      }
+
+      const result = await saveListingAction(buildSaveListingFormData(form, editId));
+
+      if (!result.success) {
+        setErrorMessage(result.error);
+        showSaveToast(result.error);
+        return;
+      }
+
+      router.refresh();
+
+      if (result.data?.mode === "updated") {
+        showSaveToast("Listing updated successfully.");
+        setUpdated(true);
+        return;
+      }
+
+      showSaveToast("Listing submitted for review.");
+      setPublished(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not publish listing. Please try again.";
+      setErrorMessage(message);
+      showSaveToast(message);
+    } finally {
       setIsPublishing(false);
-      router.push("/login");
-      return;
     }
-
-    const result = await saveListingAction(buildSaveListingFormData(form, editId));
-
-    setIsPublishing(false);
-
-    if (!result.success) {
-      setErrorMessage(result.error);
-      showSaveToast(result.error);
-      return;
-    }
-
-    router.refresh();
-
-    if (result.data?.mode === "updated") {
-      showSaveToast("Listing updated successfully.");
-      setUpdated(true);
-      return;
-    }
-
-    showSaveToast("Listing submitted for review.");
-    setPublished(true);
-
   }
 
-  if (isLoadingEdit || !form) {
+  if (!hasAuthCheck || isLoadingEdit || !form) {
     return <SellPageFallback />;
   }
 

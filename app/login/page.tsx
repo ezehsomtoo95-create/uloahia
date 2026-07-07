@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { assertSignupAvailability } from "@/app/actions/auth";
 
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
+import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 import {
   getSupabaseEnvError,
@@ -100,6 +101,7 @@ function LoginPageContent() {
   const [authError, setAuthError] = useState<AuthErrorDisplay | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [resendTargetEmail, setResendTargetEmail] = useState("");
+  const isRedirectingRef = useRef(false);
   const copy = MODE_COPY[mode];
 
   function switchMode(nextMode: Mode) {
@@ -234,42 +236,59 @@ function LoginPageContent() {
     }
 
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: validation.data.email.toLowerCase(),
-      password: validation.data.password,
-    });
-    setIsLoading(false);
 
-    if (error) {
-      showAuthError(
-        {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validation.data.email.toLowerCase(),
+        password: validation.data.password,
+      });
+
+      if (error) {
+        showAuthError({
           message: error.message,
           code: error.code,
           status: error.status,
-        },
-      );
-      if (
-        error.code === "email_not_confirmed" ||
-        error.message.toLowerCase().includes("email not confirmed")
-      ) {
-        setResendTargetEmail(validation.data.email.toLowerCase());
+        });
+        if (
+          error.code === "email_not_confirmed" ||
+          error.message.toLowerCase().includes("email not confirmed")
+        ) {
+          setResendTargetEmail(validation.data.email.toLowerCase());
+        }
+        return;
       }
-      return;
+
+      if (!data.user || !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setResendTargetEmail(validation.data.email.toLowerCase());
+        showAuthError({
+          message: "Email not verified.",
+          code: "email_not_confirmed",
+        });
+        return;
+      }
+
+      await waitForInitialAuthSession(supabase);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user?.email_confirmed_at) {
+        setMessage("Could not establish login session. Please try again.");
+        return;
+      }
+
+      if (isRedirectingRef.current) {
+        return;
+      }
+
+      isRedirectingRef.current = true;
+      router.replace(returnPath);
+    } catch {
+      setMessage("Could not complete login. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!data.user || !data.user.email_confirmed_at) {
-      await supabase.auth.signOut();
-      setResendTargetEmail(validation.data.email.toLowerCase());
-      showAuthError({
-        message: "Email not verified.",
-        code: "email_not_confirmed",
-      });
-      return;
-    }
-
-
-    router.push(returnPath);
-    router.refresh();
   }
 
   async function handleRecoverRequest() {
