@@ -44,6 +44,9 @@ export function buildSaveListingPayload(
     state: form.state,
     city: form.city,
     area: form.area,
-    photos: uploadedPhotos.map((photo) => ({ url: photo.url })),
+    photos: uploadedPhotos.map((photo) => ({
+      source: "existing" as const,
+      url: photo.url,
+    })),
   };
 }
