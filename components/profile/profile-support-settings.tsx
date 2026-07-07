@@ -7,7 +7,9 @@ import { ChevronDown, ExternalLink } from "lucide-react";
 import { deleteOwnAccount } from "@/app/profile/actions";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
 import { DarkModeSettingRow } from "@/components/theme/dark-mode-setting-row";
-import { SUPPORT_WHATSAPP_HREF } from "@/lib/constants/support";import { cn } from "@/lib/utils/cn";
+import { cn } from "@/lib/utils/cn";
+
+const SUPPORT_EMAIL_HREF = "mailto:info@ahiaulo.ng";
 
 export function ProfileSupportSettings() {
 
@@ -39,9 +41,7 @@ export function ProfileSupportSettings() {
 
         <div className="touch-card divide-y divide-border overflow-hidden rounded-3xl">
           <a
-            href={SUPPORT_WHATSAPP_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={SUPPORT_EMAIL_HREF}
             className="flex items-center justify-between gap-3 p-4 text-[14px] font-medium"
           >
             <span>Contact Support</span>
