@@ -1,4 +1,4 @@
-type AuthMode = "login" | "signup" | "recover";
+export type AuthMode = "login" | "signup" | "recover" | "setup";
 
 
 export type AuthErrorInput = {
@@ -172,8 +172,22 @@ export function mapAuthError(
     code === "otp_expired"
   ) {
     return {
-      text: "That link has expired. Request a new one and try again.",
+      text:
+        mode === "setup"
+          ? "That code has expired. Request a new OTP and try again."
+          : "That link has expired. Request a new one and try again.",
+    };
+  }
 
+  if (
+    mode === "setup" &&
+    (message.includes("invalid otp") ||
+      message.includes("invalid token") ||
+      code === "otp_disabled" ||
+      code === "invalid_otp")
+  ) {
+    return {
+      text: "Invalid OTP. Check the code and try again.",
     };
   }
 
@@ -187,7 +201,7 @@ export function mapAuthError(
     };
   }
 
-  if (isInvalidCredentialsMessage(message, code)) {
+  if (isInvalidCredentialsMessage(message, code) && mode !== "setup") {
     return {
       text: "Invalid email or password.",
 

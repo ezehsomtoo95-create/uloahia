@@ -13,7 +13,7 @@ import {
 } from "@/components/auth/auth-primitives";
 import { syncAuthProfile } from "@/lib/auth/profile-sync";
 import { createClient } from "@/lib/supabase/client";
-import { mapAuthError, type AuthErrorDisplay, type AuthErrorInput } from "@/lib/utils/auth-errors";
+import { mapAuthError, type AuthErrorDisplay, type AuthErrorInput, type AuthMode } from "@/lib/utils/auth-errors";
 import { formatDisplayPhone, isValidE164Phone, normalizeNigerianPhone } from "@/lib/utils/phone";
 
 type Step = "phone" | "otp";
@@ -48,7 +48,8 @@ export function ChangePhoneForm({
 
   function showAuthError(error: AuthErrorInput | string) {
     setMessage("");
-    setAuthError(mapAuthError(error, "setup"));
+    const mode: AuthMode = "setup";
+    setAuthError(mapAuthError(error, mode));
   }
 
   async function requestPhoneChange() {
