@@ -121,6 +121,10 @@ function LoginPageContent() {
     if (reason === "verify-email") {
       setMessage("Verify your email before accessing this page.");
     }
+
+    if (reason === "password-updated") {
+      setMessage("Password updated. You can now log in.");
+    }
   }, [reason]);
 
   useEffect(() => {
@@ -315,10 +319,11 @@ function LoginPageContent() {
     }
 
     setIsLoading(true);
-    const redirectTo = `${window.location.origin}/login?mode=recover`;
     const { error } = await supabase.auth.resetPasswordForEmail(
       validation.data.email.toLowerCase(),
-      { redirectTo },
+      {
+        redirectTo: `${window.location.origin}/update-password`,
+      },
     );
     setIsLoading(false);
 
@@ -470,6 +475,15 @@ function LoginPageContent() {
           placeholder="Your password"
         />
       </AuthField>
+      <div className="-mt-1 flex justify-end">
+        <button
+          type="button"
+          onClick={() => switchMode("recover")}
+          className="cursor-pointer text-[12px] text-muted transition-colors hover:text-primary"
+        >
+          Forgot password?
+        </button>
+      </div>
     </>
   );
 

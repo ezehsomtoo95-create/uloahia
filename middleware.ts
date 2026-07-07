@@ -4,7 +4,7 @@ import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 
 const AUTH_REQUIRED_PREFIXES = ["/profile", "/my-listings", "/sell", "/saved", "/admin"];
 
-const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth"];
+const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth", "/update-password"];
 
 function shouldBypassRouteProtection(request: NextRequest) {
   // Next.js 16 Server Actions POST to the current route — never redirect these.
