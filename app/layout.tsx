@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import "./marketplace-desktop.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
-
+import { themeInitScript } from "@/lib/theme/theme";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -46,11 +47,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <Script
+          id="ahiaulo-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <AppShell>{children}</AppShell>
-
       </body>
     </html>
-  );
-}
+  );}

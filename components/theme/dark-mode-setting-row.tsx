@@ -33,7 +33,7 @@ export function DarkModeSettingRow() {
   }
 
   return (
-    <div className="flex min-h-[52px] shrink-0 items-center justify-between gap-3 p-4 text-[14px] font-medium">
+    <div className="flex items-center justify-between gap-3 p-4 text-[14px] font-medium">
       <span>Dark Mode</span>
       <button
         type="button"
@@ -42,16 +42,16 @@ export function DarkModeSettingRow() {
         aria-label="Dark Mode"
         onClick={toggleTheme}
         className={cn(
-          "relative inline-flex h-[31px] w-[51px] shrink-0 rounded-full border transition-colors duration-app",
+          "relative inline-flex h-[31px] w-[51px] shrink-0 rounded-full border transition-colors duration-300 ease-out",
           isDark
-            ? "border-primary/40 bg-primary"
-            : "border-border bg-muted/30",
+            ? "border-primary/50 bg-primary"
+            : "border-border bg-[#e3e0da]",
         )}
       >
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute top-[2px] size-[27px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-app",
+            "pointer-events-none absolute top-[2px] size-[27px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.22)] transition-transform duration-300 ease-out",
             isDark ? "translate-x-[22px]" : "translate-x-[2px]",
           )}
         />
