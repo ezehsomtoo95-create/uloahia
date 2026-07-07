@@ -487,7 +487,7 @@ function SellPageContent({ editId }: { editId: string | null }) {
             />
           ) : null}
           {stepIndex === 1 ? (
-            <DetailsStep form={form} setForm={setForm} editId={editId} />
+            <DetailsStep form={form} setForm={setForm} />
           ) : null}
           {stepIndex === 2 ? (
             <LocationStep
@@ -643,25 +643,21 @@ function PhotosStep({
 function DetailsStep({
   form,
   setForm,
-  editId,
 }: {
   form: SellForm;
   setForm: React.Dispatch<React.SetStateAction<SellForm | null>>;
-  editId: string | null;
 }) {
   return (
     <div className="space-y-2">
       <Field label="Title">
         <input
+          type="text"
           value={form.title}
           onChange={(event) =>
             setForm((prev) => (prev ? { ...prev, title: event.target.value } : prev))
           }
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          name={editId ? `listing-title-${editId}` : "listing-title-new"}
           className="w-full bg-transparent outline-none"
+          placeholder="e.g. 6-seater leather sofa"
         />
       </Field>
       <div className="grid grid-cols-2 gap-2">
@@ -743,8 +739,6 @@ function LocationStep(props: {
             label: location.state,
             value: location.state,
           }))}
-          searchPlaceholder="Search state..."
-          searchable
         />
       </Field>
       <Field label="City">
@@ -755,8 +749,6 @@ function LocationStep(props: {
             label: city.name,
             value: city.name,
           }))}
-          searchPlaceholder="Search city..."
-          searchable
         />
       </Field>
       <Field label="Area">
