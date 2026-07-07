@@ -22,6 +22,7 @@ import { SellPhotoGrid } from "@/components/sell/sell-photo-grid";
 import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
+import { compressListingPhoto, compressSellPhotoItems } from "@/lib/sell/compress-listing-photo";
 import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
 import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 
@@ -307,7 +308,10 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
-      const result = await saveListingAction(buildSaveListingFormData(form, editId));
+      const compressedPhotos = await compressSellPhotoItems(form.photos);
+      const result = await saveListingAction(
+        buildSaveListingFormData({ ...form, photos: compressedPhotos }, editId),
+      );
 
       if (!result.success) {
         setErrorMessage(result.error);
@@ -564,22 +568,31 @@ function PhotosStep({
   onPhotosChange: (photos: SellPhotoItem[]) => void;
 }) {
   const photoCount = photos.length;
+  const [isPreparingPhotos, setIsPreparingPhotos] = useState(false);
 
-  function addPhotos(files: File[]) {
-
+  async function addPhotos(files: File[]) {
     const remaining = MAX_SELL_PHOTOS - photos.length;
-    if (remaining <= 0) {
+    if (remaining <= 0 || files.length === 0) {
       return;
     }
 
-    const nextFiles = files.slice(0, remaining).map((file) => ({
-      source: "new" as const,
-      file,
-      id: createSellPhotoId(),
-    }));
+    setIsPreparingPhotos(true);
 
-    onPhotosChange([...photos, ...nextFiles]);
+    try {
+      const selectedFiles = files.slice(0, remaining);
+      const compressedFiles = await Promise.all(
+        selectedFiles.map((file) => compressListingPhoto(file)),
+      );
+      const nextFiles = compressedFiles.map((file) => ({
+        source: "new" as const,
+        file,
+        id: createSellPhotoId(),
+      }));
 
+      onPhotosChange([...photos, ...nextFiles]);
+    } finally {
+      setIsPreparingPhotos(false);
+    }
   }
 
   return (
@@ -588,16 +601,20 @@ function PhotosStep({
         <span>{MAX_SELL_PHOTOS - photoCount} photo slots left</span>
         <span className="text-muted">{photoCount}/{MAX_SELL_PHOTOS}</span>
       </div>
-      <label className="block rounded-app border border-dashed border-border bg-background p-3 text-center text-[13px] font-semibold text-primary">
+      <label
+        className={`block rounded-app border border-dashed border-border bg-background p-3 text-center text-[13px] font-semibold text-primary ${
+          isPreparingPhotos ? "pointer-events-none opacity-60" : ""
+        }`}
+      >
         {photoCount > 0 ? "Add more photos" : "Upload photos"}
         <input
           type="file"
           accept="image/*"
           multiple
+          disabled={isPreparingPhotos}
           className="sr-only"
           onChange={(event) => {
-            addPhotos(Array.from(event.target.files ?? []));
-
+            void addPhotos(Array.from(event.target.files ?? []));
             event.target.value = "";
           }}
         />
