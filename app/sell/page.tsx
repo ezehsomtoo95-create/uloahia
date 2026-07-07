@@ -27,6 +27,7 @@ import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
 import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
 import { formatNaira } from "@/lib/utils/format";
 import type { EasternState, ListingCondition, ListingCategorySlug, ListingStatus } from "@/lib/types";
 
@@ -36,8 +37,8 @@ type SellForm = {
   title: string;
   price: string;
   description: string;
-  category: ListingCategorySlug;
-  condition: ListingCondition;
+  category: ListingCategorySlug | "";
+  condition: ListingCondition | "";
   state: EasternState;
   city: string;
   area: string;
@@ -49,8 +50,8 @@ function createEmptyForm(): SellForm {
     title: "",
     price: "",
     description: "",
-    category: "furniture",
-    condition: "Good",
+    category: "",
+    condition: "",
     state: "Anambra",
     city: "Onitsha",
     area: "GRA",
@@ -194,16 +195,10 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
-      console.log("DB title:", data.title);
-
-
       const images = [...(data.listing_images ?? [])].sort(
         (first, second) => first.position - second.position,
       );
       const normalizedCategory = normalizeCategorySlug(data.category);
-
-      console.log("Reopened title:", data.title);
-
 
       setForm({
         listingId: data.id,
@@ -211,8 +206,10 @@ function SellPageContent({ editId }: { editId: string | null }) {
         title: data.title,
         price: String(Number(data.price)),
         description: data.description,
-        category: normalizedCategory ?? "furniture",
-        condition: data.condition as ListingCondition,
+        category: normalizedCategory ?? "",
+        condition: LISTING_CONDITIONS.includes(data.condition as ListingCondition)
+          ? (data.condition as ListingCondition)
+          : "",
         state: data.state as EasternState,
         city: data.city,
         area: data.area,
@@ -308,9 +305,24 @@ function SellPageContent({ editId }: { editId: string | null }) {
         return;
       }
 
+      if (!form.category || !form.condition) {
+        const message = "Select a category and condition before publishing.";
+        setErrorMessage(message);
+        showSaveToast(message);
+        return;
+      }
+
       const compressedPhotos = await compressSellPhotoItems(form.photos);
       const result = await saveListingAction(
-        buildSaveListingFormData({ ...form, photos: compressedPhotos }, editId),
+        buildSaveListingFormData(
+          {
+            ...form,
+            category: form.category,
+            condition: form.condition,
+            photos: compressedPhotos,
+          },
+          editId,
+        ),
       );
 
       if (!result.success) {
@@ -637,19 +649,14 @@ function DetailsStep({
   setForm: React.Dispatch<React.SetStateAction<SellForm | null>>;
   editId: string | null;
 }) {
-  console.log("Input value:", form.title);
-
-
   return (
     <div className="space-y-2">
       <Field label="Title">
         <input
           value={form.title}
-          onChange={(event) => {
-            console.log("Typing:", event.target.value);
-
-            setForm((prev) => (prev ? { ...prev, title: event.target.value } : prev));
-          }}
+          onChange={(event) =>
+            setForm((prev) => (prev ? { ...prev, title: event.target.value } : prev))
+          }
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
@@ -680,6 +687,7 @@ function DetailsStep({
               label: condition,
               value: condition,
             }))}
+            placeholder="Select condition"
           />
         </Field>
       </div>
@@ -695,8 +703,7 @@ function DetailsStep({
             label: category.name,
             value: category.slug,
           }))}
-          searchPlaceholder="Search category..."
-          searchable
+          placeholder="Select category"
         />
       </Field>
       <Field label="Description">
@@ -774,7 +781,7 @@ function PreviewStep(props: {
   state: EasternState;
   city: string;
   area: string;
-  condition: ListingCondition;
+  condition: ListingCondition | "";
   isEditMode?: boolean;
 }) {
   return (
@@ -862,12 +869,14 @@ function CustomSelect({
   options,
   value,
   onChange,
+  placeholder = "Select",
   searchable,
   searchPlaceholder = "Search...",
 }: {
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
 }) {
@@ -968,7 +977,14 @@ function CustomSelect({
         className="flex w-full items-center justify-between gap-2 py-0.5 text-left"
         aria-expanded={isOpen}
       >
-        <span className="min-w-0 truncate">{selectedOption?.label ?? "Select"}</span>
+        <span
+          className={cn(
+            "min-w-0 truncate",
+            !selectedOption && "font-normal text-muted",
+          )}
+        >
+          {selectedOption?.label ?? placeholder}
+        </span>
         <ChevronDown
           size={15}
           className={`shrink-0 text-muted transition duration-app ${isOpen ? "rotate-180" : ""}`}
