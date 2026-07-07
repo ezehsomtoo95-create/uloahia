@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import { BRAND_NAME } from "@/lib/constants/brand";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
 
 export function BrowseHeader({
   regionLabel = "Eastern NG",
@@ -13,8 +13,9 @@ export function BrowseHeader({
 }) {
   return (
     <header className="market-browse-header">
-      <Link href="/" className="type-brand leading-none">
-        {BRAND_NAME}
+      <Link href="/" className="flex min-w-0 flex-col gap-0.5">
+        <span className="type-brand">{BRAND_NAME}</span>
+        <span className="type-brand-sub">{BRAND_TAGLINE}</span>
       </Link>
       <button
         type="button"
