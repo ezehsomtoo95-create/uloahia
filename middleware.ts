@@ -4,6 +4,43 @@ import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 
 const AUTH_REQUIRED_PREFIXES = ["/profile", "/my-listings", "/sell", "/saved", "/admin"];
 
+const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth"];
+
+function shouldBypassRouteProtection(request: NextRequest) {
+  // Next.js 16 Server Actions POST to the current route — never redirect these.
+  if (request.method === "POST") {
+    return true;
+  }
+
+  if (
+    request.headers.get("next-action") ||
+    request.headers.get("x-action-id") ||
+    request.headers.get("x-action-revalidated")
+  ) {
+    return true;
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+  if (
+    contentType.startsWith("multipart/form-data") ||
+    contentType === "application/x-www-form-urlencoded"
+  ) {
+    return true;
+  }
+
+  if (request.headers.get("rsc") === "1" || request.headers.has("next-router-state-tree")) {
+    return true;
+  }
+
+  return false;
+}
+
+function isAuthExemptPath(pathname: string) {
+  return AUTH_EXEMPT_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 function withSessionCookies(source: NextResponse, target: NextResponse) {
   for (const cookie of source.cookies.getAll()) {
     target.cookies.set(cookie);
@@ -13,6 +50,10 @@ function withSessionCookies(source: NextResponse, target: NextResponse) {
 }
 
 export async function middleware(request: NextRequest) {
+  if (shouldBypassRouteProtection(request)) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request,
   });
@@ -41,20 +82,23 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isLoginRoute = pathname === "/login" || pathname.startsWith("/login/");
+  const isAuthExempt = isAuthExemptPath(pathname);
   const isAuthRoute = AUTH_REQUIRED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-  if (isLoginRoute && user?.email_confirmed_at) {
-    const authMode = request.nextUrl.searchParams.get("mode");
-    if (authMode !== "recover") {
-      const destination = request.nextUrl.clone();
-      destination.pathname = getSafeReturnPath(request.nextUrl.searchParams.get("next"));
-      destination.search = "";
-      return withSessionCookies(
-        response,
-        NextResponse.redirect(destination),
-      );
+  if (isAuthExempt) {
+    const isLoginRoute = pathname === "/login" || pathname.startsWith("/login/");
+
+    if (isLoginRoute && user?.email_confirmed_at) {
+      const authMode = request.nextUrl.searchParams.get("mode");
+      if (authMode !== "recover") {
+        const destination = request.nextUrl.clone();
+        destination.pathname = getSafeReturnPath(request.nextUrl.searchParams.get("next"));
+        destination.search = "";
+        return withSessionCookies(response, NextResponse.redirect(destination));
+      }
     }
+
+    return response;
   }
 
   if (isAuthRoute && !user) {
@@ -77,5 +121,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|_next/webpack-hmr|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };
