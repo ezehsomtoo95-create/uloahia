@@ -74,6 +74,7 @@
     --browse-chip-active-bg: color-mix(in srgb, var(--primary) 22%, rgba(255, 255, 255, 0.06));
     --browse-chip-active-text: #ffffff;
   }
+
 }
 
 * {
@@ -287,6 +288,7 @@ select option:hover {
   .pb-safe {
     padding-bottom: max(96px, calc(72px + env(safe-area-inset-bottom)));
   }
+
 
   .listing-detail-shell {
     min-height: 100dvh;
@@ -721,6 +723,7 @@ select option:hover {
   .market-browse {
     padding-top: max(12px, env(safe-area-inset-top));
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+
   }
 
   .market-browse-header {
@@ -880,6 +883,7 @@ select option:hover {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 1.5rem;
+
   }
 
   .market-listing-card {
@@ -973,6 +977,7 @@ select option:hover {
     line-height: 1.35;
     color: var(--text-secondary);
   }
+
 }
 
 @keyframes skeleton-sweep {
@@ -1010,6 +1015,7 @@ select option:hover {
     transform: translateY(0) scale(1);
   }
 }
+
 
 @keyframes sold-pop {
   0% {

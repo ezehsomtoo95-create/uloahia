@@ -5,6 +5,7 @@ import { AdminDashboardButton } from "@/components/profile/admin-dashboard-butto
 import { ProfileSupportSettings } from "@/components/profile/profile-support-settings";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import { BRAND_NAME } from "@/lib/constants/brand";
+
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 
@@ -116,6 +117,7 @@ export default async function ProfilePage() {
           )}
         </div>
       </div>
+
     </main>
   );
 }

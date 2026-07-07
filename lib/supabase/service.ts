@@ -7,6 +7,7 @@ let cachedAdminClient: SupabaseClient | null = null;
 /**
  * Service-role Supabase client for server-only admin mutations.
  * Bypasses RLS — always pair with requireAdmin() + assertIsAdmin().
+
  */
 export function supabaseAdmin() {
   if (cachedAdminClient) {

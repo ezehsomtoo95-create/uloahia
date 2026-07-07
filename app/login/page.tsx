@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { assertSignupAvailability } from "@/app/actions/auth";
+
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
@@ -26,6 +27,7 @@ const AUTH_VIEWPORT_HEIGHT =
 
 type Mode = "login" | "signup" | "recover";
 
+
 const MODE_COPY = {
   login: {
     title: "Log in",
@@ -41,6 +43,7 @@ const MODE_COPY = {
     title: "Recover access",
     helper: "Reset your password via email link.",
     button: "Send reset email",
+
   },
 } as const;
 
@@ -61,6 +64,7 @@ export default function LoginPage() {
         </main>
       }
     >
+
       <LoginPageContent />
     </Suspense>
   );
@@ -104,6 +108,7 @@ function LoginPageContent() {
     setAuthError(null);
     setShowVerificationScreen(false);
     setRecoveryReady(false);
+
   }
 
   function showAuthError(error: AuthErrorInput | string) {
@@ -155,6 +160,7 @@ function LoginPageContent() {
   }, [supabase]);
 
   async function handleSignup() {
+
     setMessage("");
     setAuthError(null);
 
@@ -180,6 +186,7 @@ function LoginPageContent() {
     const availability = await assertSignupAvailability(validation.data);
     if (!availability.success) {
       setMessage(availability.error);
+
       return;
     }
 
@@ -195,6 +202,7 @@ function LoginPageContent() {
             phone: normalizedPhone,
           },
       },
+
     });
     setIsLoading(false);
 
@@ -259,6 +267,7 @@ function LoginPageContent() {
       return;
     }
 
+
     router.push(returnPath);
     router.refresh();
   }
@@ -270,6 +279,7 @@ function LoginPageContent() {
     const validation = recoverSchema.safeParse({ email });
     if (!validation.success) {
       setMessage(validation.error.issues[0]?.message ?? "Enter a valid email.");
+
       return;
     }
 
@@ -303,6 +313,7 @@ function LoginPageContent() {
     });
     if (!validation.success) {
       setMessage(validation.error.issues[0]?.message ?? "Invalid password.");
+
       return;
     }
 
@@ -333,6 +344,7 @@ function LoginPageContent() {
     const nextEmail = (targetEmail || resendTargetEmail || email).trim().toLowerCase();
     if (!nextEmail) {
       setMessage("Enter your email to resend verification.");
+
       return;
     }
 
@@ -675,5 +687,6 @@ function AuthField({
         {children}
       </div>
     </label>
+
   );
 }

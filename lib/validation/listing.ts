@@ -19,6 +19,7 @@ export const listingPhotoInputSchema = z.discriminatedUnion("source", [
   }),
 ]);
 
+
 /** Validates sell-flow listing payloads (create and update). */
 export const ListingSchema = z.object({
   mode: z.enum(["create", "update"]).optional(),
@@ -43,6 +44,7 @@ export const ListingSchema = z.object({
 
 export type ListingInput = z.infer<typeof ListingSchema>;
 export type ListingPhotoInput = z.infer<typeof listingPhotoInputSchema>;
+
 
 export const updateListingSchema = z.object({
   listingId: listingIdSchema,

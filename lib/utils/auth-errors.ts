@@ -1,5 +1,6 @@
 type AuthMode = "login" | "signup" | "recover";
 
+
 export type AuthErrorInput = {
   message: string;
   code?: string;
@@ -11,6 +12,7 @@ export type AuthErrorDisplay = {
   text: string;
   showSignupButton?: boolean;
   showLoginButton?: boolean;
+
 };
 
 function normalizeErrorMessage(message: string) {
@@ -41,6 +43,7 @@ function isSignupDisabledMessage(message: string, code: string) {
     message.includes("signup is disabled") ||
     message.includes("new signups are disabled") ||
       message.includes("email signups are disabled")
+
   );
 }
 
@@ -49,6 +52,7 @@ function isMissingAccountMessage(message: string, code: string) {
     code === "user_not_found" ||
     message.includes("user not found") ||
     message.includes("invalid login") ||
+
     message.includes("no user found") ||
     message.includes("user does not exist")
   );
@@ -88,11 +92,13 @@ function isEmailNotVerifiedMessage(message: string, code: string) {
   );
 }
 
+
 function isInvalidCredentialsMessage(message: string, code: string) {
   return (
     code === "invalid_credentials" ||
     message.includes("invalid login credentials") ||
     message.includes("invalid email or password")
+
   );
 }
 
@@ -110,6 +116,7 @@ export function mapAuthError(
   if (mode === "signup" && isExistingAccountMessage(message, code)) {
     return {
       text: "This email already has an account. Login instead.",
+
       showLoginButton: true,
     };
   }
@@ -117,6 +124,7 @@ export function mapAuthError(
   if (isEmailProviderUnavailableMessage(message, code)) {
     return {
       text: "Unable to send email right now.",
+
     };
   }
 
@@ -134,6 +142,7 @@ export function mapAuthError(
     return {
       title: "No account found",
       text: "This email hasn't created an account yet. Switch to Signup to continue.",
+
       showSignupButton: true,
     };
   }
@@ -164,6 +173,7 @@ export function mapAuthError(
   ) {
     return {
       text: "That link has expired. Request a new one and try again.",
+
     };
   }
 
@@ -180,6 +190,7 @@ export function mapAuthError(
   if (isInvalidCredentialsMessage(message, code)) {
     return {
       text: "Invalid email or password.",
+
     };
   }
 

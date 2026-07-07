@@ -4,10 +4,12 @@ import { AdminToastProvider } from "@/components/admin/admin-toast";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function AdminLayout({
+
   children,
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <AdminToastProvider>
       <ErrorBoundary title="Admin panel unavailable">

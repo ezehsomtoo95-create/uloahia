@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin } from "lucide-react";
 import { ListingCard } from "@/components/listings/listing-card";
 import { ListingContactBar } from "@/components/listings/listing-contact-bar";
+
 import { ListingImageGallery } from "@/components/listings/listing-image-gallery";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
@@ -47,6 +48,7 @@ export default async function ListingDetailsPage({
 
   const showSaveBar =
     !isAdmin && (listing.status === "approved" || listing.status === "pending");
+
   const showWhatsappContact = listing.status === "approved" && Boolean(sellerPhone);
   const soldLabel = `${soldCount} ${soldCount === 1 ? "item" : "items"}`;
 
@@ -58,6 +60,7 @@ export default async function ListingDetailsPage({
           showSaveBar ? "pb-[120px]" : "pb-safe",
         )}
       >
+
         <div className="marketplace-listing-body min-w-0 space-y-3">
           {listing.status === "approved" && !isAdmin ? (
             <ListingViewTracker listingId={listing.id} />
@@ -143,6 +146,7 @@ export default async function ListingDetailsPage({
       </main>
 
       {showSaveBar ? <ListingContactBar listing={listing} /> : null}
+
     </>
   );
 }

@@ -4,6 +4,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
+
 import type { Listing } from "@/lib/types";
 import { resolveListingImages } from "@/lib/utils/storage";
 
@@ -149,6 +150,7 @@ export async function getListingForViewer(id: string) {
   });
 
   if (isOwner || adminAccess.isAdmin) {
+
     return await attachListingImages(supabase, id, listing);
   }
 
@@ -214,6 +216,7 @@ export async function getViewerContext() {
   return {
     user,
     isAdmin: adminAccess.isAdmin,
+
   };
 }
 

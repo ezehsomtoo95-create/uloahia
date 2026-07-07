@@ -8,6 +8,7 @@ import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
 import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
 
+
 export type SaveListingResult = {
   listingId: string;
   mode: "created" | "updated";
@@ -125,6 +126,7 @@ async function syncListingImages(
   if (imageError) {
     throw new Error(imageError.message);
   }
+
 }
 
 async function updateExistingListing(
@@ -132,10 +134,12 @@ async function updateExistingListing(
   listingId: string,
   userId: string,
   formData: FormData,
+
 ): Promise<SaveListingResult> {
   const admin = supabaseAdmin();
   const existing = await assertSellerOwnsListing(listingId, userId);
   const nextStatus = resolveNextStatus(existing.status as ListingStatus);
+
 
   const { data: updatedRow, error } = await admin
     .from("listings")
@@ -161,6 +165,7 @@ async function updateExistingListing(
 
   await syncListingImages(listingId, userId, input.photos, formData);
 
+
   return { listingId, mode: "updated" };
 }
 
@@ -174,6 +179,7 @@ async function createNewListing(
   const { data: listing, error } = await admin
     .from("listings")
     .insert({
+
       seller_id: userId,
       title: input.title,
       category: input.category,
@@ -193,6 +199,7 @@ async function createNewListing(
   }
 
   await syncListingImages(listing.id, userId, input.photos, formData);
+
 
   return { listingId: listing.id, mode: "created" };
 }
@@ -227,6 +234,7 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
     const input = ListingSchema.parse(parsedJson);
     const result = await saveListingInternal(input, formData);
 
+
     revalidatePath("/my-listings", "page");
     revalidatePath(`/listing/${result.listingId}`, "page");
     revalidatePath("/browse", "page");
@@ -237,6 +245,7 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
     if (error instanceof SyntaxError) {
       return actionError("Invalid listing payload.");
     }
+
 
     return actionError(formatZodError(error));
   }

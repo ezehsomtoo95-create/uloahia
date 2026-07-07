@@ -13,4 +13,5 @@ export function isAdminEmailMatch(
   adminEmail: string = ADMIN_EMAIL,
 ) {
   return emailsMatch(userEmail, adminEmail);
+
 }

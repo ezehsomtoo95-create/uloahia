@@ -16,6 +16,7 @@ export function getSellPhotoPreview(item: SellPhotoItem): string {
   return item.source === "existing" ? item.url : URL.createObjectURL(item.file);
 }
 
+
 export function moveSellPhoto(items: SellPhotoItem[], from: number, to: number) {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
     return items;

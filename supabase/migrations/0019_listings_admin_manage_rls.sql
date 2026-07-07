@@ -1,6 +1,7 @@
 -- Ensure admin listing updates work via is_phone_admin() for authenticated sessions.
 -- Also allow bootstrapping app_config.admin_phone so is_phone_admin() can evaluate correctly.
 
+
 DROP POLICY IF EXISTS listings_admin_manage ON public.listings;
 DROP POLICY IF EXISTS admin_can_update_listings ON public.listings;
 
@@ -51,5 +52,6 @@ CREATE POLICY app_config_bootstrap_admin_phone_update
         AND public.normalize_listing_phone(profiles.phone) = public.normalize_listing_phone(value)
     )
   );
+
 
 GRANT EXECUTE ON FUNCTION public.is_phone_admin() TO authenticated;

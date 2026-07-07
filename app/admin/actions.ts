@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertIsAdmin, requireAdmin } from "@/lib/admin/auth";
+
 import {
   adminError,
   adminSuccess,
@@ -16,6 +17,7 @@ import type { AdminListingDetail, AdminReportDetail, AdminUserDetail } from "@/l
 import { getAdminTableData } from "@/lib/data/admin-listings";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
+
 
 function revalidateAdminPaths(listingId?: string) {
   revalidatePath("/admin");
@@ -33,6 +35,7 @@ async function assertAdminCanMutate() {
   const isAdmin = await assertIsAdmin(userSupabase);
 
   if (!isAdmin) {
+
     throw new Error("Not authorized for admin mutations.");
   }
 }
@@ -50,6 +53,7 @@ async function deleteListingRecord(listingId: string) {
 
   if (imageError) {
     throw new Error(imageError.message);
+
   }
 
   const { error } = await admin.from("listings").delete().eq("id", listingId);
@@ -57,6 +61,7 @@ async function deleteListingRecord(listingId: string) {
   if (error) {
     throw new Error(error.message);
   }
+
 }
 
 export async function fetchAdminListingDetail(
@@ -105,6 +110,7 @@ export async function updateListingStatus(
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -201,6 +207,7 @@ export async function toggleFeatureListingById(
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -247,6 +254,7 @@ export async function adminUpdateListing(input: {
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -282,6 +290,7 @@ export async function suspendUserById(userId: string): Promise<AdminActionResult
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update users.");
   }
@@ -304,6 +313,7 @@ export async function activateUserById(userId: string): Promise<AdminActionResul
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update users.");
   }
@@ -330,6 +340,7 @@ export async function deleteUserById(userId: string): Promise<AdminActionResult>
 
   try {
     await assertAdminCanMutate();
+
     const admin = supabaseAdmin();
     const { error: authError } = await admin.auth.admin.deleteUser(userId);
 
@@ -356,6 +367,7 @@ export async function dismissReportById(reportId: string): Promise<AdminActionRe
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update reports.");
   }
@@ -412,6 +424,7 @@ export async function approveAllPending(): Promise<AdminActionResult> {
 
   try {
     await assertAdminCanMutate();
+
   } catch {
     return adminError("Not authorized to update listings.");
   }

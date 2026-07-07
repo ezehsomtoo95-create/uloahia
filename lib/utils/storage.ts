@@ -16,6 +16,7 @@ const DETAIL_IMAGE_SIZES: Record<ListingDetailImageVariant, { width: number; hei
     thumb: { width: 144, height: 144 },
   };
 
+
 export function resolveListingImageUrl(url: string | null | undefined) {
   if (!url) {
     return null;
@@ -110,4 +111,5 @@ export function getListingDetailImageUrl(
   });
 
   return `${objectMatch[1]}/render/image/public/${objectMatch[2]}?${params.toString()}`;
+
 }

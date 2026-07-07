@@ -9,6 +9,7 @@ import {
 } from "@/lib/utils/admin-access";
 import { createClient } from "@/lib/supabase/server";
 
+
 export type { AdminAccessMethod, AdminCheckDebugInfo };
 
 export type AdminAccessResult = {
@@ -45,6 +46,7 @@ export async function resolveAdminAccess(
   if (userEmail && emailsMatch(userEmail, ADMIN_EMAIL)) {
     return { isAdmin: true, method: "env_email_match", debug };
   }
+
 
   return { isAdmin: false, method: "none", debug };
 }

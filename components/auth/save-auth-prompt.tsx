@@ -48,6 +48,7 @@ export function SaveAuthPrompt({
     >
       <div
         className="w-full max-w-sm rounded-[16px] border border-border bg-surface p-4 shadow-xl"
+
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -64,6 +65,7 @@ export function SaveAuthPrompt({
             href={buildAuthHref("login", returnPath)}
             onClick={onClose}
             className="type-btn flex h-11 items-center justify-center rounded-full border border-border px-3 text-[13px]"
+
           >
             Login
           </Link>
@@ -71,6 +73,7 @@ export function SaveAuthPrompt({
             href={buildAuthHref("signup", returnPath)}
             onClick={onClose}
             className="type-btn flex h-11 items-center justify-center rounded-full bg-primary px-3 text-[13px] text-primary-foreground"
+
           >
             Sign up
           </Link>

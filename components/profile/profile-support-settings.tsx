@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
@@ -9,6 +10,7 @@ import { SUPPORT_WHATSAPP_HREF } from "@/lib/constants/support";
 import { cn } from "@/lib/utils/cn";
 
 export function ProfileSupportSettings() {
+
   const router = useRouter();
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -90,6 +92,7 @@ export function ProfileSupportSettings() {
       </section>
 
       <AdminConfirmDialog
+
         open={confirmOpen}
         title="Delete your profile?"
         description="This permanently removes your account, listings, and saved items. This action cannot be undone."
@@ -103,6 +106,7 @@ export function ProfileSupportSettings() {
         }}
         onConfirm={handleDeleteConfirm}
       />
+
     </>
   );
 }

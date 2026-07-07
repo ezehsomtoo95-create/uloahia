@@ -35,6 +35,7 @@ async function seedAdminConfig(email: string) {
 
   const { error } = await supabaseAdmin().from("app_config").upsert(
     { key: "admin_email", value: normalized },
+
     { onConflict: "key" },
   );
 
@@ -57,6 +58,7 @@ export async function requireAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
+
     redirect("/login");
   }
 
@@ -76,9 +78,11 @@ export async function requireAdmin() {
 
   await seedAdminConfig(user.email);
 
+
   return {
     supabase,
     user,
     profile: profile ?? { phone: "", full_name: null },
+
   };
 }

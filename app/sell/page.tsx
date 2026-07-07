@@ -23,6 +23,7 @@ import { PreviewImage } from "@/components/ui/preview-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { MAX_SELL_PHOTOS, createSellPhotoId, type SellPhotoItem } from "@/lib/sell/photos";
 import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
+
 import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
 import type { EasternState, ListingCondition, ListingCategorySlug, ListingStatus } from "@/lib/types";
@@ -183,12 +184,14 @@ function SellPageContent({ editId }: { editId: string | null }) {
 
       console.log("DB title:", data.title);
 
+
       const images = [...(data.listing_images ?? [])].sort(
         (first, second) => first.position - second.position,
       );
       const normalizedCategory = normalizeCategorySlug(data.category);
 
       console.log("Reopened title:", data.title);
+
 
       setForm({
         listingId: data.id,
@@ -308,6 +311,7 @@ function SellPageContent({ editId }: { editId: string | null }) {
 
     showSaveToast("Listing submitted for review.");
     setPublished(true);
+
   }
 
   if (isLoadingEdit || !form) {
@@ -432,6 +436,7 @@ function SellPageContent({ editId }: { editId: string | null }) {
               photos={form.photos}
               photoPreviews={photoPreviews}
               onPhotosChange={(photos) => setForm((prev) => (prev ? { ...prev, photos } : prev))}
+
             />
           ) : null}
           {stepIndex === 1 ? (
@@ -521,6 +526,7 @@ function PhotosStep({
   photos,
   photoPreviews,
   onPhotosChange,
+
 }: {
   photos: SellPhotoItem[];
   photoPreviews: string[];
@@ -529,6 +535,7 @@ function PhotosStep({
   const photoCount = photos.length;
 
   function addPhotos(files: File[]) {
+
     const remaining = MAX_SELL_PHOTOS - photos.length;
     if (remaining <= 0) {
       return;
@@ -541,6 +548,7 @@ function PhotosStep({
     }));
 
     onPhotosChange([...photos, ...nextFiles]);
+
   }
 
   return (
@@ -558,6 +566,7 @@ function PhotosStep({
           className="sr-only"
           onChange={(event) => {
             addPhotos(Array.from(event.target.files ?? []));
+
             event.target.value = "";
           }}
         />
@@ -582,6 +591,7 @@ function DetailsStep({
 }) {
   console.log("Input value:", form.title);
 
+
   return (
     <div className="space-y-2">
       <Field label="Title">
@@ -589,6 +599,7 @@ function DetailsStep({
           value={form.title}
           onChange={(event) => {
             console.log("Typing:", event.target.value);
+
             setForm((prev) => (prev ? { ...prev, title: event.target.value } : prev));
           }}
           autoComplete="off"
@@ -851,6 +862,7 @@ function CustomSelect({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+
     function updatePosition() {
       if (!rootRef.current) {
         return;
@@ -885,6 +897,7 @@ function CustomSelect({
 
     return () => {
       document.body.style.overflow = previousOverflow;
+
       window.removeEventListener("resize", updatePosition);
     };
   }, [isOpen]);
@@ -919,6 +932,7 @@ function CustomSelect({
         <div
           ref={panelRef}
           className="fixed z-[9999] max-h-[176px] overflow-y-auto rounded-[12px] border border-border bg-surface p-1 shadow-lg [scrollbar-color:var(--primary)_transparent] [scrollbar-width:thin]"
+
           style={{
             left: panelPosition.left,
             top: panelPosition.top,

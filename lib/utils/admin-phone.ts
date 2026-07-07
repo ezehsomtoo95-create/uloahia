@@ -1,3 +1,4 @@
+
 /** Aligns with DB normalize_listing_phone (0007 migration). */
 export function normalizePhone(phone: string) {
   let digits = phone.replace(/\D/g, "");
@@ -32,3 +33,4 @@ export function phonesMatch(
 
   return normalizedLeft === normalizedRight;
 }
+

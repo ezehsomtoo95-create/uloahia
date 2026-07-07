@@ -1,5 +1,6 @@
 const DEFAULT_AUTH_RETURN = "/";
 
+
 export function getSafeReturnPath(path: string | null | undefined) {
   if (!path || !path.startsWith("/") || path.startsWith("//")) {
     return DEFAULT_AUTH_RETURN;
@@ -16,6 +17,7 @@ export function buildAuthHref(
   mode: "login" | "signup",
   returnPath?: string | null,
 ) {
+
   const params = new URLSearchParams();
   params.set("mode", mode);
 

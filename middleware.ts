@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 const AUTH_REQUIRED_PREFIXES = ["/profile", "/my-listings", "/sell", "/saved", "/admin"];
 
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -36,6 +37,7 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isAuthRoute && !user) {
+
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -55,6 +57,7 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set("reason", "verify-email");
     return NextResponse.redirect(loginUrl);
   }
+
 
   return response;
 }

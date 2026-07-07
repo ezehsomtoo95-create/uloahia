@@ -5,6 +5,7 @@ import { CategoryRow } from "@/components/market/category-row";
 import { EmptyState } from "@/components/market/empty-state";
 import { SectionHeader } from "@/components/market/section-header";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
+
 import { getApprovedListings } from "@/lib/data/listings";
 
 export default async function HomePage() {
@@ -12,6 +13,7 @@ export default async function HomePage() {
 
   return (
     <main className="marketplace-page--home space-y-3.5 pb-6 pt-3">
+
       <section className="space-y-3.5">
         <div className="max-w-[18rem] space-y-1">
           <h1 className="type-hero">Buy. Sell. Furnish your home.</h1>
@@ -40,6 +42,7 @@ export default async function HomePage() {
         {BRAND_NAME} — {BRAND_TAGLINE.toLowerCase()}. Local buyers and sellers connect
         here, then continue on WhatsApp.
       </footer>
+
     </main>
   );
 }

@@ -6,6 +6,7 @@ import { actionError, actionSuccess, type ActionResult } from "@/lib/action-resu
 import { createClient } from "@/lib/supabase/server";
 import { formatZodError, listingIdSchema } from "@/lib/validation/common";
 
+
 async function requireUser() {
   const supabase = await createClient();
   const {
@@ -91,6 +92,7 @@ export async function deleteListingWithResult(formData: FormData): Promise<Actio
     if (error) {
       return actionError(error.message);
     }
+
 
     revalidatePath("/my-listings");
     return actionSuccess();

@@ -5,6 +5,7 @@ import "./marketplace-desktop.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
 
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AppShell>{children}</AppShell>
+
       </body>
     </html>
   );
