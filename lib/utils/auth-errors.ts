@@ -51,8 +51,6 @@ function isMissingAccountMessage(message: string, code: string) {
   return (
     code === "user_not_found" ||
     message.includes("user not found") ||
-    message.includes("invalid login") ||
-
     message.includes("no user found") ||
     message.includes("user does not exist")
   );
@@ -134,6 +132,12 @@ export function mapAuthError(
     };
   }
 
+  if (mode === "login" && isInvalidCredentialsMessage(message, code)) {
+    return {
+      text: "Incorrect password. Please try again.",
+    };
+  }
+
   if (
     mode === "login" &&
     (isMissingAccountMessage(message, code) ||
@@ -203,8 +207,10 @@ export function mapAuthError(
 
   if (isInvalidCredentialsMessage(message, code) && mode !== "setup") {
     return {
-      text: "Invalid email or password.",
-
+      text:
+        mode === "login"
+          ? "Incorrect password. Please try again."
+          : "Invalid email or password.",
     };
   }
 

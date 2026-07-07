@@ -245,8 +245,6 @@ function LoginPageContent() {
 
       if (error) {
         console.error("LIVE LOGIN FAILURE:", error);
-        const liveMessage = `[Login] ${error.message}${error.code ? ` (code: ${error.code})` : ""}`;
-        setMessage(liveMessage);
         showAuthError({
           message: error.message,
           code: error.code,
@@ -262,11 +260,14 @@ function LoginPageContent() {
       }
 
       if (!data.user || !data.user.email_confirmed_at) {
-        await supabase.auth.signOut();
+        try {
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          console.error("LIVE LOGIN FAILURE:", signOutError);
+        }
+
         setResendTargetEmail(validation.data.email.toLowerCase());
-        const liveMessage = "[Login] Email not verified.";
-        console.error("LIVE LOGIN FAILURE:", liveMessage, data.user);
-        setMessage(liveMessage);
+        console.error("LIVE LOGIN FAILURE: Email not verified.", data.user);
         showAuthError({
           message: "Email not verified.",
           code: "email_not_confirmed",
@@ -280,9 +281,8 @@ function LoginPageContent() {
       } = await supabase.auth.getSession();
 
       if (!session?.user?.email_confirmed_at) {
-        const liveMessage = "[Login] Could not establish login session. Please try again.";
-        console.error("LIVE LOGIN FAILURE:", liveMessage, session);
-        setMessage(liveMessage);
+        console.error("LIVE LOGIN FAILURE: Could not establish login session.", session);
+        setMessage("Could not establish login session. Please try again.");
         return;
       }
 
@@ -294,13 +294,13 @@ function LoginPageContent() {
       router.replace(returnPath);
     } catch (error) {
       console.error("LIVE LOGIN FAILURE:", error);
-      const liveMessage =
-        error instanceof Error
-          ? `[Login] ${error.message}`
-          : "[Login] Could not complete login. Please try again.";
-      setMessage(liveMessage);
+      showAuthError(
+        error instanceof Error ? error.message : "Could not complete login. Please try again.",
+      );
     } finally {
-      setIsLoading(false);
+      if (!isRedirectingRef.current) {
+        setIsLoading(false);
+      }
     }
   }
 
