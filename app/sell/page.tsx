@@ -326,10 +326,18 @@ function SellPageContent({ editId }: { editId: string | null }) {
       showSaveToast("Listing submitted for review.");
       setPublished(true);
     } catch (error) {
-      const message =
+      console.error("CLIENT LISTING ACTION ERROR:", error);
+
+      const digest =
+        error && typeof error === "object" && "digest" in error
+          ? String((error as { digest?: string }).digest ?? "")
+          : "";
+      const baseMessage =
         error instanceof Error
           ? error.message
           : "Could not publish listing. Please try again.";
+      const message = digest ? `${baseMessage} (digest: ${digest})` : baseMessage;
+
       setErrorMessage(message);
       showSaveToast(message);
     } finally {

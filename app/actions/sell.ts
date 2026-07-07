@@ -13,6 +13,50 @@ export type SaveListingResult = {
   mode: "created" | "updated";
 };
 
+type SupabaseLikeError = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+  statusCode?: string | number;
+};
+
+function logServerListingError(scope: string, error: unknown, extra?: Record<string, unknown>) {
+  console.error("SERVER LISTING ERROR DETECTED:", {
+    scope,
+    error,
+    ...extra,
+  });
+}
+
+function describeListingError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const record = error as SupabaseLikeError;
+    const parts = [
+      record.message,
+      record.code ? `code=${record.code}` : null,
+      record.details ? `details=${record.details}` : null,
+      record.hint ? `hint=${record.hint}` : null,
+      record.statusCode ? `status=${record.statusCode}` : null,
+    ].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+  }
+
+  return String(error);
+}
+
+function formatSupabaseFailure(scope: string, error: SupabaseLikeError | null | undefined) {
+  const message = describeListingError(error ?? new Error("unknown error"));
+  return `${scope}: ${message}`;
+}
+
 async function requireAuthenticatedUser() {
   const supabase = await createClient();
   const {
@@ -80,7 +124,8 @@ async function uploadListingImage(
   });
 
   if (uploadError) {
-    throw new Error(`Photo upload failed: ${uploadError.message}`);
+    logServerListingError("storage.upload", uploadError, { path, userId, listingId, position });
+    throw new Error(formatSupabaseFailure("Photo upload failed", uploadError));
   }
 
   const { data } = admin.storage.from("listing-images").getPublicUrl(path);
@@ -101,7 +146,8 @@ async function syncListingImages(
     .eq("listing_id", listingId);
 
   if (deleteError) {
-    throw new Error(`Could not reset listing photos: ${deleteError.message}`);
+    logServerListingError("listing_images.delete", deleteError, { listingId });
+    throw new Error(formatSupabaseFailure("Could not reset listing photos", deleteError));
   }
 
   const imageRows: Array<{
@@ -132,9 +178,8 @@ async function syncListingImages(
         position,
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not process listing photos.";
-      throw new Error(message);
+      logServerListingError("listing_images.process", error, { listingId, position, photo });
+      throw new Error(describeListingError(error));
     }
   }
 
@@ -145,7 +190,8 @@ async function syncListingImages(
   const { error: imageError } = await admin.from("listing_images").insert(imageRows);
 
   if (imageError) {
-    throw new Error(`Could not save listing photos: ${imageError.message}`);
+    logServerListingError("listing_images.insert", imageError, { listingId, imageRows });
+    throw new Error(formatSupabaseFailure("Could not save listing photos", imageError));
   }
 }
 
@@ -178,7 +224,8 @@ async function updateExistingListing(
     .single();
 
   if (error || !updatedRow) {
-    throw new Error(error?.message ?? "Could not update listing.");
+    logServerListingError("listings.update", error, { listingId, userId });
+    throw new Error(formatSupabaseFailure("Could not update listing", error));
   }
 
   await syncListingImages(listingId, userId, input.photos, formData);
@@ -213,7 +260,8 @@ async function createNewListing(
       .single();
 
     if (error || !listing) {
-      throw new Error(error?.message ?? "Could not create listing.");
+      logServerListingError("listings.insert", error, { userId, input });
+      throw new Error(formatSupabaseFailure("Could not create listing", error));
     }
 
     listingId = listing.id;
@@ -257,9 +305,10 @@ async function saveListingInternal(
 
     return await createNewListing(input, user.id, formData);
   } catch (error) {
+    logServerListingError("saveListingInternal", error);
     if (error instanceof Error && error.message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
       throw new Error(
-        "Listing publish is temporarily unavailable. Please try again later.",
+        "Listing publish is temporarily unavailable. Missing SUPABASE_SERVICE_ROLE_KEY.",
       );
     }
 
@@ -268,6 +317,8 @@ async function saveListingInternal(
 }
 
 export async function saveListing(formData: FormData): Promise<ActionResult<SaveListingResult>> {
+  const photoFields = [...formData.keys()].filter((key) => key.startsWith("photo_"));
+
   try {
     const rawPayload = formData.get("data");
 
@@ -279,11 +330,18 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
 
     try {
       parsedJson = JSON.parse(rawPayload);
-    } catch {
+    } catch (parseError) {
+      logServerListingError("saveListing.parse", parseError);
       return actionError("Invalid listing payload.");
     }
 
     const input = ListingSchema.parse(parsedJson);
+    console.log("[saveListing] starting", {
+      mode: input.mode,
+      listingId: input.listingId,
+      photoCount: input.photos.length,
+      uploadedFileCount: photoFields.length,
+    });
     const result = await saveListingInternal(input, formData);
 
     revalidatePath("/my-listings", "page");
@@ -293,10 +351,14 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
 
     return actionSuccess(result);
   } catch (error) {
+    console.error("SERVER LISTING ERROR DETECTED:", error);
+
     if (error instanceof SyntaxError) {
       return actionError("Invalid listing payload.");
     }
 
-    return actionError(formatZodError(error));
+    // Temporary debug surface: return the raw Supabase/server message to the UI.
+    const message = formatZodError(error);
+    return actionError(message);
   }
 }
