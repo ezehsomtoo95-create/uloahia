@@ -1,19 +1,16 @@
 import "server-only";
 
-/** Development-only owner access. Set to your signup phone (+234... or 0810...). */
-export const ADMIN_PHONE = process.env.ADMIN_PHONE ?? "";
+import { emailsMatch } from "@/lib/utils/admin-access";
 
-export function normalizePhone(phone: string) {
-  return phone.replace(/\D/g, "").replace(/^234/, "0");
-}
+/** Marketplace owner email for admin console access. Override via ADMIN_EMAIL in production. */
+export const ADMIN_EMAIL =
+  process.env.ADMIN_EMAIL?.trim().toLowerCase() || "ezehsomtoo95@gmail.com";
 
-export function isAdminPhoneMatch(
-  profilePhone: string | null | undefined,
-  adminPhone: string = ADMIN_PHONE,
+export { normalizeAdminEmail, emailsMatch } from "@/lib/utils/admin-access";
+
+export function isAdminEmailMatch(
+  userEmail: string | null | undefined,
+  adminEmail: string = ADMIN_EMAIL,
 ) {
-  if (!profilePhone || !adminPhone) {
-    return false;
-  }
-
-  return normalizePhone(profilePhone) === normalizePhone(adminPhone);
+  return emailsMatch(userEmail, adminEmail);
 }

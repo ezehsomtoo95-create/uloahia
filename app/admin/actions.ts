@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { assertIsPhoneAdmin, requireAdmin } from "@/lib/admin/auth";
+import { assertIsAdmin, requireAdmin } from "@/lib/admin/auth";
 import {
   adminError,
   adminSuccess,
@@ -28,9 +28,9 @@ function revalidateAdminPaths(listingId?: string) {
   }
 }
 
-async function assertAdminCanMutate(profilePhone: string) {
+async function assertAdminCanMutate() {
   const userSupabase = await createClient();
-  const isAdmin = await assertIsPhoneAdmin(userSupabase, profilePhone);
+  const isAdmin = await assertIsAdmin(userSupabase);
 
   if (!isAdmin) {
     throw new Error("Not authorized for admin mutations.");
@@ -39,7 +39,7 @@ async function assertAdminCanMutate(profilePhone: string) {
 
 async function deleteListingRecord(listingId: string) {
   const { profile } = await requireAdmin();
-  await assertAdminCanMutate(profile.phone);
+  await assertAdminCanMutate();
 
   const admin = supabaseAdmin();
 
@@ -104,7 +104,7 @@ export async function updateListingStatus(
   const { user, profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -200,7 +200,7 @@ export async function toggleFeatureListingById(
   const { profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -246,7 +246,7 @@ export async function adminUpdateListing(input: {
   const { profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update listings.");
   }
@@ -281,7 +281,7 @@ export async function suspendUserById(userId: string): Promise<AdminActionResult
   }
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update users.");
   }
@@ -303,7 +303,7 @@ export async function activateUserById(userId: string): Promise<AdminActionResul
   const { profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update users.");
   }
@@ -329,7 +329,7 @@ export async function deleteUserById(userId: string): Promise<AdminActionResult>
   }
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
     const admin = supabaseAdmin();
     const { error: authError } = await admin.auth.admin.deleteUser(userId);
 
@@ -355,7 +355,7 @@ export async function dismissReportById(reportId: string): Promise<AdminActionRe
   const { profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update reports.");
   }
@@ -411,7 +411,7 @@ export async function approveAllPending(): Promise<AdminActionResult> {
   const { user, profile } = await requireAdmin();
 
   try {
-    await assertAdminCanMutate(profile.phone);
+    await assertAdminCanMutate();
   } catch {
     return adminError("Not authorized to update listings.");
   }

@@ -1,46 +1,40 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import {
-  ADMIN_PHONE,
-  isAdminPhoneMatch,
-  normalizePhone,
-} from "@/lib/constants/admin";
+import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
+import { normalizeAdminEmail } from "@/lib/utils/admin-access";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
 
-export function isAdminPhone(phone: string | null | undefined) {
-  return isAdminPhoneMatch(phone, ADMIN_PHONE);
-}
-
-export async function assertIsPhoneAdmin(
+export async function assertIsAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  profilePhone: string,
 ) {
-  const { data, error } = await supabase.rpc("is_phone_admin");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  console.log("[admin] is_phone_admin rpc", {
-    data,
-    error: error?.message ?? null,
-    code: error?.code ?? null,
-    profilePhone: normalizePhone(profilePhone),
-  });
-
-  if (!error && data === true) {
-    return true;
+  if (!user?.email) {
+    return false;
   }
 
-  const envMatch = isAdminPhoneMatch(profilePhone, ADMIN_PHONE);
-  console.log("[admin] is_phone_admin env fallback", { envMatch });
+  const { isAdmin, method } = await resolveAdminAccess(supabase, {
+    userEmail: user.email,
+  });
 
-  return envMatch;
+  console.log("[admin] assertIsAdmin", {
+    isAdmin,
+    method,
+    userEmail: normalizeAdminEmail(user.email),
+  });
+
+  return isAdmin;
 }
 
-async function seedAdminConfig(phone: string) {
-  const normalized = normalizePhone(phone);
+async function seedAdminConfig(email: string) {
+  const normalized = normalizeAdminEmail(email);
 
   const { error } = await supabaseAdmin().from("app_config").upsert(
-    { key: "admin_phone", value: normalized },
+    { key: "admin_email", value: normalized },
     { onConflict: "key" },
   );
 
@@ -62,7 +56,7 @@ export async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user?.email) {
     redirect("/login");
   }
 
@@ -72,18 +66,19 @@ export async function requireAdmin() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const profilePhone = profile?.phone ?? user.phone ?? "";
-  const match = isAdminPhoneMatch(profilePhone, ADMIN_PHONE);
+  const adminAccess = await resolveAdminAccess(supabase, {
+    userEmail: user.email,
+  });
 
-  if (!match) {
+  if (!adminAccess.isAdmin) {
     redirect("/");
   }
 
-  await seedAdminConfig(profilePhone);
+  await seedAdminConfig(user.email);
 
   return {
     supabase,
     user,
-    profile: profile ?? { phone: profilePhone, full_name: null },
+    profile: profile ?? { phone: "", full_name: null },
   };
 }

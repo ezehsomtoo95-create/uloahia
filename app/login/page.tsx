@@ -1,39 +1,46 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { assertSignupAvailability } from "@/app/actions/auth";
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
-import { isValidE164Phone, normalizeNigerianPhone } from "@/lib/utils/phone";
 import {
   getSupabaseEnvError,
   mapAuthError,
   type AuthErrorDisplay,
   type AuthErrorInput,
 } from "@/lib/utils/auth-errors";
+import { normalizeNigerianPhone } from "@/lib/utils/phone";
+import {
+  loginSchema,
+  recoverSchema,
+  resetPasswordSchema,
+  signupSchema,
+} from "@/lib/validation/auth";
+import { cn } from "@/lib/utils/cn";
+
+const AUTH_VIEWPORT_HEIGHT =
+  "h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))] max-h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))]";
 
 type Mode = "login" | "signup" | "recover";
-type Step = "phone" | "otp";
 
 const MODE_COPY = {
   login: {
-    title: "Log in with phone",
-    helper: "Enter your Nigerian phone number. We'll send an OTP.",
-    button: "Send OTP",
-    shouldCreateUser: false,
+    title: "Log in",
+    helper: "Use your email and password to continue.",
+    button: "Log in",
   },
   signup: {
     title: "Create account",
-    helper: `Use one phone number for one ${BRAND_NAME} account.`,
+    helper: `Create your ${BRAND_NAME} account with email verification.`,
     button: "Create account",
-    shouldCreateUser: true,
   },
   recover: {
     title: "Recover access",
-    helper: "Use OTP to access your account again.",
-    button: "Send recovery OTP",
-    shouldCreateUser: false,
+    helper: "Reset your password via email link.",
+    button: "Send reset email",
   },
 } as const;
 
@@ -41,10 +48,15 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-[calc(100vh-160px)] items-center py-4">
-          <section className="touch-card w-full p-4">
-            <div className="h-8 w-40 skeleton rounded-full" />
-            <div className="mt-4 h-24 w-full skeleton rounded-app" />
+        <main
+          className={cn(
+            "flex flex-col items-center justify-center overflow-hidden py-1 sm:py-4",
+            AUTH_VIEWPORT_HEIGHT,
+          )}
+        >
+          <section className="touch-card w-full p-3 sm:p-4">
+            <div className="h-7 w-36 skeleton rounded-full" />
+            <div className="mt-3 h-20 w-full skeleton rounded-app" />
           </section>
         </main>
       }
@@ -59,6 +71,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const returnPath = getSafeReturnPath(searchParams.get("next"));
   const requestedMode = searchParams.get("mode");
+  const reason = searchParams.get("reason");
   const supabase = useMemo(() => createClient(), []);
   const [mode, setMode] = useState<Mode>(() => {
     if (requestedMode === "signup") {
@@ -71,23 +84,26 @@ function LoginPageContent() {
 
     return "login";
   });
-  const [step, setStep] = useState<Step>("phone");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
   const [fullName, setFullName] = useState("");
-  const [otp, setOtp] = useState("");
+  const [showVerificationScreen, setShowVerificationScreen] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [recoveryReady, setRecoveryReady] = useState(false);
   const [message, setMessage] = useState("");
   const [authError, setAuthError] = useState<AuthErrorDisplay | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const normalizedPhone = normalizeNigerianPhone(phoneInput);
+  const [resendTargetEmail, setResendTargetEmail] = useState("");
   const copy = MODE_COPY[mode];
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
-    setStep("phone");
-    setOtp("");
     setMessage("");
     setAuthError(null);
+    setShowVerificationScreen(false);
+    setRecoveryReady(false);
   }
 
   function showAuthError(error: AuthErrorInput | string) {
@@ -95,7 +111,50 @@ function LoginPageContent() {
     setAuthError(mapAuthError(error, mode));
   }
 
-  async function sendOtp() {
+  useEffect(() => {
+    if (reason === "verify-email") {
+      setMessage("Verify your email before accessing this page.");
+    }
+  }, [reason]);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      const sessionEmail = user?.email?.toLowerCase();
+      if (!sessionEmail) {
+        return;
+      }
+
+      setResendTargetEmail(sessionEmail);
+
+      if (reason === "verify-email") {
+        setEmail(sessionEmail);
+      }
+
+      if (mode === "signup" && !user.email_confirmed_at) {
+        setVerificationEmail(sessionEmail);
+        setShowVerificationScreen(true);
+      }
+    });
+  }, [mode, reason, supabase]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("recover");
+        setRecoveryReady(true);
+        setMessage("Set your new password.");
+        setAuthError(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  async function handleSignup() {
     setMessage("");
     setAuthError(null);
 
@@ -106,52 +165,40 @@ function LoginPageContent() {
       return;
     }
 
-    if (!normalizedPhone || !isValidE164Phone(normalizedPhone)) {
-      setMessage("Enter a valid Nigerian phone number, for example 08101234567.");
+    const validation = signupSchema.safeParse({
+      fullName,
+      email,
+      phone: phoneInput,
+      password,
+      confirmPassword,
+    });
+    if (!validation.success) {
+      setMessage(validation.error.issues[0]?.message ?? "Invalid signup details.");
       return;
     }
 
-    if (mode === "signup" && !fullName.trim()) {
-      setMessage("Enter your full name to create an account.");
+    const availability = await assertSignupAvailability(validation.data);
+    if (!availability.success) {
+      setMessage(availability.error);
       return;
     }
 
     setIsLoading(true);
-    const shouldCreateUser = copy.shouldCreateUser;
-    if (mode === "signup") {
-      console.log("signup otp", {
-        phone: normalizedPhone,
-        shouldCreateUser,
-      });
-    } else {
-      console.log("sending otp", normalizedPhone);
-    }
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: normalizedPhone,
+    const normalizedPhone = availability.data?.normalizedPhone ?? "";
+    const { data, error } = await supabase.auth.signUp({
+      email: validation.data.email.toLowerCase(),
+      password: validation.data.password,
       options: {
-        shouldCreateUser,
         data:
-          mode === "signup"
-            ? {
-                full_name: fullName.trim(),
-              }
-            : undefined,
+          {
+            full_name: validation.data.fullName.trim(),
+            phone: normalizedPhone,
+          },
       },
     });
     setIsLoading(false);
 
     if (error) {
-      if (mode === "signup") {
-        console.log(error);
-        console.log(error.code);
-        console.log(error.message);
-        console.log(error.status);
-      } else {
-        console.log("otp error", error);
-        console.log("otp error code", error.code);
-        console.log("otp error message", error.message);
-        console.log("otp error status", error.status);
-      }
       showAuthError({
         message: error.message,
         code: error.code,
@@ -160,133 +207,348 @@ function LoginPageContent() {
       return;
     }
 
-    setStep("otp");
-    setAuthError(null);
-    setMessage(`OTP sent to ${normalizedPhone}.`);
+    const signedUpEmail =
+      data.user?.email?.toLowerCase() ?? validation.data.email.toLowerCase();
+    setVerificationEmail(signedUpEmail);
+    setResendTargetEmail(signedUpEmail);
+    setShowVerificationScreen(true);
+    setMessage("");
   }
 
-  async function verifyOtp() {
+  async function handleLogin() {
     setMessage("");
     setAuthError(null);
 
-    if (!normalizedPhone || !isValidE164Phone(normalizedPhone)) {
-      setMessage("Enter a valid Nigerian phone number.");
-      return;
-    }
-
-    if (!otp.trim()) {
-      setMessage("Enter the OTP sent to your phone.");
+    const validation = loginSchema.safeParse({ email, password });
+    if (!validation.success) {
+      setMessage(validation.error.issues[0]?.message ?? "Invalid login details.");
       return;
     }
 
     setIsLoading(true);
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: normalizedPhone,
-      token: otp.trim(),
-      type: "sms",
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: validation.data.email.toLowerCase(),
+      password: validation.data.password,
     });
+    setIsLoading(false);
 
-    if (error || !data.user) {
-      setIsLoading(false);
-      if (mode === "signup") {
-        console.log("signup verify error", error);
-      }
+    if (error) {
       showAuthError(
-        error
-          ? {
-              message: error.message,
-              code: error.code,
-              status: error.status,
-            }
-          : "Could not verify OTP.",
+        {
+          message: error.message,
+          code: error.code,
+          status: error.status,
+        },
       );
+      if (
+        error.code === "email_not_confirmed" ||
+        error.message.toLowerCase().includes("email not confirmed")
+      ) {
+        setResendTargetEmail(validation.data.email.toLowerCase());
+      }
       return;
     }
 
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      phone: normalizedPhone,
-      full_name: fullName.trim() || data.user.user_metadata.full_name || null,
-    });
+    if (!data.user || !data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setResendTargetEmail(validation.data.email.toLowerCase());
+      showAuthError({
+        message: "Email not verified.",
+        code: "email_not_confirmed",
+      });
+      return;
+    }
 
-    setIsLoading(false);
     router.push(returnPath);
     router.refresh();
   }
 
-  return (
-    <main className="flex min-h-[calc(100vh-160px)] items-center py-4">
-      <section className="touch-card w-full p-4">
-        <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-        <h1 className="type-page-title mt-1">
-          {step === "otp" ? "Verify OTP" : copy.title}
-        </h1>
-        <p className="type-page-sub mt-1.5">
-          {step === "otp"
-            ? "Enter the code sent to your phone to continue."
-            : copy.helper}
-        </p>
+  async function handleRecoverRequest() {
+    setMessage("");
+    setAuthError(null);
 
-        <div className="mt-4 grid grid-cols-3 gap-1 rounded-full border border-border bg-background p-1">
+    const validation = recoverSchema.safeParse({ email });
+    if (!validation.success) {
+      setMessage(validation.error.issues[0]?.message ?? "Enter a valid email.");
+      return;
+    }
+
+    setIsLoading(true);
+    const redirectTo = `${window.location.origin}/login?mode=recover`;
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      validation.data.email.toLowerCase(),
+      { redirectTo },
+    );
+    setIsLoading(false);
+
+    if (error) {
+      showAuthError({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+      return;
+    }
+
+    setMessage("Password reset link sent. Check your email.");
+  }
+
+  async function handlePasswordReset() {
+    setMessage("");
+    setAuthError(null);
+
+    const validation = resetPasswordSchema.safeParse({
+      password,
+      confirmPassword,
+    });
+    if (!validation.success) {
+      setMessage(validation.error.issues[0]?.message ?? "Invalid password.");
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: validation.data.password,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      showAuthError({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setRecoveryReady(false);
+    setMode("login");
+    setPassword("");
+    setConfirmPassword("");
+    setMessage("Password updated. You can now log in.");
+  }
+
+  async function resendVerificationEmail(targetEmail?: string) {
+    const nextEmail = (targetEmail || resendTargetEmail || email).trim().toLowerCase();
+    if (!nextEmail) {
+      setMessage("Enter your email to resend verification.");
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: nextEmail,
+    });
+    setIsLoading(false);
+
+    if (error) {
+      showAuthError({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+      return;
+    }
+
+    setResendTargetEmail(nextEmail);
+    setMessage("Verification email sent again. Check your inbox.");
+  }
+
+  const isCompact = mode === "signup" && !showVerificationScreen;
+
+  const signupFields = (
+    <>
+      <AuthField compact label="Full name">
+        <input
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          placeholder="Your name"
+        />
+      </AuthField>
+      <AuthField compact label="Email address">
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          inputMode="email"
+          placeholder="you@example.com"
+        />
+      </AuthField>
+      <AuthField compact label="Phone number">
+        <input
+          value={phoneInput}
+          onChange={(event) => setPhoneInput(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          inputMode="tel"
+          placeholder="08101234567"
+        />
+      </AuthField>
+      <AuthField compact label="Password">
+        <input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          type="password"
+          placeholder="Min. 8 characters"
+        />
+      </AuthField>
+      <AuthField compact label="Confirm password">
+        <input
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          type="password"
+          placeholder="Re-enter password"
+        />
+      </AuthField>
+    </>
+  );
+
+  const loginFields = (
+    <>
+      <AuthField label="Email address">
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          inputMode="email"
+          placeholder="you@example.com"
+        />
+      </AuthField>
+      <AuthField label="Password">
+        <input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          type="password"
+          placeholder="Your password"
+        />
+      </AuthField>
+    </>
+  );
+
+  const recoverFields = recoveryReady ? (
+    <>
+      <AuthField label="New password">
+        <input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          type="password"
+          placeholder="Minimum 8 characters"
+        />
+      </AuthField>
+      <AuthField label="Confirm new password">
+        <input
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          className="w-full bg-transparent outline-none"
+          type="password"
+          placeholder="Re-enter password"
+        />
+      </AuthField>
+    </>
+  ) : (
+    <AuthField label="Email address">
+      <input
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className="w-full bg-transparent outline-none"
+        inputMode="email"
+        placeholder="you@example.com"
+      />
+    </AuthField>
+  );
+
+  return (
+    <main
+      className={cn(
+        "flex flex-col items-center justify-center overflow-hidden py-1 sm:py-4",
+        AUTH_VIEWPORT_HEIGHT,
+      )}
+    >
+      <section
+        className={cn(
+          "touch-card flex w-full min-h-0 flex-col",
+          isCompact ? "p-3" : "p-4",
+        )}
+      >
+        <header className="shrink-0">
+          <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
+          <h1
+            className={cn(
+              "type-page-title",
+              isCompact ? "mt-0.5 text-[1rem]" : "mt-1",
+            )}
+          >
+            {copy.title}
+          </h1>
+          <p
+            className={cn(
+              "type-page-sub",
+              isCompact
+                ? "mt-0.5 line-clamp-2 text-[11px] leading-snug"
+                : "mt-1.5",
+            )}
+          >
+            {copy.helper}
+          </p>
+        </header>
+
+        <div
+          className={cn(
+            "mt-3 grid grid-cols-3 gap-1 rounded-full border border-border bg-background p-1",
+            isCompact && "mt-2",
+          )}
+        >
           {(["login", "signup", "recover"] as const).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => switchMode(item)}
-              className={
-                mode === item
-                  ? "type-btn rounded-full bg-primary px-2 py-2 text-[11px] text-primary-foreground"
-                  : "type-btn rounded-full px-2 py-2 text-[11px] text-muted"
-              }
+              className={cn(
+                "type-btn rounded-full px-2 text-muted",
+                isCompact ? "py-1.5 text-[10px]" : "py-2 text-[11px]",
+                mode === item && "bg-primary text-primary-foreground",
+              )}
             >
               {item === "login" ? "Login" : item === "signup" ? "Signup" : "Recover"}
             </button>
           ))}
         </div>
 
-        <div className="mt-4 space-y-3">
-          {mode === "signup" && step === "phone" ? (
-            <AuthField label="Full name">
-              <input
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                className="w-full bg-transparent outline-none"
-                placeholder="Your name"
-              />
-            </AuthField>
-          ) : null}
-
-          <AuthField label="Phone number">
-            <input
-              value={phoneInput}
-              onChange={(event) => setPhoneInput(event.target.value)}
-              className="w-full bg-transparent outline-none"
-              inputMode="tel"
-              placeholder="08101234567"
-              disabled={step === "otp"}
-            />
-          </AuthField>
-
-          {normalizedPhone ? (
-            <p className="text-[12px] font-medium text-muted">
-              We&apos;ll use {normalizedPhone}
-            </p>
-          ) : null}
-
-          {step === "otp" ? (
-            <AuthField label="OTP code">
-              <input
-                value={otp}
-                onChange={(event) => setOtp(event.target.value)}
-                className="w-full bg-transparent outline-none"
-                inputMode="numeric"
-                placeholder="6-digit code"
-              />
-            </AuthField>
-          ) : null}
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            isCompact ? "mt-2 space-y-2" : "mt-4 space-y-3",
+          )}
+        >
+          {showVerificationScreen && mode === "signup" ? (
+            <div className="rounded-app border border-border bg-background p-2.5 text-[12px] leading-5 text-muted sm:p-3">
+              <p className="font-semibold text-foreground">Check your email</p>
+              <p className="mt-1">
+                We sent a verification link to <span className="font-medium">{verificationEmail}</span>.
+                Verify your email before logging in.
+              </p>
+            </div>
+          ) : mode === "signup" ? (
+            signupFields
+          ) : mode === "login" ? (
+            loginFields
+          ) : (
+            recoverFields
+          )}
 
           {authError ? (
-            <div className="rounded-app border border-border bg-background p-3">
+            <div
+              className={cn(
+                "rounded-app border border-border bg-background",
+                isCompact ? "p-2.5" : "p-3",
+              )}
+            >
               {authError.title ? (
                 <p className="text-[13px] font-semibold">{authError.title}</p>
               ) : null}
@@ -321,7 +583,12 @@ function LoginPageContent() {
           ) : null}
 
           {message ? (
-            <p className="rounded-app border border-border bg-background p-3 text-[12px] leading-5 text-muted">
+            <p
+              className={cn(
+                "rounded-app border border-border bg-background text-[12px] leading-5 text-muted",
+                isCompact ? "p-2.5" : "p-3",
+              )}
+            >
               {message}
             </p>
           ) : null}
@@ -330,26 +597,48 @@ function LoginPageContent() {
             disabled={isLoading}
             type="button"
             onClick={() => {
-              if (step === "phone") void sendOtp();
-              if (step === "otp") void verifyOtp();
+              if (mode === "signup") {
+                if (showVerificationScreen) {
+                  void resendVerificationEmail(verificationEmail);
+                } else {
+                  void handleSignup();
+                }
+                return;
+              }
+
+              if (mode === "login") {
+                void handleLogin();
+                return;
+              }
+
+              if (recoveryReady) {
+                void handlePasswordReset();
+                return;
+              }
+
+              void handleRecoverRequest();
             }}
-            className="type-btn h-11 w-full rounded-full bg-primary text-[14px] text-primary-foreground disabled:opacity-60"
+            className={cn(
+              "type-btn w-full rounded-full bg-primary text-primary-foreground disabled:opacity-60",
+              isCompact ? "h-10 text-[13px]" : "h-11 text-[14px]",
+            )}
           >
-            {isLoading ? "Please wait..." : step === "otp" ? "Verify OTP" : copy.button}
+            {isLoading
+              ? "Please wait..."
+              : mode === "signup" && showVerificationScreen
+                ? "Resend verification email"
+                : mode === "recover" && recoveryReady
+                  ? "Update password"
+                  : copy.button}
           </button>
 
-          {step === "otp" ? (
+          {mode === "login" ? (
             <button
               type="button"
-              onClick={() => {
-                setStep("phone");
-                setOtp("");
-                setMessage("");
-                setAuthError(null);
-              }}
+              onClick={() => void resendVerificationEmail()}
               className="w-full text-center text-[12px] font-medium text-primary"
             >
-              Change phone number
+              Resend verification email
             </button>
           ) : null}
         </div>
@@ -361,14 +650,30 @@ function LoginPageContent() {
 function AuthField({
   label,
   children,
+  compact = false,
 }: {
   label: string;
   children: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <label className="block rounded-app border border-border bg-background px-3 py-2">
-      <span className="mb-1 block text-[11px] font-medium text-muted">{label}</span>
-      <div className="text-[14px] font-normal">{children}</div>
+    <label
+      className={cn(
+        "block rounded-app border border-border bg-background",
+        compact ? "px-2.5 py-1.5" : "px-3 py-2",
+      )}
+    >
+      <span
+        className={cn(
+          "block font-medium text-muted",
+          compact ? "mb-0.5 text-[10px] leading-tight" : "mb-1 text-[11px]",
+        )}
+      >
+        {label}
+      </span>
+      <div className={cn("font-normal", compact ? "text-[13px] leading-snug" : "text-[14px]")}>
+        {children}
+      </div>
     </label>
   );
 }

@@ -3,7 +3,7 @@ import "server-only";
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { isAdminPhoneMatch } from "@/lib/constants/admin";
+import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import type { Listing } from "@/lib/types";
 import { resolveListingImages } from "@/lib/utils/storage";
 
@@ -144,9 +144,11 @@ export async function getListingForViewer(id: string) {
 
   const listing = mapListingRow(data as ListingRow);
   const isOwner = listing.sellerId === user.id;
-  const isAdmin = isAdminPhoneMatch(profile?.phone ?? user.phone);
+  const adminAccess = await resolveAdminAccess(supabase, {
+    userEmail: user.email,
+  });
 
-  if (isOwner || isAdmin) {
+  if (isOwner || adminAccess.isAdmin) {
     return await attachListingImages(supabase, id, listing);
   }
 
@@ -205,9 +207,13 @@ export async function getViewerContext() {
     .eq("id", user.id)
     .maybeSingle();
 
+  const adminAccess = await resolveAdminAccess(supabase, {
+    userEmail: user.email,
+  });
+
   return {
     user,
-    isAdmin: isAdminPhoneMatch(profile?.phone ?? user.phone),
+    isAdmin: adminAccess.isAdmin,
   };
 }
 

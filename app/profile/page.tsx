@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { signOut } from "@/app/profile/actions";
+import { AdminAccessDebugLogger } from "@/components/profile/admin-access-debug-logger";
 import { AdminDashboardButton } from "@/components/profile/admin-dashboard-button";
 import { ProfileSupportSettings } from "@/components/profile/profile-support-settings";
+import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import { BRAND_NAME } from "@/lib/constants/brand";
-import { isAdminPhoneMatch } from "@/lib/constants/admin";
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 
@@ -20,17 +21,28 @@ export default async function ProfilePage() {
         .maybeSingle()
     : { data: null };
 
-  const profilePhone = profile?.phone ?? user?.phone ?? "";
-  const showAdminCard = isAdminPhoneMatch(profilePhone);
+  const adminAccess = user
+    ? await resolveAdminAccess(supabase, {
+        userEmail: user.email,
+      })
+    : null;
+  const showAdminCard = adminAccess?.isAdmin ?? false;
 
   return (
     <main className="marketplace-page flex min-h-[calc(100vh-72px)] flex-col pt-3">
+      {adminAccess ? (
+        <AdminAccessDebugLogger
+          debug={adminAccess.debug}
+          isAdmin={adminAccess.isAdmin}
+          method={adminAccess.method}
+        />
+      ) : null}
       <div className="flex-1 overflow-y-auto pb-safe">
         <div className="space-y-3 pb-4">
           <section>
             <h1 className="type-page-title">Profile</h1>
             <p className="type-page-sub mt-1">
-              Phone-based tools for buying and selling on {BRAND_NAME}.
+              Manage your {BRAND_NAME} account, listings, and saved items.
             </p>
           </section>
 
@@ -40,8 +52,14 @@ export default async function ProfilePage() {
                 <h2 className="text-[16px] font-medium">
                   {profile?.full_name || "Your account"}
                 </h2>
-                <p className="mt-1 text-[13px] text-muted">
-                  {formatDisplayPhone(profilePhone)}
+                <p className="mt-1 text-[13px] text-muted">{user.email}</p>
+                {profile?.phone ? (
+                  <p className="mt-1 text-[12px] text-muted">
+                    {formatDisplayPhone(profile.phone)}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[12px] text-muted">
+                  Status: {user.email_confirmed_at ? "Email verified" : "Email not verified"}
                 </p>
                 {profile?.city ? (
                   <p className="mt-1 text-[12px] text-muted">

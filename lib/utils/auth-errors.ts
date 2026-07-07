@@ -40,7 +40,7 @@ function isSignupDisabledMessage(message: string, code: string) {
     message.includes("signups not allowed") ||
     message.includes("signup is disabled") ||
     message.includes("new signups are disabled") ||
-    message.includes("sms signups are disabled")
+      message.includes("email signups are disabled")
   );
 }
 
@@ -57,32 +57,43 @@ function isMissingAccountMessage(message: string, code: string) {
 function isExistingAccountMessage(message: string, code: string) {
   return (
     code === "user_already_exists" ||
-    code === "phone_exists" ||
+    code === "email_exists" ||
     message.includes("already registered") ||
     message.includes("already exists") ||
-    message.includes("user already") ||
-    message.includes("phone number already") ||
+    message.includes("email already") ||
     message.includes("already been registered")
   );
 }
 
-function isOtpProviderUnavailableMessage(message: string, code: string) {
+function isEmailProviderUnavailableMessage(message: string, code: string) {
   return (
-    code === "sms_send_failed" ||
-    code === "otp_disabled" ||
-    code === "phone_provider_disabled" ||
+    code === "email_not_sent" ||
     code === "provider_disabled" ||
     message.includes("unable to send") ||
-    message.includes("sms provider") ||
-    message.includes("failed to send sms") ||
-    message.includes("error sending sms") ||
-    message.includes("phone provider") ||
-    (message.includes("otp") && message.includes("disabled"))
+    message.includes("email provider") ||
+    message.includes("failed to send email")
   );
 }
 
 function isLoginSignupNotAllowedMessage(message: string) {
   return message.includes("signups not allowed");
+}
+
+function isEmailNotVerifiedMessage(message: string, code: string) {
+  return (
+    code === "email_not_confirmed" ||
+    message.includes("email not confirmed") ||
+    message.includes("email not verified") ||
+    message.includes("confirm your email")
+  );
+}
+
+function isInvalidCredentialsMessage(message: string, code: string) {
+  return (
+    code === "invalid_credentials" ||
+    message.includes("invalid login credentials") ||
+    message.includes("invalid email or password")
+  );
 }
 
 export function mapAuthError(
@@ -98,14 +109,14 @@ export function mapAuthError(
 
   if (mode === "signup" && isExistingAccountMessage(message, code)) {
     return {
-      text: "This phone already has an account. Login instead.",
+      text: "This email already has an account. Login instead.",
       showLoginButton: true,
     };
   }
 
-  if (isOtpProviderUnavailableMessage(message, code)) {
+  if (isEmailProviderUnavailableMessage(message, code)) {
     return {
-      text: "Unable to send verification code right now.",
+      text: "Unable to send email right now.",
     };
   }
 
@@ -122,7 +133,7 @@ export function mapAuthError(
   ) {
     return {
       title: "No account found",
-      text: "This phone number hasn't created an account yet. Switch to Signup to continue.",
+      text: "This email hasn't created an account yet. Switch to Signup to continue.",
       showSignupButton: true,
     };
   }
@@ -134,20 +145,25 @@ export function mapAuthError(
   ) {
     return {
       title: "No account found",
-      text: "This phone number hasn't created an account yet. Switch to Signup to continue.",
+      text: "This email hasn't created an account yet. Switch to Signup to continue.",
       showSignupButton: true,
     };
   }
 
+  if (isEmailNotVerifiedMessage(message, code) && mode === "login") {
+    return {
+      title: "Email not verified",
+      text: "Please verify your email before logging in.",
+    };
+  }
+
   if (
-    message.includes("invalid otp") ||
     message.includes("token has expired") ||
-    message.includes("otp expired") ||
-    code === "otp_expired" ||
-    (message.includes("expired") && message.includes("otp"))
+    message.includes("expired") ||
+    code === "otp_expired"
   ) {
     return {
-      text: "That code didn't work or has expired. Request a new one and try again.",
+      text: "That link has expired. Request a new one and try again.",
     };
   }
 
@@ -161,9 +177,9 @@ export function mapAuthError(
     };
   }
 
-  if (message.includes("invalid phone") || code === "validation_failed") {
+  if (isInvalidCredentialsMessage(message, code)) {
     return {
-      text: "Enter a valid Nigerian phone number, for example 08101234567.",
+      text: "Invalid email or password.",
     };
   }
 
