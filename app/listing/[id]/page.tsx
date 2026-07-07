@@ -2,10 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin } from "lucide-react";
 import { ListingCard } from "@/components/listings/listing-card";
-import { ListingContactBar } from "@/components/listings/listing-contact-bar";
 
-import { ListingImageGallery } from "@/components/listings/listing-image-gallery";
-import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
+import { ListingImageGallery } from "@/components/listings/listing-image-gallery";import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
 import {
   getListingForViewer,
@@ -46,21 +44,11 @@ export default async function ListingDetailsPage({
     }
   }
 
-  const showSaveBar =
-    !isAdmin && (listing.status === "approved" || listing.status === "pending");
-
-  const showWhatsappContact = listing.status === "approved" && Boolean(sellerPhone);
-  const soldLabel = `${soldCount} ${soldCount === 1 ? "item" : "items"}`;
+  const showWhatsappContact = listing.status === "approved" && Boolean(sellerPhone);  const soldLabel = `${soldCount} ${soldCount === 1 ? "item" : "items"}`;
 
   return (
     <>
-      <main
-        className={cn(
-          "listing-detail-main min-h-dvh overflow-x-hidden pt-3",
-          showSaveBar ? "pb-[120px]" : "pb-safe",
-        )}
-      >
-
+      <main className="listing-detail-main min-h-dvh overflow-x-hidden pt-3 pb-safe">
         <div className="marketplace-listing-body min-w-0 space-y-3">
           {listing.status === "approved" && !isAdmin ? (
             <ListingViewTracker listingId={listing.id} />
@@ -144,13 +132,9 @@ export default async function ListingDetailsPage({
           </section>
         </div>
       </main>
-
-      {showSaveBar ? <ListingContactBar listing={listing} /> : null}
-
     </>
   );
 }
-
 function InfoPill({
   children,
   icon,
