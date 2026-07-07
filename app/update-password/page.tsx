@@ -104,11 +104,14 @@ export default function UpdatePasswordPage() {
 
     if (error) {
       setAuthError(
-        mapAuthError({
-          message: error.message,
-          code: error.code,
-          status: error.status,
-        }),
+        mapAuthError(
+          {
+            message: error.message,
+            code: error.code,
+            status: error.status,
+          },
+          "recover",
+        ),
       );
       return;
     }
