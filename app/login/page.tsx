@@ -135,7 +135,7 @@ function LoginPageContent() {
         setEmail(sessionEmail);
       }
 
-      if (mode === "signup" && !user.email_confirmed_at) {
+      if (mode === "signup" && user && !user.email_confirmed_at) {
         setVerificationEmail(sessionEmail);
         setShowVerificationScreen(true);
       }
