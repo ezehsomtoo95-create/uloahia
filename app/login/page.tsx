@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { assertSignupAvailability } from "@/app/actions/auth";
 
 import { BRAND_NAME } from "@/lib/constants/brand";
@@ -72,7 +72,6 @@ export default function LoginPage() {
 }
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const returnPath = getSafeReturnPath(searchParams.get("next"));
   const requestedMode = searchParams.get("mode");
@@ -291,7 +290,7 @@ function LoginPageContent() {
       }
 
       isRedirectingRef.current = true;
-      router.replace(returnPath);
+      window.location.href = returnPath;
     } catch (error) {
       console.error("LIVE LOGIN FAILURE:", error);
       showAuthError(
