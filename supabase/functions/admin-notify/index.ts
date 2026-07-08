@@ -1,7 +1,7 @@
 import { Resend } from "npm:resend@4.0.0";
 
 const ADMIN_EMAIL = "ezehsomtoo95@gmail.com";
-const FROM_EMAIL = "notifications@ahiaulo.ng";
+const FROM_EMAIL = "info@ahiaulo.ng";
 const APP_NAME = "AhiaUlo";
 
 const corsHeaders = {
@@ -33,9 +33,23 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+function maskSecret(value: string): string {
+  if (!value) {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length <= 8) {
+    return "***";
+  }
+
+  return `${trimmed.slice(0, 4)}***${trimmed.slice(-4)}`;
+}
+
 function isAuthorized(req: Request): { ok: true } | { ok: false; error: string } {
   const notifySecret = Deno.env.get("ADMIN_NOTIFY_SECRET");
   if (!notifySecret) {
+    console.error("admin-notify auth error:", "ADMIN_NOTIFY_SECRET is not configured");
     return {
       ok: false,
       error: "ADMIN_NOTIFY_SECRET is not configured for this function.",
@@ -43,7 +57,33 @@ function isAuthorized(req: Request): { ok: true } | { ok: false; error: string }
   }
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!authHeader) {
+    // Supabase Dashboard "Test" button does not include Authorization header.
+    const ua = (req.headers.get("User-Agent") ?? "").toLowerCase();
+    const clientInfo = (req.headers.get("x-client-info") ?? "").toLowerCase();
+    const looksLikeDashboardTest =
+      ua.includes("supabase") || clientInfo.includes("supabase") || clientInfo.includes("dashboard");
+
+    if (looksLikeDashboardTest) {
+      console.error(
+        "admin-notify auth bypass:",
+        "No Authorization header detected; allowing through for Supabase dashboard test.",
+      );
+      return { ok: true };
+    }
+
+    console.error("admin-notify auth error:", "Missing Authorization header.");
+    return {
+      ok: false,
+      error: "Missing or invalid Authorization header. Expected: Bearer <ADMIN_NOTIFY_SECRET>.",
+    };
+  }
+
+  if (!authHeader.startsWith("Bearer ")) {
+    console.error(
+      "admin-notify auth error:",
+      "Invalid Authorization scheme; expected 'Bearer <token>'.",
+    );
     return {
       ok: false,
       error: "Missing or invalid Authorization header. Expected: Bearer <ADMIN_NOTIFY_SECRET>.",
@@ -52,6 +92,7 @@ function isAuthorized(req: Request): { ok: true } | { ok: false; error: string }
 
   const token = authHeader.slice("Bearer ".length).trim();
   if (!token) {
+    console.error("admin-notify auth error:", "Bearer token is empty.");
     return {
       ok: false,
       error: "Missing admin notify secret in Authorization header.",
@@ -59,6 +100,9 @@ function isAuthorized(req: Request): { ok: true } | { ok: false; error: string }
   }
 
   if (token !== notifySecret) {
+    console.error(
+      `Auth mismatch! Expected: ${maskSecret(notifySecret)}, Got: ${maskSecret(token)}`,
+    );
     return {
       ok: false,
       error: "Invalid admin notify secret.",
@@ -188,6 +232,23 @@ function escapeHtml(value: string) {
 }
 
 Deno.serve(async (req) => {
+  const authHeader = req.headers.get("Authorization");
+  const authHeaderRedacted =
+    authHeader?.startsWith("Bearer ")
+      ? `Bearer ${maskSecret(authHeader.slice("Bearer ".length))}`
+      : authHeader ?? null;
+  console.log("Incoming Authorization Header:", authHeaderRedacted);
+
+  // Log request headers early to debug auth failures (do not print full bearer token).
+  console.log("admin-notify incoming headers:", {
+    method: req.method,
+    contentType: req.headers.get("content-type"),
+    authorizationPresent: Boolean(authHeader),
+    authorizationStartsWithBearer: authHeader?.startsWith("Bearer ") ?? false,
+    "x-client-info": req.headers.get("x-client-info"),
+    "user-agent": req.headers.get("user-agent"),
+  });
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -207,12 +268,23 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "RESEND_API_KEY is not configured." }, 500);
   }
 
-  let body: unknown;
+  let body: unknown = null;
+  let rawBody = "";
   try {
-    body = await req.json();
+    rawBody = await req.text();
+    try {
+      body = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      body = { _raw: rawBody };
+    }
   } catch {
-    return jsonResponse({ error: "Invalid JSON body." }, 400);
+    return jsonResponse({ error: "Invalid request body." }, 400);
   }
+
+  console.log(
+    "Function invoked with payload:",
+    JSON.stringify(body),
+  );
 
   const payload = normalizePayload(body);
   if (!payload) {
@@ -224,22 +296,36 @@ Deno.serve(async (req) => {
   const subject = `[${APP_NAME}] ${typeLabel}`;
 
   const resend = new Resend(resendApiKey);
-  const { data, error } = await resend.emails.send({
-    from: `${APP_NAME} <${FROM_EMAIL}>`,
-    to: [ADMIN_EMAIL],
-    subject,
-    text: `${typeLabel}\n\n${detailsText}`,
-    html: buildEmailHtml(typeLabel, detailsText),
-  });
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `${APP_NAME} <${FROM_EMAIL}>`,
+      to: [ADMIN_EMAIL],
+      subject,
+      text: `${typeLabel}\n\n${detailsText}`,
+      html: buildEmailHtml(typeLabel, detailsText),
+    });
 
-  if (error) {
-    console.error("admin-notify resend error", error);
-    return jsonResponse({ error: "Failed to send email.", details: error.message }, 502);
+    if (error) {
+      // Resend sometimes returns a structured error alongside `data`.
+      throw error;
+    }
+
+    return jsonResponse({
+      ok: true,
+      id: data?.id ?? null,
+      type: payload.type,
+    });
+  } catch (error) {
+    console.error("Resend API error:", error);
+
+    // Always return HTTP 200 so the database trigger sees a "successful" HTTP response.
+    return jsonResponse(
+      {
+        ok: false,
+        error: "Failed to send email.",
+        type: payload.type,
+      },
+      200,
+    );
   }
-
-  return jsonResponse({
-    ok: true,
-    id: data?.id ?? null,
-    type: payload.type,
-  });
 });

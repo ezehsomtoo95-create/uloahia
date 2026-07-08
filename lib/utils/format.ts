@@ -14,6 +14,19 @@ export function formatViews(views: number) {
   return `${(views / 1000).toFixed(1)}k views`;
 }
 
+export function truncateText(value: string, maxLength = 12) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+
+  return `${trimmed.slice(0, maxLength)}...`;
+}
+
+export function formatListingLocation(area: string, city: string, maxLength = 12) {
+  return truncateText(`${area}, ${city}`, maxLength);
+}
+
 export function formatSavedTime(savedAt: string) {
   const savedTime = new Date(savedAt).getTime();
   const diffMs = Date.now() - savedTime;

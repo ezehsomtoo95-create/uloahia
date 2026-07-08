@@ -4,14 +4,24 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { recordListingView } from "@/app/actions/listing-views";
 import { createClient } from "@/lib/supabase/client";
-import { getOrCreateGuestVisitorId } from "@/lib/utils/visitor-id";
+import {
+  hasViewedListingCookie,
+  markListingViewedCookie,
+} from "@/lib/utils/listing-view-cookie";
+import { getOrCreateVisitorId } from "@/lib/utils/visitor-id";
 
-export function ListingViewTracker({ listingId }: { listingId: string }) {
+export function ListingViewTracker({
+  listingId,
+  sellerId,
+}: {
+  listingId: string;
+  sellerId?: string | null;
+}) {
   const router = useRouter();
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (tracked.current) {
+    if (tracked.current || hasViewedListingCookie(listingId)) {
       return;
     }
 
@@ -23,19 +33,31 @@ export function ListingViewTracker({ listingId }: { listingId: string }) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      const visitorId = user?.id ?? getOrCreateGuestVisitorId();
+      if (sellerId && user?.id === sellerId) {
+        markListingViewedCookie(listingId);
+        return;
+      }
+
+      const visitorId = user?.id ?? getOrCreateVisitorId();
       if (!visitorId) {
         return;
       }
 
       const result = await recordListingView(listingId, visitorId, !user);
-      if (result.recorded) {
+      if (!result.ok) {
+        tracked.current = false;
+        return;
+      }
+
+      markListingViewedCookie(listingId);
+
+      if (result.incremented) {
         router.refresh();
       }
     }
 
     void trackView();
-  }, [listingId, router]);
+  }, [listingId, router, sellerId]);
 
   return null;
 }

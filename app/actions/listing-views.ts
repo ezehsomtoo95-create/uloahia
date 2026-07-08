@@ -20,7 +20,7 @@ export async function recordListingView(
     const input = recordListingViewSchema.parse({ listingId, visitorId, isGuest });
 
     const supabase = await createClient();
-    const { error } = await supabase.rpc("record_listing_view", {
+    const { data, error } = await supabase.rpc("record_listing_view", {
       listing_uuid: input.listingId,
       p_visitor_id: input.visitorId,
       p_is_guest: input.isGuest,
@@ -28,12 +28,22 @@ export async function recordListingView(
 
     if (error) {
       console.error("record listing view error", { listingId: input.listingId, error });
-      return { recorded: false as const, error: error.message };
+      return { ok: false as const, incremented: false as const, error: error.message };
     }
 
-    revalidatePath(`/listing/${input.listingId}`);
-    return { recorded: true as const };
+    const incremented = Boolean(data);
+    if (incremented) {
+      revalidatePath(`/listing/${input.listingId}`);
+      revalidatePath("/browse");
+      revalidatePath("/");
+    }
+
+    return { ok: true as const, incremented };
   } catch (error) {
-    return { recorded: false as const, error: formatZodError(error) };
+    return {
+      ok: false as const,
+      incremented: false as const,
+      error: formatZodError(error),
+    };
   }
 }

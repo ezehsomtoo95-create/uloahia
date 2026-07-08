@@ -26,7 +26,10 @@ DECLARE
   notify_url text;
   notify_secret text;
   request_id bigint;
+  auth_header_value text;
 BEGIN
+  RAISE LOG 'admin-notify: invoked. type=%, details=%', notify_type, LEFT(COALESCE(notify_details::text, ''), 500);
+
   SELECT value
   INTO notify_url
   FROM public.app_config
@@ -39,24 +42,47 @@ BEGIN
   WHERE key = 'admin_notify_secret'
   LIMIT 1;
 
+  RAISE LOG 'admin-notify: config loaded. notify_url_present=%, notify_secret_length=%',
+    (notify_url IS NOT NULL AND length(trim(notify_url)) > 0),
+    COALESCE(length(notify_secret), 0);
+
   IF notify_url IS NULL OR notify_secret IS NULL OR length(trim(notify_url)) = 0 OR length(trim(notify_secret)) = 0 THEN
+    RAISE LOG 'admin-notify: missing config; skipping invoke.';
     RAISE WARNING 'admin-notify skipped: configure app_config admin_notify_function_url and admin_notify_secret';
     RETURN;
   END IF;
 
-  SELECT net.http_post(
-    url := notify_url,
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || notify_secret
-    ),
-    body := jsonb_build_object(
-      'type', notify_type,
-      'details', notify_details
-    ),
-    timeout_milliseconds := 5000
-  )
-  INTO request_id;
+  -- Log URL + headers being used (mask the bearer token to avoid full secret in logs).
+  auth_header_value := 'Bearer ' ||
+    CASE
+      WHEN length(notify_secret) <= 8 THEN '***'
+      ELSE substr(notify_secret, 1, 4) || '***' || substr(notify_secret, length(notify_secret)-3, 4)
+    END;
+
+  RAISE LOG 'admin-notify: calling net.http_post url=%, headers=%', notify_url, auth_header_value;
+
+  BEGIN
+    SELECT net.http_post(
+      url := notify_url,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || notify_secret
+      ),
+      body := jsonb_build_object(
+        'type', notify_type,
+        'details', notify_details
+      ),
+      timeout_milliseconds := 5000
+    )
+    INTO request_id;
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Keep trigger from failing silently; include request_id if available.
+      RAISE WARNING 'admin-notify: net.http_post failed. type=%, url=%, error=%', notify_type, notify_url, SQLERRM;
+      RETURN;
+  END;
+
+  RAISE LOG 'admin-notify: net.http_post completed. request_id=%', request_id;
 EXCEPTION
   WHEN OTHERS THEN
     RAISE WARNING 'admin-notify invoke failed: %', SQLERRM;
@@ -70,6 +96,9 @@ SECURITY DEFINER
 SET search_path = public, auth, extensions
 AS $$
 BEGIN
+  RAISE LOG 'admin-notify trigger: auth.users AFTER INSERT fired. user_id=%, email=%', NEW.id, COALESCE(NEW.email, '');
+
+  RAISE LOG 'admin-notify trigger: calling invoke_admin_notify for new_user...';
   PERFORM public.invoke_admin_notify(
     'new_user',
     jsonb_build_object(
@@ -81,6 +110,7 @@ BEGIN
     )
   );
 
+  RAISE LOG 'admin-notify trigger: invoke_admin_notify completed.';
   RETURN NEW;
 END;
 $$;

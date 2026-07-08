@@ -10,7 +10,7 @@ import { useSaveToast } from "@/components/listings/save-toast";
 import { useSavedListings } from "@/components/listings/saved-listings-provider";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatNaira, formatViews } from "@/lib/utils/format";
+import { formatListingLocation, formatNaira, formatViews } from "@/lib/utils/format";
 
 export const BrowseListingRow = memo(function BrowseListingRow({ listing }: { listing: Listing }) {
   const { isSaved, toggleSave } = useSavedListings();
@@ -75,8 +75,8 @@ export const BrowseListingRow = memo(function BrowseListingRow({ listing }: { li
                 ) : null}
               </div>
               <h3 className="market-listing-title line-clamp-2">{listing.title}</h3>
-              <p className="type-card-meta truncate">
-                {listing.area}, {listing.city}
+              <p className="type-card-meta truncate" title={`${listing.area}, ${listing.city}`}>
+                {formatListingLocation(listing.area, listing.city)}
               </p>
               <p className="type-card-meta truncate">
                 {listing.condition} · {listing.createdAt}

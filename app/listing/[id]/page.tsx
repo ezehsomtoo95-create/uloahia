@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin } from "lucide-react";
 import { ListingCard } from "@/components/listings/listing-card";
 
-import { ListingImageGallery } from "@/components/listings/listing-image-gallery";import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
+import { ListingImageGallery } from "@/components/listings/listing-image-gallery";
+import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
 import {
   getListingForViewer,
@@ -14,7 +15,7 @@ import {
   getViewerContext,
 } from "@/lib/data/listings";
 import { cn } from "@/lib/utils/cn";
-import { formatNaira, formatViews } from "@/lib/utils/format";
+import { formatListingLocation, formatNaira, formatViews } from "@/lib/utils/format";
 import { getTelHref, maskDisplayPhone } from "@/lib/utils/phone";
 
 export default async function ListingDetailsPage({
@@ -51,7 +52,7 @@ export default async function ListingDetailsPage({
       <main className="listing-detail-main min-h-dvh overflow-x-hidden pt-3 pb-safe">
         <div className="marketplace-listing-body min-w-0 space-y-3">
           {listing.status === "approved" && !isAdmin ? (
-            <ListingViewTracker listingId={listing.id} />
+            <ListingViewTracker listingId={listing.id} sellerId={listing.sellerId} />
           ) : null}
 
           <ListingImageGallery images={listing.images} title={listing.title} />
@@ -75,8 +76,11 @@ export default async function ListingDetailsPage({
             </div>
 
             <div className="listing-detail-meta flex w-full flex-nowrap items-center justify-evenly">
-              <InfoPill icon={<MapPin size={12} strokeWidth={2} />}>
-                {listing.area}, {listing.city}
+              <InfoPill
+                icon={<MapPin size={12} strokeWidth={2} />}
+                title={`${listing.area}, ${listing.city}`}
+              >
+                {formatListingLocation(listing.area, listing.city)}
               </InfoPill>
               <InfoPill>{listing.condition}</InfoPill>
               <InfoPill icon={<Eye size={12} strokeWidth={2} />}>{formatViews(listing.views)}</InfoPill>
@@ -139,13 +143,16 @@ function InfoPill({
   children,
   icon,
   className,
+  title,
 }: {
   children: React.ReactNode;
   icon?: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-0 text-[12px] font-normal leading-none text-muted",
         className,

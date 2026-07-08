@@ -10,7 +10,7 @@ import { useSaveToast } from "@/components/listings/save-toast";
 import { useSavedListings } from "@/components/listings/saved-listings-provider";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatNaira, formatViews } from "@/lib/utils/format";
+import { formatListingLocation, formatNaira, formatViews } from "@/lib/utils/format";
 
 export const ListingCard = memo(function ListingCard({
   listing,
@@ -82,8 +82,8 @@ export const ListingCard = memo(function ListingCard({
               {listing.title}
             </h3>
             <div className="type-card-meta flex items-center justify-between gap-2">
-              <span className="truncate">
-                {listing.area}, {listing.city}
+              <span className="truncate" title={`${listing.area}, ${listing.city}`}>
+                {formatListingLocation(listing.area, listing.city)}
               </span>
               <span className="shrink-0">{listing.createdAt}</span>
             </div>
