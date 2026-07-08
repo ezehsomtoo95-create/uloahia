@@ -43,7 +43,9 @@ export default async function ProfilePage() {
           <section>
             <h1 className="type-page-title">Profile</h1>
             <p className="type-page-sub mt-1">
-              Manage your {BRAND_NAME} account, listings, and saved items.
+              {user
+                ? `Manage your ${BRAND_NAME} account, listings, and saved items.`
+                : `Support and settings for your ${BRAND_NAME} experience.`}
             </p>
           </section>
 
@@ -99,21 +101,33 @@ export default async function ProfilePage() {
                 </form>
               </div>
 
-              <ProfileSupportSettings />
+              <ProfileSupportSettings showAccountActions />
             </>
           ) : (
-            <div className="touch-card overflow-hidden rounded-3xl p-4">
-              <h2 className="text-[16px] font-semibold">Log in to manage your account</h2>
-              <p className="mt-1 text-[13px] leading-5 text-muted">
-                You need an account to sell, save listings, and contact sellers.
-              </p>
-              <Link
-                href="/login"
-                className="mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
-              >
-                Log in
-              </Link>
-            </div>
+            <>
+              <div className="touch-card overflow-hidden rounded-3xl p-4">
+                <h2 className="text-[16px] font-medium">Login or Signup</h2>
+                <p className="mt-1 text-[13px] leading-5 text-muted">
+                  Access your dashboard to manage listings, saved items, and your account.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/login?next=/profile"
+                    className="inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/login?mode=signup&next=/profile"
+                    className="inline-flex h-10 items-center rounded-full border border-border bg-surface px-4 text-[13px] font-semibold"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              </div>
+
+              <ProfileSupportSettings showAccountActions={false} />
+            </>
           )}
         </div>
       </div>

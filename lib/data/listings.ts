@@ -1,7 +1,5 @@
 import "server-only";
 
-import "server-only";
-
 import { createClient } from "@/lib/supabase/server";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 
@@ -68,7 +66,17 @@ export async function getApprovedListings(limit = 24) {
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error || !data) {
+  if (error) {
+    console.error("[listings] getApprovedListings failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return [];
+  }
+
+  if (!data) {
     return [];
   }
 
@@ -87,7 +95,17 @@ export async function getAllApprovedListings() {
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 
-  if (error || !data) {
+  if (error) {
+    console.error("[listings] getAllApprovedListings failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return [];
+  }
+
+  if (!data) {
     return [];
   }
 

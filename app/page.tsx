@@ -8,6 +8,8 @@ import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
 
 import { getApprovedListings } from "@/lib/data/listings";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const newListings = await getApprovedListings(24);
 
