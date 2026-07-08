@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/service";
 import type { ListingStatus } from "@/lib/types";
 import { formatZodError } from "@/lib/validation/common";
 import { ListingSchema, type ListingInput, type ListingPhotoInput } from "@/lib/validation/listing";
+import { sanitizePlainText } from "@/lib/validation/sanitize";
 
 export type SaveListingResult = {
   listingId: string;
@@ -335,7 +336,34 @@ export async function saveListing(formData: FormData): Promise<ActionResult<Save
       return actionError("Invalid listing payload.");
     }
 
-    const input = ListingSchema.parse(parsedJson);
+    const sanitizedPayload =
+      parsedJson && typeof parsedJson === "object"
+        ? {
+            ...parsedJson,
+            title:
+              typeof (parsedJson as { title?: unknown }).title === "string"
+                ? sanitizePlainText((parsedJson as { title: string }).title)
+                : (parsedJson as { title?: unknown }).title,
+            description:
+              typeof (parsedJson as { description?: unknown }).description === "string"
+                ? sanitizePlainText((parsedJson as { description: string }).description)
+                : (parsedJson as { description?: unknown }).description,
+            state:
+              typeof (parsedJson as { state?: unknown }).state === "string"
+                ? sanitizePlainText((parsedJson as { state: string }).state)
+                : (parsedJson as { state?: unknown }).state,
+            city:
+              typeof (parsedJson as { city?: unknown }).city === "string"
+                ? sanitizePlainText((parsedJson as { city: string }).city)
+                : (parsedJson as { city?: unknown }).city,
+            area:
+              typeof (parsedJson as { area?: unknown }).area === "string"
+                ? sanitizePlainText((parsedJson as { area: string }).area)
+                : (parsedJson as { area?: unknown }).area,
+          }
+        : parsedJson;
+
+    const input = ListingSchema.parse(sanitizedPayload);
     console.log("[saveListing] starting", {
       mode: input.mode,
       listingId: input.listingId,

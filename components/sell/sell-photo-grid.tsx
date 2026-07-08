@@ -100,10 +100,6 @@ export function SellPhotoGrid({
   }, []);
 
   const endDrag = useCallback(() => {
-    if (sessionRef.current?.active) {
-      console.log("drag end");
-    }
-
     if (sessionRef.current?.longPressTimer) {
       clearTimeout(sessionRef.current.longPressTimer);
     }
@@ -121,7 +117,6 @@ export function SellPhotoGrid({
       }
 
       session.active = true;
-      console.log("drag start");
 
       const index = findPhotoIndex(session.photoId);
       const previewSrc = index >= 0 ? photoPreviewsRef.current[index] : "";
@@ -239,6 +234,12 @@ export function SellPhotoGrid({
       window.removeEventListener("pointercancel", handleWindowPointerUp);
     };
   }, [activateDrag, endDrag, updateDragPosition]);
+
+  useEffect(() => {
+    return () => {
+      endDrag();
+    };
+  }, [endDrag]);
 
   function removePhoto(index: number) {
     onPhotosChange(photos.filter((_, photoIndex) => photoIndex !== index));

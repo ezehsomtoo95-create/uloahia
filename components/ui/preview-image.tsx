@@ -25,6 +25,7 @@ export function PreviewImage({
       alt={alt}
       fill
       unoptimized
+      loading="lazy"
       sizes={sizes}
       className={cn("object-cover object-center", className)}
     />

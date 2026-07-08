@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { useState } from "react";
 import { BadgeCheck, Bookmark, Eye } from "lucide-react";
 import { SaveAuthPrompt } from "@/components/auth/save-auth-prompt";
@@ -11,7 +12,7 @@ import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { formatNaira, formatViews } from "@/lib/utils/format";
 
-export function ListingCard({
+export const ListingCard = memo(function ListingCard({
   listing,
   onSaveChange,
 }: {
@@ -119,4 +120,4 @@ export function ListingCard({
       />
     </>
   );
-}
+});

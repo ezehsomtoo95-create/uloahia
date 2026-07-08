@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { useState } from "react";
 import { Bookmark, BadgeCheck, Eye } from "lucide-react";
 import { SaveAuthPrompt } from "@/components/auth/save-auth-prompt";
@@ -11,7 +12,7 @@ import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 import { formatNaira, formatViews } from "@/lib/utils/format";
 
-export function BrowseListingRow({ listing }: { listing: Listing }) {
+export const BrowseListingRow = memo(function BrowseListingRow({ listing }: { listing: Listing }) {
   const { isSaved, toggleSave } = useSavedListings();
   const { showSaveToast } = useSaveToast();
   const saved = isSaved(listing.id);
@@ -107,4 +108,4 @@ export function BrowseListingRow({ listing }: { listing: Listing }) {
       />
     </>
   );
-}
+});
