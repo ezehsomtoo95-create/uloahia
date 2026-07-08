@@ -38,7 +38,8 @@
   "exclude": [
     "node_modules",
     "AhiaUlo Project",
-    "supabase"
+    "supabase/functions",
+    "supabase/functions/**"
 
   ]
 }
