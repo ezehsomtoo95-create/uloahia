@@ -1,0 +1,5 @@
+# Supabase local / deploy configuration
+
+[functions.admin-notify]
+# Auth is handled manually via ADMIN_NOTIFY_SECRET in the function code.
+verify_jwt = false
