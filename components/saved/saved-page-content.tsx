@@ -19,14 +19,29 @@ export function SavedPageContent() {
             ))}
           </section>
         ) : !isAuthenticated ? (
-          <div className="touch-card p-4">
-            <h2 className="text-[16px] font-medium">Sign in to view saved</h2>
-            <Link
-              href={buildAuthHref("login", "/saved")}
-              className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
-            >
-              Login
-            </Link>
+          <div className="flex min-h-full flex-1 items-center justify-center py-6">
+            <div className="touch-card w-full max-w-sm p-5 text-center">
+              <h2 className="text-[16px] font-medium">
+                Sign in to see your saved items.
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-5 text-muted">
+                Save listings while you browse and pick up where you left off.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link
+                  href={buildAuthHref("login", "/saved")}
+                  className="type-btn inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
+                >
+                  Log in or Sign up
+                </Link>
+                <Link
+                  href="/browse"
+                  className="type-btn inline-flex h-10 items-center justify-center rounded-full border border-border bg-surface px-4 text-[13px] font-semibold"
+                >
+                  Browse listings
+                </Link>
+              </div>
+            </div>
           </div>
         ) : items.length > 0 ? (
           <section className="market-feed">
@@ -49,7 +64,6 @@ export function SavedPageContent() {
           </div>
         )}
       </div>
-
     </main>
   );
 }

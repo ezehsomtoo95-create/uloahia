@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 
-const AUTH_REQUIRED_PREFIXES = ["/my-listings", "/sell", "/saved", "/admin"];
+const AUTH_REQUIRED_PREFIXES = ["/my-listings", "/sell", "/admin"];
 
 const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth", "/update-password"];
 
