@@ -9,8 +9,8 @@ export function SavedPageContent() {
   const { items, isReady, isAuthenticated } = useSavedListings();
 
   return (
-    <main className="saved-page flex flex-col gap-3 pt-3">
-      <h1 className="type-page-title shrink-0">Saved</h1>
+    <main className="saved-page pt-3">
+      <h1 className="type-page-title">Saved</h1>
       <div className="saved-page-scroll">
         {!isReady ? (
           <section className="market-feed">

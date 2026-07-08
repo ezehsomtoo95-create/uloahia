@@ -38,7 +38,7 @@ export default async function ProfilePage() {
           method={adminAccess.method}
         />
       ) : null}
-      <div className="flex-1 overflow-y-auto pb-safe">
+      <div className="pb-safe">
         <div className="space-y-3 pb-4">
           <section>
             <h1 className="type-page-title">Profile</h1>
