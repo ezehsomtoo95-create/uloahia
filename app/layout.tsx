@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import "./marketplace-desktop.css";
 import { AppShell } from "@/components/layout/app-shell";
+import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
 import { themeInitScript } from "@/lib/theme/theme";
 
@@ -54,6 +55,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
+        <ScrollToTop />
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { MarketplaceDesktopSidebar } from "@/components/layout/marketplace-desktop-sidebar";
-import { ScrollToTopOnNavigate } from "@/components/layout/scroll-to-top-on-navigate";
 import { TopBar } from "@/components/layout/top-bar";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SaveToastProvider } from "@/components/listings/save-toast";
@@ -20,7 +19,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SavedListingsProvider>
         <ErrorBoundary title="Marketplace unavailable">
           <div className="marketplace-root bg-background text-foreground">
-            <ScrollToTopOnNavigate />
             {!isAdmin ? <MarketplaceDesktopSidebar /> : null}
             <div className="marketplace-main">
               {!isBrowse ? <TopBar /> : null}
