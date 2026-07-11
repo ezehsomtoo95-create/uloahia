@@ -1,9 +1,18 @@
 /* Marketplace desktop experience — all rules scoped to min-width: 1024px only. */
 
 @media (min-width: 1024px) {
+  html:has(.marketplace-root),
+  body:has(.marketplace-root) {
+    overflow: hidden;
+    height: 100%;
+  }
+
   .marketplace-root {
     display: flex;
-    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
     background:
       radial-gradient(
         ellipse 70% 45% at 12% -8%,
@@ -21,20 +30,71 @@
   .marketplace-main {
     display: flex;
     min-width: 0;
+    min-height: 0;
     flex: 1;
     flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .marketplace-root:has(.marketplace-desktop-sidebar) .marketplace-main {
+    margin-left: 15.5rem;
+    width: calc(100% - 15.5rem);
   }
 
   .marketplace-desktop-sidebar {
-    position: sticky;
+    position: fixed;
+    left: 0;
     top: 0;
+    z-index: 50;
     height: 100dvh;
+    max-height: 100dvh;
     width: 15.5rem;
     shrink: 0;
     flex-direction: column;
     border-right: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
     background: color-mix(in srgb, var(--surface) 92%, var(--background));
     backdrop-filter: blur(12px);
+  }
+
+  .marketplace-topbar {
+    position: relative;
+    top: auto;
+    z-index: 40;
+    flex-shrink: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .marketplace-content-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .marketplace-content-scroll--admin {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .marketplace-content-scroll--admin .app-container--admin-desktop {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .marketplace-content-scroll--admin .admin-desktop-shell {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    max-height: none;
   }
 
   .marketplace-desktop-sidebar-brand {
@@ -153,15 +213,6 @@
     color: var(--text-secondary);
   }
 
-  .marketplace-topbar {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-    background: color-mix(in srgb, var(--background) 88%, transparent);
-    backdrop-filter: blur(14px);
-  }
-
   .marketplace-topbar .app-container {
     max-width: none;
     width: 100%;
@@ -169,8 +220,7 @@
     padding-inline: 2rem;
   }
 
-  .marketplace-main .app-container--marketplace-desktop {
-    max-width: 72rem;
+  .marketplace-main .app-container--marketplace-desktop {    max-width: 72rem;
     width: 100%;
     margin: 0 auto;
     padding-inline: 2rem;
@@ -185,13 +235,7 @@
     padding-top: 1.25rem;
   }
 
-  .saved-page {
-    height: calc(100dvh - 4rem - 1.25rem);
-  }
-
-
-  .marketplace-page--home {
-    padding-top: 0.5rem;
+  .marketplace-page--home {    padding-top: 0.5rem;
   }
 
   .marketplace-page--home .type-hero {

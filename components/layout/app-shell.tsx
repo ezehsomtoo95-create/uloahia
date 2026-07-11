@@ -24,13 +24,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {!isBrowse ? <TopBar /> : null}
               <div
                 className={cn(
-                  "app-container",
+                  "marketplace-content-scroll",
                   isBrowse ? "pt-0" : "pt-[56px] lg:pt-0",
-                  isAdmin && "app-container--admin-desktop",
-                  !isAdmin && "app-container--marketplace-desktop",
+                  isAdmin && "marketplace-content-scroll--admin",
                 )}
               >
-                {children}
+                <div
+                  className={cn(
+                    "app-container",
+                    isAdmin && "app-container--admin-desktop",
+                    !isAdmin && "app-container--marketplace-desktop",
+                  )}
+                >
+                  {children}
+                </div>
               </div>
             </div>
             <BottomNav />

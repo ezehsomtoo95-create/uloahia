@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const NESTED_SCROLL_CONTAINER_SELECTORS = [
+  ".marketplace-content-scroll",
   ".saved-page-scroll",
   ".admin-desktop-main",
   ".admin-desktop-scroll",
@@ -11,9 +12,18 @@ const NESTED_SCROLL_CONTAINER_SELECTORS = [
 ].join(", ");
 
 function resetScrollPosition() {
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
+  const desktopContent = document.querySelector(".marketplace-content-scroll");
+  const useDesktopScroll =
+    desktopContent instanceof HTMLElement &&
+    window.matchMedia("(min-width: 1024px)").matches;
+
+  if (useDesktopScroll) {
+    desktopContent.scrollTop = 0;
+  } else {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
 
   document.querySelectorAll(NESTED_SCROLL_CONTAINER_SELECTORS).forEach((element) => {
     if (element instanceof HTMLElement) {
