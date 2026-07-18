@@ -2,9 +2,23 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 
-const AUTH_REQUIRED_PREFIXES = ["/my-listings", "/sell", "/admin"];
+const AUTH_REQUIRED_PREFIXES = [
+  "/my-listings",
+  "/sell",
+  "/admin",
+  "/messages",
+  "/notifications",
+  "/profile/complete",
+];
 
 const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth", "/update-password"];
+
+const PROFILE_COMPLETE_EXEMPT = [
+  "/profile/complete",
+  "/login",
+  "/auth",
+  "/update-password",
+];
 
 function shouldBypassRouteProtection(request: NextRequest) {
   // Next.js 16 Server Actions POST to the current route — never redirect these.
@@ -117,6 +131,31 @@ export async function middleware(request: NextRequest) {
     loginUrl.searchParams.set("next", pathname);
     loginUrl.searchParams.set("reason", "verify-email");
     return withSessionCookies(response, NextResponse.redirect(loginUrl));
+  }
+
+  // Google / OAuth users must add a phone before using protected marketplace features.
+  const needsProfileGate =
+    Boolean(user) &&
+    !PROFILE_COMPLETE_EXEMPT.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    ) &&
+    (isAuthRoute || pathname.startsWith("/messages") || pathname.startsWith("/sell"));
+
+  if (needsProfileGate && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const phone = profile?.phone ?? "";
+    if (!phone || phone.startsWith("pending:")) {
+      const completeUrl = request.nextUrl.clone();
+      completeUrl.pathname = "/profile/complete";
+      completeUrl.search = "";
+      completeUrl.searchParams.set("next", pathname);
+      return withSessionCookies(response, NextResponse.redirect(completeUrl));
+    }
   }
 
   return response;

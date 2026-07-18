@@ -3,8 +3,8 @@ export const THEME_STORAGE_KEY = "ahiaulo-theme";
 export type Theme = "light" | "dark";
 
 export const THEME_COLORS: Record<Theme, string> = {
-  light: "#FAF9F7",
-  dark: "#181614",
+  light: "#FAF7F0",
+  dark: "#121212",
 };
 
 export function isTheme(value: string | null | undefined): value is Theme {
@@ -56,12 +56,9 @@ export function applyTheme(theme: Theme) {
     return;
   }
 
-  if (document.documentElement.dataset.theme === theme) {
-    return;
-  }
-
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+  document.documentElement.classList.toggle("dark", theme === "dark");
 
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta) {
@@ -85,4 +82,4 @@ export function persistTheme(theme: Theme) {
   applyTheme(theme);
 }
 
-export const themeInitScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute("content",t==="dark"?${JSON.stringify(THEME_COLORS.dark)}:${JSON.stringify(THEME_COLORS.light)});}}catch(e){}})();`;
+export const themeInitScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var s=localStorage.getItem(k);var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;document.documentElement.classList.toggle("dark",t==="dark");var m=document.querySelector('meta[name="theme-color"]');if(m){m.setAttribute("content",t==="dark"?${JSON.stringify(THEME_COLORS.dark)}:${JSON.stringify(THEME_COLORS.light)});}}catch(e){}})();`;

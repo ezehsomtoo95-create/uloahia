@@ -7,10 +7,6 @@ import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthError, type AuthErrorDisplay } from "@/lib/utils/auth-errors";
 import { resetPasswordSchema } from "@/lib/validation/auth";
-import { cn } from "@/lib/utils/cn";
-
-const AUTH_VIEWPORT_HEIGHT =
-  "h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))] max-h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))]";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -121,33 +117,23 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <main
-      className={cn(
-        "flex flex-col items-center justify-center overflow-hidden py-1 sm:py-4",
-        AUTH_VIEWPORT_HEIGHT,
-      )}
-    >
-      <section className="touch-card flex w-full min-h-0 flex-col p-4">
-        <header className="shrink-0">
+    <main className="auth-screen">
+      <section className="auth-screen__card">
+        <header className="auth-screen__header">
           <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-          <h1 className="type-page-title mt-1">Set new password</h1>
-          <p className="type-page-sub mt-1.5">
-            Choose a new password for your account.
-          </p>
+          <h1 className="type-page-title">Set new password</h1>
+          <p className="type-page-sub">Choose a new password for your account.</p>
         </header>
 
-        <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain">
+        <div className="auth-screen__body">
           {isChecking ? (
-            <p className="rounded-app border border-border bg-background p-3 text-[12px] leading-5 text-muted">
-              Verifying your reset link...
-            </p>
+            <p className="auth-screen__banner">Verifying your reset link...</p>
           ) : recoveryReady ? (
-            <>
+            <div className="auth-screen__fields">
               <AuthField label="New password">
                 <input
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full bg-transparent outline-none"
                   type="password"
                   placeholder="Minimum 8 characters"
                   autoComplete="new-password"
@@ -157,39 +143,30 @@ export default function UpdatePasswordPage() {
                 <input
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="w-full bg-transparent outline-none"
                   type="password"
                   placeholder="Re-enter password"
                   autoComplete="new-password"
                 />
               </AuthField>
-            </>
+            </div>
           ) : (
-            <p className="rounded-app border border-border bg-background p-3 text-[12px] leading-5 text-muted">
+            <p className="auth-screen__banner">
               This reset link is invalid or expired. Request a new password reset email from the
               login page.
             </p>
           )}
 
           {authError ? (
-            <div className="rounded-app border border-border bg-background p-3">
+            <div className="auth-screen__banner" role="alert">
               {authError.title ? (
-                <p className="text-[13px] font-semibold">{authError.title}</p>
+                <p className="auth-screen__banner-title">{authError.title}</p>
               ) : null}
-              <p
-                className={
-                  authError.title
-                    ? "mt-1 text-[12px] leading-5 text-muted"
-                    : "text-[12px] leading-5 text-muted"
-                }
-              >
-                {authError.text}
-              </p>
+              <p className="auth-screen__banner-text">{authError.text}</p>
             </div>
           ) : null}
 
           {message ? (
-            <p className="rounded-app border border-border bg-background p-3 text-[12px] leading-5 text-muted">
+            <p className="auth-screen__banner" role="status">
               {message}
             </p>
           ) : null}
@@ -199,16 +176,13 @@ export default function UpdatePasswordPage() {
               disabled={isLoading || isChecking}
               type="button"
               onClick={() => void handlePasswordReset()}
-              className="type-btn h-11 w-full rounded-full bg-primary text-[14px] text-primary-foreground disabled:opacity-60"
+              className="auth-screen__btn auth-screen__btn--primary"
             >
               {isLoading ? "Please wait..." : "Update password"}
             </button>
           ) : null}
 
-          <Link
-            href="/login?mode=recover"
-            className="block text-center text-[12px] font-medium text-primary"
-          >
+          <Link href="/login?mode=recover" className="auth-screen__link-btn">
             Back to recover access
           </Link>
         </div>
@@ -225,9 +199,9 @@ function AuthField({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block rounded-app border border-border bg-background px-3 py-2">
-      <span className="mb-1 block text-[11px] font-medium text-muted">{label}</span>
-      <div className="text-[14px] font-normal">{children}</div>
+    <label className="auth-screen__field">
+      <span className="auth-screen__field-label">{label}</span>
+      <div className="auth-screen__field-control">{children}</div>
     </label>
   );
 }

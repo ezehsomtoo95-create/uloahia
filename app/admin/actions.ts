@@ -163,6 +163,15 @@ export async function updateListingStatus(
     return adminError("Listing not found.");
   }
 
+  if (newStatus === "approved" || newStatus === "rejected") {
+    const { notifyListingStatusChange } = await import("@/app/actions/engagement");
+    await notifyListingStatusChange(
+      trimmedListingId,
+      newStatus,
+      options?.rejectionReason,
+    );
+  }
+
   revalidateAdminPaths(trimmedListingId);
   return adminSuccess();
 }

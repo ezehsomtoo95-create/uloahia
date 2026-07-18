@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import "./marketplace-desktop.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { ScrollToTop } from "@/components/layout/scroll-to-top";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
+import { localeInitScript } from "@/lib/i18n/locale";
 import { themeInitScript } from "@/lib/theme/theme";
 
-const inter = Inter({
-  variable: "--font-inter",
+const manrope = Manrope({
+  variable: "--font-marketplace",
   subsets: ["latin"],
   display: "swap",
 });
@@ -39,7 +41,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#FAF9F7",
+  themeColor: "#FAF7F0",
 };
 
 export default function RootLayout({
@@ -49,14 +51,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${manrope.variable} font-sans antialiased`}>
         <Script
           id="ahiaulo-theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
+        <Script
+          id="ahiaulo-locale-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: localeInitScript }}
+        />
         <ScrollToTop />
-        <AppShell>{children}</AppShell>
+        <LocaleProvider>
+          <AppShell>{children}</AppShell>
+        </LocaleProvider>
       </body>
     </html>
-  );}
+  );
+}

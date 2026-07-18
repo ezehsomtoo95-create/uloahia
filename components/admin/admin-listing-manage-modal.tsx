@@ -15,8 +15,9 @@ import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
 import { ListingListImage } from "@/components/listings/listing-list-image";
 import { useAdminToast } from "@/components/admin/admin-toast";
 import type { AdminListingDetail } from "@/lib/data/admin-detail";
-import { CATEGORIES } from "@/lib/constants/categories";
 import { LISTING_CONDITIONS } from "@/lib/constants/listings";
+import { getCategoryName } from "@/lib/constants/categories";
+import { createClient } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
@@ -25,6 +26,8 @@ type AdminListingViewPanelProps = {
   onClose: () => void;
   onUpdated: (listingId: string, patch: { status?: string; removed?: boolean }) => void;
 };
+
+type CategoryOption = { id: string; slug: string; name: string };
 
 function actionButtonClass(variant: "default" | "primary" | "danger" = "default") {
   return cn(
@@ -68,9 +71,35 @@ export function AdminListingManageModal({
     city: "",
     area: "",
   });
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
     setMounted(true);
+    const supabase = createClient();
+    void supabase
+      .from("categories")
+      .select("id, slug, name, parent_id")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => {
+        const rows = (data ?? []) as Array<{
+          id: string;
+          slug: string;
+          name: string;
+          parent_id: string | null;
+        }>;
+        const parents = new Set(rows.map((row) => row.parent_id).filter(Boolean));
+        const leaves = rows.filter((row) => !parents.has(row.id) || row.parent_id);
+        // Prefer leaf categories (have parent) for listing assignment
+        const options = rows
+          .filter((row) => row.parent_id !== null)
+          .map((row) => ({ id: row.id, slug: row.slug, name: row.name }));
+        setCategoryOptions(options.length > 0 ? options : leaves.map((row) => ({
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+        })));
+      });
   }, []);
 
   useEffect(() => {
@@ -227,11 +256,14 @@ export function AdminListingManageModal({
                   }
                   className="h-10 w-full rounded-full border border-border bg-background px-3 text-[13px] outline-none"
                 >
-                  {CATEGORIES.map((category) => (
-                    <option key={category.slug} value={category.slug}>
+                  {categoryOptions.map((category) => (
+                    <option key={category.id} value={category.slug}>
                       {category.name}
                     </option>
                   ))}
+                  {categoryOptions.length === 0 && draft.category ? (
+                    <option value={draft.category}>{getCategoryName(draft.category)}</option>
+                  ) : null}
                 </select>
                 <select
                   value={draft.condition}
@@ -280,13 +312,13 @@ export function AdminListingManageModal({
                     {detail.images.map((image) => (
                       <div
                         key={image}
-                        className="relative size-28 shrink-0 overflow-hidden rounded-[12px] border border-border bg-background lg:size-32"
+                        className="product-media product-media--lg border border-border"
                       >
                         <ListingListImage
                           src={image}
                           alt={detail.title}
                           variant="row"
-                          className="size-full object-cover"
+                          className="product-media-img"
                         />
                       </div>
                     ))}

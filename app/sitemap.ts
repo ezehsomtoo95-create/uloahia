@@ -11,8 +11,10 @@ const PUBLIC_STATIC_ROUTES: Array<{
 }> = [
   { path: "", changeFrequency: "daily", priority: 1 },
   { path: "/browse", changeFrequency: "daily", priority: 0.9 },
+  { path: "/categories", changeFrequency: "daily", priority: 0.85 },
   { path: "/saved", changeFrequency: "weekly", priority: 0.5 },
   { path: "/profile", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/messages", changeFrequency: "weekly", priority: 0.4 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -28,11 +30,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const supabase = await createClient();
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("id, created_at, reviewed_at")
-    .eq("status", "approved")
-    .order("created_at", { ascending: false });
+  const [{ data: listings }, { data: categories }] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("id, created_at, reviewed_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("categories")
+      .select("slug, updated_at, created_at")
+      .eq("is_active", true)
+      .is("parent_id", null),
+  ]);
 
   const listingEntries: MetadataRoute.Sitemap = (listings ?? []).map((listing) => ({
     url: `${siteUrl}/listing/${listing.id}`,
@@ -41,5 +50,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticEntries, ...listingEntries];
+  const categoryEntries: MetadataRoute.Sitemap = (categories ?? []).map((category) => ({
+    url: `${siteUrl}/category/${category.slug}`,
+    lastModified: new Date(category.updated_at ?? category.created_at ?? Date.now()),
+    changeFrequency: "daily",
+    priority: 0.85,
+  }));
+
+  return [...staticEntries, ...categoryEntries, ...listingEntries];
 }

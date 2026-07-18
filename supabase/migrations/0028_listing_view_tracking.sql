@@ -1,4 +1,7 @@
 -- Return whether a unique view was recorded so clients can refresh counts accurately.
+-- DROP first: cannot change return type from void → boolean via CREATE OR REPLACE (42P13).
+DROP FUNCTION IF EXISTS public.record_listing_view(uuid, text, boolean);
+
 CREATE OR REPLACE FUNCTION public.record_listing_view(
   listing_uuid uuid,
   p_visitor_id text,

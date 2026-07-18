@@ -1,13 +1,63 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createServiceClient, supabaseAdmin } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
+import { shopPathForUsername, validateUsername } from "@/lib/utils/username";
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+export type UpdateUsernameResult =
+  | { ok: true; username: string }
+  | { ok: false; error: string };
+
+export async function updateProfileUsername(
+  usernameInput: string,
+): Promise<UpdateUsernameResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "Sign in to update your username." };
+  }
+
+  const validated = validateUsername(usernameInput);
+  if (!validated.ok) {
+    return validated;
+  }
+  const { username } = validated;
+
+  const { data: usernameOwner } = await supabaseAdmin()
+    .from("profiles")
+    .select("id")
+    .ilike("username", username)
+    .neq("id", user.id)
+    .maybeSingle();
+
+  if (usernameOwner) {
+    return { ok: false, error: "That name is taken." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ username })
+    .eq("id", user.id);
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath(shopPathForUsername(username));
+  revalidatePath(`/store/${user.id}`);
+  return { ok: true, username };
 }
 
 export type DeleteAccountResult =

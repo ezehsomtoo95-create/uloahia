@@ -38,6 +38,18 @@ function ScrollToTopOnRouteChange() {
   const search = searchParams.toString();
 
   useEffect(() => {
+    // Keep scroll position when deep-linking into a category section.
+    const isCategoryDeepLink =
+      pathname === "/categories" &&
+      Boolean(
+        searchParams.get("expand") ??
+          searchParams.get("cat") ??
+          searchParams.get("category"),
+      );
+    if (isCategoryDeepLink) {
+      return;
+    }
+
     let raf2 = 0;
 
     const raf1 = requestAnimationFrame(() => {

@@ -29,16 +29,16 @@ export function AdminListingCard({
     <article className="touch-card overflow-hidden">
       <div className="flex gap-3 p-3">
         {listing.imageUrl ? (
-          <div className="listing-card-thumb relative size-16 overflow-hidden">
+          <div className="product-media product-media--xs listing-card-thumb">
             <ListingListImage
               src={listing.imageUrl}
               alt={listing.title}
               variant="row"
-              className="size-full object-cover object-center"
+              className="product-media-img"
             />
           </div>
         ) : (
-          <div className="listing-card-thumb flex size-16 items-center justify-center text-[10px] text-muted">
+          <div className="product-media product-media--xs listing-card-thumb flex items-center justify-center text-[10px] text-muted">
             No photo
           </div>
         )}

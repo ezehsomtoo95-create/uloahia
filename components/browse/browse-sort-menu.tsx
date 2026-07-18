@@ -34,7 +34,7 @@ export function BrowseSortMenu({
         aria-expanded={open}
       >
         <span>{activeLabel}</span>
-        <ChevronDown size={14} className="shrink-0 opacity-70" aria-hidden />
+        <ChevronDown size={12} strokeWidth={2.25} className="shrink-0 opacity-60" aria-hidden />
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Sort by">

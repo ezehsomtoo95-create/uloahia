@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { EngagementBadgesProvider } from "@/components/layout/engagement-badges-provider";
 import { MarketplaceDesktopSidebar } from "@/components/layout/marketplace-desktop-sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -11,38 +12,58 @@ import { cn } from "@/lib/utils/cn";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isBrowse = pathname === "/browse";
   const isAdmin = pathname.startsWith("/admin");
+  const isHome = pathname === "/";
+  const isChatThread = /^\/messages\/[^/]+$/.test(pathname);
+  const isAuthScreen =
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/update-password" ||
+    pathname.startsWith("/update-password/");
 
   return (
     <SaveToastProvider>
       <SavedListingsProvider>
-        <ErrorBoundary title="Marketplace unavailable">
-          <div className="marketplace-root bg-background text-foreground">
-            {!isAdmin ? <MarketplaceDesktopSidebar /> : null}
-            <div className="marketplace-main">
-              {!isBrowse ? <TopBar /> : null}
+        <EngagementBadgesProvider>
+          <ErrorBoundary title="Marketplace unavailable">
+            <div className="marketplace-root bg-background text-foreground">
+              {!isAdmin ? <TopBar /> : null}
               <div
                 className={cn(
-                  "marketplace-content-scroll",
-                  isBrowse ? "pt-0" : "pt-[56px] lg:pt-0",
-                  isAdmin && "marketplace-content-scroll--admin",
+                  "marketplace-body",
+                  isAdmin && "marketplace-body--admin",
                 )}
               >
-                <div
-                  className={cn(
-                    "app-container",
-                    isAdmin && "app-container--admin-desktop",
-                    !isAdmin && "app-container--marketplace-desktop",
-                  )}
-                >
-                  {children}
+                {!isAdmin ? <MarketplaceDesktopSidebar /> : null}
+                <div className="marketplace-main">
+                  <div
+                    className={cn(
+                      "marketplace-content-scroll",
+                      !isAdmin && !isHome && !isChatThread && "pt-[3.75rem] lg:pt-0",
+                      isHome && "marketplace-content-scroll--home",
+                      isChatThread && "marketplace-content-scroll--chat pt-[3.75rem] lg:pt-0",
+                      isAdmin && "marketplace-content-scroll--admin",
+                      isAuthScreen && "marketplace-content-scroll--auth",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "app-container",
+                        isAdmin && "app-container--admin-desktop",
+                        !isAdmin && "app-container--marketplace-desktop",
+                        isAuthScreen && "app-container--auth",
+                        isChatThread && "app-container--chat",
+                      )}
+                    >
+                      {children}
+                    </div>
+                  </div>
                 </div>
               </div>
+              <BottomNav />
             </div>
-            <BottomNav />
-          </div>
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </EngagementBadgesProvider>
       </SavedListingsProvider>
     </SaveToastProvider>
   );

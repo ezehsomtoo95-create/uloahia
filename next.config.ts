@@ -1,6 +1,43 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
+/**
+ * Content-Security-Policy
+ * - Development: allow 'unsafe-eval' so React / Turbopack debugging & HMR work.
+ * - Production: keep a strict script-src without 'unsafe-eval'.
+ */
+function buildContentSecurityPolicy() {
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"
+    : "script-src 'self' 'unsafe-inline' https:";
+
+  // Turbopack / Next HMR uses websocket upgrades in local development.
+  const connectSrc = isDev
+    ? "connect-src 'self' https: wss: ws: http://localhost:* http://127.0.0.1:*"
+    : "connect-src 'self' https: wss:";
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline' https:",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https:",
+    connectSrc,
+    "frame-src 'self' https:",
+    // upgrade-insecure-requests breaks local http://localhost in some browsers
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
+  // Keep the Next.js "N" badge off the bottom-left (over the sidebar).
+  devIndicators: {
+    position: "bottom-right",
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
@@ -18,29 +55,18 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    const csp = [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "frame-ancestors 'none'",
-      "object-src 'none'",
-      "script-src 'self' 'unsafe-inline' https:",
-      "style-src 'self' 'unsafe-inline' https:",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data: https:",
-      "connect-src 'self' https: wss:",
-      "frame-src 'self' https:",
-      "upgrade-insecure-requests",
-    ].join("; ");
-
     return [
       {
         source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
+          { key: "Content-Security-Policy", value: buildContentSecurityPolicy() },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
         ],
       },
     ];

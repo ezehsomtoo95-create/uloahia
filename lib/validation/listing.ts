@@ -19,8 +19,6 @@ export const listingPhotoInputSchema = z.discriminatedUnion("source", [
   }),
 ]);
 
-
-/** Validates sell-flow listing payloads (create and update). */
 export const ListingSchema = z.object({
   mode: z.enum(["create", "update"]).optional(),
   listingId: z.preprocess(
@@ -30,12 +28,21 @@ export const ListingSchema = z.object({
   originalStatus: listingStatusSchema.optional(),
   title: z.string().trim().min(3, "Title is too short.").max(120, "Title is too long."),
   category: z.string().trim().min(1, "Category is required."),
-  condition: listingConditionSchema,
+  categoryId: z.string().uuid("Category is required."),
+  condition: z.union([listingConditionSchema, z.literal("")]).transform((value) =>
+    value === "" ? "Good" : value,
+  ),
   price: z.number().finite().positive("Price must be greater than zero."),
   description: z.string().trim().min(10, "Description is too short.").max(2000),
+  country: z.string().trim().optional(),
+  countryId: z.string().uuid().optional().nullable(),
   state: z.string().trim().min(1, "State is required."),
+  stateId: z.string().uuid().optional().nullable(),
   city: z.string().trim().min(1, "City is required."),
+  cityId: z.string().uuid().optional().nullable(),
   area: z.string().trim().min(1, "Area is required."),
+  areaId: z.string().uuid().optional().nullable(),
+  attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}),
   photos: z
     .array(listingPhotoInputSchema)
     .min(1, "At least one photo is required.")
@@ -45,17 +52,18 @@ export const ListingSchema = z.object({
 export type ListingInput = z.infer<typeof ListingSchema>;
 export type ListingPhotoInput = z.infer<typeof listingPhotoInputSchema>;
 
-
 export const updateListingSchema = z.object({
   listingId: listingIdSchema,
   title: z.string().trim().min(3, "Title is too short.").max(120, "Title is too long."),
   category: z.string().trim().min(1, "Category is required."),
+  categoryId: z.string().uuid().optional(),
   condition: listingConditionSchema,
   price: z.number().finite().positive("Price must be greater than zero."),
   description: z.string().trim().min(10, "Description is too short.").max(2000),
   state: z.string().trim().min(1, "State is required."),
   city: z.string().trim().min(1, "City is required."),
   area: z.string().trim().min(1, "Area is required."),
+  attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   originalStatus: listingStatusSchema,
 });
 
@@ -69,10 +77,12 @@ export const adminUpdateListingSchema = z.object({
   price: z.number().finite().positive(),
   description: z.string().trim().min(10).max(2000),
   category: z.string().trim().min(1),
+  categoryId: z.string().uuid().optional(),
   condition: listingConditionSchema,
   state: z.string().trim().min(1),
   city: z.string().trim().min(1),
   area: z.string().trim().min(1),
+  attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export const updateListingStatusSchema = z.object({

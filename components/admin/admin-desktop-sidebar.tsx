@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import {
   BarChart3,
   Flag,
+  FolderTree,
   LayoutDashboard,
+  MapPin,
   Package,
   Settings,
   Users,
@@ -15,6 +17,8 @@ import { cn } from "@/lib/utils/cn";
 const NAV = [
   { href: "/admin#admin-dashboard", label: "Dashboard", icon: LayoutDashboard, section: "admin-dashboard" },
   { href: "/admin#admin-listings", label: "Listings", icon: Package, section: "admin-listings" },
+  { href: "/admin#admin-categories", label: "Categories", icon: FolderTree, section: "admin-categories" },
+  { href: "/admin#admin-locations", label: "Locations", icon: MapPin, section: "admin-locations" },
   { href: "/admin#admin-users", label: "Users", icon: Users, section: "admin-users" },
   { href: "/admin#admin-reports", label: "Reports", icon: Flag, section: "admin-reports" },
   { href: "/admin#admin-analytics", label: "Analytics", icon: BarChart3, section: "admin-analytics" },

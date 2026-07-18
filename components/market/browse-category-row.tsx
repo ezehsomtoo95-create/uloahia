@@ -1,8 +1,12 @@
 "use client";
 
-import { CATEGORIES } from "@/lib/constants/categories";
-import type { ListingCategorySlug } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+
+type CategoryChipItem = {
+  slug: string;
+  name: string;
+  icon?: string | null;
+};
 
 function BrowseCategoryChip({
   active,
@@ -28,11 +32,13 @@ function BrowseCategoryChip({
 }
 
 export function BrowseCategoryRow({
+  categories,
   active,
   onSelect,
 }: {
-  active: ListingCategorySlug | "All";
-  onSelect: (slug: ListingCategorySlug | "All") => void;
+  categories: CategoryChipItem[];
+  active: string | "All";
+  onSelect: (slug: string | "All") => void;
 }) {
   return (
     <div className="native-scroll -mx-3 w-[calc(100%+1.5rem)] touch-pan-x overflow-x-auto overscroll-x-contain scroll-smooth">
@@ -43,7 +49,7 @@ export function BrowseCategoryRow({
         >
           All
         </BrowseCategoryChip>
-        {CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <BrowseCategoryChip
             key={category.slug}
             active={active === category.slug}

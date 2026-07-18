@@ -7,12 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
-
   },
   "dependencies": {
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "clsx": "latest",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",

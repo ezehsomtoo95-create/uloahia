@@ -1,56 +1,190 @@
 "use client";
 
 import Link from "next/link";
-import { CATEGORIES } from "@/lib/constants/categories";
-import type { ListingCategorySlug } from "@/lib/types";
+import { useRef } from "react";
+import type { MouseEvent, PointerEvent } from "react";
+import { categoryOverviewHref } from "@/lib/categories/discovery";
+import {
+  Baby,
+  BookOpen,
+  BriefcaseBusiness,
+  Car,
+  CookingPot,
+  Cpu,
+  Dumbbell,
+  Factory,
+  Gamepad2,
+  Handshake,
+  HeartPulse,
+  Home,
+  Laptop,
+  Music,
+  Palette,
+  PawPrint,
+  Shirt,
+  Smartphone,
+  Sofa,
+  Sparkles,
+  Tags,
+  Tractor,
+  Tv,
+  Utensils,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import { CategoryImageRail } from "@/components/market/category-image-rail";
 import { Chip, ChipRow, BrowseScrollRow } from "@/components/ui/chip";
+import { useHorizontalWheelScroll } from "@/lib/hooks/use-horizontal-wheel-scroll";
 import { cn } from "@/lib/utils/cn";
 
+export type CategoryChipItem = {
+  slug: string;
+  name: string;
+  icon?: string | null;
+};
+
 export function CategoryRow({
+  categories,
   active = "All",
   onSelect,
   showAll = false,
+  showBrowseAllLink = false,
   variant = "market",
 }: {
-  active?: ListingCategorySlug | "All";
-  onSelect?: (slug: ListingCategorySlug | "All") => void;
+  categories: CategoryChipItem[];
+  active?: string | "All";
+  onSelect?: (slug: string | "All") => void;
   showAll?: boolean;
+  showBrowseAllLink?: boolean;
   variant?: "default" | "browse" | "market";
 }) {
   const interactive = Boolean(onSelect);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef({
+    pointerId: -1,
+    startX: 0,
+    startScrollLeft: 0,
+    dragged: false,
+  });
+
+  useHorizontalWheelScroll(scrollRef);
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch" || event.button !== 0) {
+      return;
+    }
+
+    const container = scrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    dragState.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: container.scrollLeft,
+      dragged: false,
+    };
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const container = scrollRef.current;
+    if (!container || dragState.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const distance = event.clientX - dragState.current.startX;
+    if (!dragState.current.dragged && Math.abs(distance) > 8) {
+      dragState.current.dragged = true;
+      container.setPointerCapture(event.pointerId);
+      container.classList.add("is-dragging");
+    }
+
+    if (dragState.current.dragged) {
+      event.preventDefault();
+      container.scrollLeft = dragState.current.startScrollLeft - distance;
+    }
+  }
+
+  function stopDragging(event: PointerEvent<HTMLDivElement>) {
+    const container = scrollRef.current;
+    if (!container || dragState.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (container.hasPointerCapture(event.pointerId)) {
+      container.releasePointerCapture(event.pointerId);
+    }
+    container.classList.remove("is-dragging");
+    dragState.current.pointerId = -1;
+  }
+
+  function handleClickCapture(event: MouseEvent<HTMLDivElement>) {
+    if (dragState.current.dragged) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragState.current.dragged = false;
+    }
+  }
 
   if (variant === "market") {
     return (
-      <div className="market-hscroll">
-        <div className="market-hscroll-inner">
-          {interactive && showAll ? (
-            <MarketCategoryChip
-              active={active === "All"}
-              onClick={() => onSelect?.("All")}
-            >
-              All
-            </MarketCategoryChip>
-          ) : null}
-          {CATEGORIES.map((category) =>
-            interactive ? (
+      <div>
+        <div
+          ref={scrollRef}
+          className="market-hscroll"
+          role="region"
+          aria-label="Marketplace categories"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          onClickCapture={handleClickCapture}
+        >
+          <div className="market-hscroll-inner">
+            {interactive && showAll ? (
               <MarketCategoryChip
-                key={category.slug}
-                active={active === category.slug}
-                onClick={() => onSelect?.(category.slug)}
+                active={active === "All"}
+                onClick={() => onSelect?.("All")}
               >
-                {category.name}
+                <CategoryChipContent name="All" icon={null} />
               </MarketCategoryChip>
-            ) : (
-              <Link
-                key={category.slug}
-                href={`/browse?category=${category.slug}`}
-                className="market-category-chip snap-start"
-              >
-                {category.name}
-              </Link>
-            ),
-          )}
+            ) : null}
+            {categories.map((category) =>
+              interactive ? (
+                <MarketCategoryChip
+                  key={category.slug}
+                  active={active === category.slug}
+                  onClick={() => onSelect?.(category.slug)}
+                >
+                  <CategoryChipContent
+                    name={category.name}
+                    icon={category.icon}
+                  />
+                </MarketCategoryChip>
+              ) : (
+                <Link
+                  key={category.slug}
+                  href={categoryOverviewHref(category.slug)}
+                  className="market-category-chip snap-start"
+                >
+                  <CategoryChipContent
+                    name={category.name}
+                    icon={category.icon}
+                  />
+                </Link>
+              ),
+            )}
+          </div>
         </div>
+        {showBrowseAllLink ? (
+          <Link
+            href="/categories"
+            className="type-link mt-2.5 inline-flex text-[12px] text-primary sm:text-[13px]"
+          >
+            Browse all categories →
+          </Link>
+        ) : null}
       </div>
     );
   }
@@ -65,7 +199,7 @@ export function CategoryRow({
           All
         </Chip>
       ) : null}
-      {CATEGORIES.map((category) =>
+      {categories.map((category) =>
         interactive ? (
           <Chip
             key={category.slug}
@@ -76,7 +210,11 @@ export function CategoryRow({
             {category.name}
           </Chip>
         ) : (
-          <Chip key={category.slug} size={chipSize} href={`/browse?category=${category.slug}`}>
+          <Chip
+            key={category.slug}
+            size={chipSize}
+            href={categoryOverviewHref(category.slug)}
+          >
             {category.name}
           </Chip>
         ),
@@ -85,16 +223,71 @@ export function CategoryRow({
   );
 }
 
-/** Interactive category row for Browse — same styling as homepage CategoryRow. */
+const CATEGORY_ICON_REGISTRY: Record<string, LucideIcon> = {
+  baby: Baby,
+  book: BookOpen,
+  "book-open": BookOpen,
+  briefcase: BriefcaseBusiness,
+  car: Car,
+  "cooking-pot": CookingPot,
+  cpu: Cpu,
+  dumbbell: Dumbbell,
+  factory: Factory,
+  "gamepad-2": Gamepad2,
+  handshake: Handshake,
+  "heart-pulse": HeartPulse,
+  home: Home,
+  laptop: Laptop,
+  music: Music,
+  palette: Palette,
+  "paw-print": PawPrint,
+  shirt: Shirt,
+  smartphone: Smartphone,
+  sofa: Sofa,
+  sparkles: Sparkles,
+  tractor: Tractor,
+  tv: Tv,
+  utensils: Utensils,
+  wrench: Wrench,
+};
+
+function CategoryChipContent({
+  name,
+  icon,
+}: {
+  name: string;
+  icon?: string | null;
+}) {
+  const Icon = (icon && CATEGORY_ICON_REGISTRY[icon]) || Tags;
+
+  return (
+    <>
+      <span className="market-category-chip-icon" aria-hidden="true">
+        <Icon size={18} strokeWidth={1.85} />
+      </span>
+      <span className="market-category-chip-label">{name}</span>
+    </>
+  );
+}
+
+/** Interactive category row for Browse — image-forward marketplace tiles. */
 export function BrowseCategoryRow({
+  categories,
   active = "All",
   onSelect,
 }: {
-  active?: ListingCategorySlug | "All";
-  onSelect: (slug: ListingCategorySlug | "All") => void;
+  categories: CategoryChipItem[];
+  active?: string | "All";
+  onSelect: (slug: string | "All") => void;
 }) {
   return (
-    <CategoryRow active={active} showAll onSelect={onSelect} variant="market" />
+    <CategoryImageRail
+      categories={categories}
+      active={active}
+      showAll
+      showBrowseAllLink
+      onSelect={onSelect}
+    />
   );
 }
 
@@ -111,7 +304,7 @@ function MarketCategoryChip({
     <button
       type="button"
       onClick={onClick}
-      className={cn("market-category-chip snap-start", active && "is-active")}
+      className={cn("market-category-chip cursor-pointer snap-start", active && "is-active")}
     >
       {children}
     </button>

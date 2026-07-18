@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BrowseListingRow } from "@/components/listings/browse-listing-row";
+import { ListingCard } from "@/components/listings/listing-card";
 import { useSavedListings } from "@/components/listings/saved-listings-provider";
 import { buildAuthHref } from "@/lib/utils/auth-redirect";
 
@@ -9,56 +9,50 @@ export function SavedPageContent() {
   const { items, isReady, isAuthenticated } = useSavedListings();
 
   return (
-    <main className="saved-page pt-3">
-      <h1 className="type-page-title">Saved</h1>
-      <div className="saved-page-scroll">
+    <main className="market-saved pt-3">
+      <header className="market-page-head">
+        <h1 className="market-page-title">Saved</h1>
+        <p className="market-page-sub">Items you want to revisit</p>
+      </header>
+
+      <div className="saved-page-scroll market-saved-body">
         {!isReady ? (
-          <section className="market-feed">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SavedRowSkeleton key={index} />
+          <div className="market-product-grid">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <SavedCardSkeleton key={index} />
             ))}
-          </section>
+          </div>
         ) : !isAuthenticated ? (
-          <div className="flex min-h-full flex-1 items-center justify-center py-6">
-            <div className="touch-card w-full max-w-sm p-5 text-center">
-              <h2 className="text-[16px] font-medium">
-                Sign in to see your saved items.
-              </h2>
-              <p className="mt-1.5 text-[13px] leading-5 text-muted">
-                Save listings while you browse and pick up where you left off.
-              </p>
-              <div className="mt-4 flex flex-col gap-2">
-                <Link
-                  href={buildAuthHref("login", "/saved")}
-                  className="type-btn inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-[13px] font-semibold text-primary-foreground"
-                >
-                  Log in or Sign up
-                </Link>
-                <Link
-                  href="/browse"
-                  className="type-btn inline-flex h-10 items-center justify-center rounded-full border border-border bg-surface px-4 text-[13px] font-semibold"
-                >
-                  Browse listings
-                </Link>
-              </div>
+          <div className="market-empty market-empty--center">
+            <p className="market-empty-title">Sign in to see saved items</p>
+            <p className="market-empty-copy">
+              Bookmark listings while you browse and pick up where you left off.
+            </p>
+            <div className="market-empty-actions">
+              <Link
+                href={buildAuthHref("login", "/saved")}
+                className="market-empty-cta"
+              >
+                Log in or Sign up
+              </Link>
+              <Link href="/browse" className="market-empty-cta market-empty-cta--ghost">
+                Browse listings
+              </Link>
             </div>
           </div>
         ) : items.length > 0 ? (
-          <section className="market-feed">
+          <div className="market-product-grid">
             {items.map(({ listing }) => (
-              <BrowseListingRow key={listing.id} listing={listing} />
+              <ListingCard key={listing.id} listing={listing} />
             ))}
-          </section>
+          </div>
         ) : (
-          <div className="touch-card p-4">
-            <h2 className="text-[16px] font-medium">Nothing saved</h2>
-            <p className="mt-1 text-[13px] leading-5 text-muted">
-              Save items to view later
+          <div className="market-empty">
+            <p className="market-empty-title">Nothing saved yet</p>
+            <p className="market-empty-copy">
+              Tap the bookmark on any listing to keep it here.
             </p>
-            <Link
-              href="/browse"
-              className="type-btn mt-3 inline-flex h-10 items-center rounded-full bg-primary px-4 text-[13px] text-primary-foreground"
-            >
+            <Link href="/browse" className="market-empty-cta">
               Browse listings
             </Link>
           </div>
@@ -68,20 +62,14 @@ export function SavedPageContent() {
   );
 }
 
-function SavedRowSkeleton() {
+function SavedCardSkeleton() {
   return (
-    <div className="market-listing-card">
-      <div className="flex min-w-0 flex-1 gap-3">
-        <div className="market-listing-photo skeleton" />
-        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-          <div className="space-y-2">
-            <div className="h-4 w-20 rounded-full skeleton" />
-            <div className="h-3.5 w-full rounded-full skeleton" />
-            <div className="h-3 w-3/4 rounded-full skeleton" />
-            <div className="h-3 w-1/2 rounded-full skeleton" />
-          </div>
-          <div className="mt-2 h-2.5 w-14 rounded-full skeleton" />
-        </div>
+    <div className="listing-card">
+      <div className="product-media product-media--flush-top listing-card-photo skeleton" />
+      <div className="listing-card-body space-y-2 p-2.5">
+        <div className="h-4 w-20 rounded skeleton" />
+        <div className="h-3.5 w-full rounded skeleton" />
+        <div className="h-3 w-2/3 rounded skeleton" />
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { SEARCH_PLACEHOLDER } from "@/lib/constants/brand";
 
 export function SearchField({
   value,
   onChange,
   onClear,
-  placeholder = "Search sofas, fridges, beds, decor",
+  placeholder = SEARCH_PLACEHOLDER,
 }: {
   value: string;
   onChange: (value: string) => void;

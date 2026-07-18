@@ -1,9 +1,9 @@
 export function formatNaira(value: number) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    maximumFractionDigits: 0,
-  }).format(value);
+  // Deterministic formatting — avoid Intl.NumberFormat hydration mismatches
+  // between Node (SSR) and browser (client) ICU data for en-NG currency.
+  const amount = Number.isFinite(value) ? Math.round(value) : 0;
+  const digits = Math.abs(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return amount < 0 ? `₦-${digits}` : `₦${digits}`;
 }
 
 export function formatViews(views: number) {
@@ -12,6 +12,15 @@ export function formatViews(views: number) {
   }
 
   return `${(views / 1000).toFixed(1)}k views`;
+}
+
+/** Compact view count for cards (no "views" suffix). */
+export function formatViewCount(views: number) {
+  const value = Number.isFinite(views) ? Math.max(0, Math.round(views)) : 0;
+  if (value < 1000) {
+    return String(value);
+  }
+  return `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k`;
 }
 
 export function truncateText(value: string, maxLength = 12) {
@@ -23,8 +32,24 @@ export function truncateText(value: string, maxLength = 12) {
   return `${trimmed.slice(0, maxLength)}...`;
 }
 
-export function formatListingLocation(area: string, city: string, maxLength = 12) {
-  return truncateText(`${area}, ${city}`, maxLength);
+/** Clean marketplace location: "GRA, Onitsha" */
+export function formatListingLocation(area: string, city: string, maxLength = 28) {
+  const parts = [area, city]
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const label = parts.join(", ");
+  if (!maxLength || label.length <= maxLength) {
+    return label;
+  }
+  return truncateText(label, maxLength);
+}
+
+/** Strip placeholder demo tags from listing titles for display. */
+export function sanitizeListingTitle(title: string) {
+  return title
+    .replace(/\s*\(\s*Demo\s+[Ll]isting\s*\)\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export function formatSavedTime(savedAt: string) {
@@ -33,13 +58,21 @@ export function formatSavedTime(savedAt: string) {
   const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
 
   if (diffMinutes < 60) {
-    return `Saved ${diffMinutes}m ago`;
+    return diffMinutes === 1
+      ? "Saved 1 minute ago"
+      : `Saved ${diffMinutes} minutes ago`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `Saved ${diffHours}h ago`;
+    return diffHours === 1
+      ? "Saved 1 hour ago"
+      : `Saved ${diffHours} hours ago`;
   }
 
-  return `Saved ${Math.floor(diffHours / 24)}d ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return diffDays === 1 ? "Saved 1 day ago" : `Saved ${diffDays} days ago`;
 }
+
+export { formatRelativeTime } from "@/lib/utils/relative-time";
+

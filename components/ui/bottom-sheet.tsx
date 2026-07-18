@@ -59,6 +59,7 @@ export function BottomSheet({
       <div
         className={cn(
           "flex max-h-[min(72vh,520px)] w-full flex-col rounded-t-[16px] border border-border bg-surface shadow-xl",
+          "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
           className,
         )}
         onClick={(event) => event.stopPropagation()}
@@ -94,7 +95,7 @@ export function BottomSheet({
             <X size={16} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-1">
           {children}
         </div>
       </div>
@@ -117,11 +118,11 @@ export function BottomSheetOption({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center justify-between gap-3 border-b border-border/60 py-3 text-left text-[0.875rem] font-normal leading-snug transition duration-app last:border-b-0 active:bg-surface-raised",
+        "relative z-10 flex w-full items-center justify-between gap-3 border-b border-border/60 py-3.5 text-left text-[0.875rem] font-normal leading-snug transition duration-app last:border-b-0 active:bg-surface-raised",
         selected ? "text-primary" : "text-foreground",
       )}
     >
-      <span className="min-w-0 truncate">{label}</span>
+      <span className="min-w-0 flex-1 pr-2">{label}</span>
       {selected ? (
         <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
       ) : null}

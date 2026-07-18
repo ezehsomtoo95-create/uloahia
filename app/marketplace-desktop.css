@@ -9,6 +9,7 @@
 
   .marketplace-root {
     display: flex;
+    flex-direction: column;
     height: 100dvh;
     max-height: 100dvh;
     min-height: 0;
@@ -20,11 +21,24 @@
         transparent 68%
       ),
       radial-gradient(
-        ellipse 55% 40% at 88% 0%,
-        color-mix(in srgb, var(--primary) 6%, transparent),
-        transparent 72%
+        ellipse 45% 35% at 92% 4%,
+        color-mix(in srgb, var(--accent) 8%, transparent),
+        transparent 70%
       ),
       var(--background);
+  }
+
+  .marketplace-body {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .marketplace-body--admin {
+    display: block;
+    overflow: hidden;
   }
 
   .marketplace-main {
@@ -33,54 +47,113 @@
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    height: 100dvh;
-    max-height: 100dvh;
     overflow: hidden;
   }
 
-  .marketplace-root:has(.marketplace-desktop-sidebar) .marketplace-main {
-    margin-left: 15.5rem;
-    width: calc(100% - 15.5rem);
+  .marketplace-desktop-sidebar {
+    position: relative;
+    z-index: 30;
+    display: flex;
+    align-self: stretch;
+    width: 15.5rem;
+    flex-shrink: 0;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    border-right: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    background: #faf7f0;
+    backdrop-filter: none;
   }
 
-  .marketplace-desktop-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 50;
-    height: 100dvh;
-    max-height: 100dvh;
-    width: 15.5rem;
-    shrink: 0;
-    flex-direction: column;
-    border-right: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-    background: color-mix(in srgb, var(--surface) 92%, var(--background));
-    backdrop-filter: blur(12px);
+  [data-theme="dark"] .marketplace-desktop-sidebar,
+  .dark .marketplace-desktop-sidebar {
+    background: #121212;
   }
 
   .marketplace-topbar {
-    position: relative;
-    top: auto;
-    z-index: 40;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    height: auto;
     flex-shrink: 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-    background: color-mix(in srgb, var(--background) 88%, transparent);
-    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(110, 231, 183, 0.16);
+    background: #064e3b;
+    backdrop-filter: none;
+  }
+
+  .marketplace-topbar.market-chrome-brand {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, #0a6b4f 35%, #064e3b) 0%,
+        #064e3b 42%,
+        #053f30 100%
+      ) !important;
+  }
+
+  /* Keep deep-link offset identical to mobile */
+  .category-deep-link-target,
+  [id^="category-"] {
+    scroll-margin-top: 100px;
+  }
+
+  .categories-parent-rail {
+    padding-bottom: 2rem;
   }
 
   .marketplace-content-scroll {
+    position: relative;
+    z-index: 1;
     flex: 1;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+    /* Bottom nav is hidden on desktop; drop mobile clearance padding. */
+    padding-bottom: 0;
+    pointer-events: auto;
   }
 
   .marketplace-content-scroll--admin {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .marketplace-content-scroll--auth {
+    display: block;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0;
+  }
+
+  .marketplace-content-scroll--chat {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .app-container--auth {
+    display: block;
+    flex: none;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  .app-container--chat {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+    padding-top: 0.75rem;
+    padding-bottom: 1.25rem;
   }
 
   .marketplace-content-scroll--admin .app-container--admin-desktop {
@@ -97,52 +170,40 @@
     max-height: none;
   }
 
-  .marketplace-desktop-sidebar-brand {
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    padding: 1.5rem 1.25rem 1.25rem;
-  }
-
-  .marketplace-desktop-sidebar-logo {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .marketplace-desktop-sidebar-logo-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    color: var(--text-primary);
-  }
-
-  .marketplace-desktop-sidebar-logo-sub {
-    font-size: 0.6875rem;
-    line-height: 1.35;
-    color: var(--text-secondary);
-  }
-
   .marketplace-desktop-sidebar-nav {
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1rem 0.75rem;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 1.25rem 0;
+    overflow-y: auto;
   }
 
   .marketplace-desktop-sidebar-link {
     display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
     align-items: center;
     gap: 0.75rem;
-    border-radius: 12px;
-    padding: 0.7rem 0.85rem;
-    font-size: 0.8125rem;
+    border-radius: 0;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-secondary);
     transition:
       background var(--duration-app) ease,
-      color var(--duration-app) ease,
-      transform var(--duration-app) ease;
+      color var(--duration-app) ease;
+  }
+
+  .marketplace-desktop-sidebar-link-label {
+    min-width: 0;
+    flex: 1;
   }
 
   .marketplace-desktop-sidebar-link:hover {
@@ -151,12 +212,12 @@
   }
 
   .marketplace-desktop-sidebar-link.is-active {
-    background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
     color: var(--primary);
   }
 
   .marketplace-desktop-sidebar-link.is-emphasized {
-    margin-top: 0.35rem;
+    margin-top: 0.25rem;
     background: var(--primary);
     color: var(--primary-foreground);
     box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 28%, transparent);
@@ -165,31 +226,28 @@
   .marketplace-desktop-sidebar-link.is-emphasized:hover {
     background: color-mix(in srgb, var(--primary) 92%, white);
     color: var(--primary-foreground);
-    transform: translateY(-1px);
   }
 
   .marketplace-desktop-sidebar-link-icon {
     position: relative;
     display: grid;
-    width: 2rem;
-    height: 2rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
     place-items: center;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
+    border-radius: 0;
+    background: transparent;
   }
 
-  .marketplace-desktop-sidebar-link.is-active .marketplace-desktop-sidebar-link-icon {
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
-  }
-
+  .marketplace-desktop-sidebar-link.is-active .marketplace-desktop-sidebar-link-icon,
   .marketplace-desktop-sidebar-link.is-emphasized .marketplace-desktop-sidebar-link-icon {
-    background: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
+    background: transparent;
   }
 
   .marketplace-desktop-sidebar-badge {
     position: absolute;
-    right: -0.2rem;
-    top: -0.2rem;
+    right: -0.55rem;
+    top: -0.55rem;
     display: grid;
     min-width: 1rem;
     place-items: center;
@@ -203,162 +261,322 @@
   }
 
   .marketplace-desktop-sidebar-footer {
-    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    padding: 1rem 1.25rem 1.35rem;
+    width: 100%;
+    flex-shrink: 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    padding: 1rem 1.5rem;
   }
 
-  .marketplace-desktop-sidebar-footer-copy {
-    font-size: 0.6875rem;
-    line-height: 1.45;
+  .marketplace-desktop-sidebar-tagline {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
     color: var(--text-secondary);
+    text-align: left;
+    text-wrap: balance;
+  }
+
+  /* Keep mobile bottom nav from painting under the desktop sidebar. */
+  .marketplace-bottom-nav {
+    display: none !important;
   }
 
   .marketplace-topbar .app-container {
     max-width: none;
     width: 100%;
-    height: 4rem;
+    min-height: 4rem;
+    height: auto;
     padding-inline: 2rem;
   }
 
-  .marketplace-main .app-container--marketplace-desktop {    max-width: 72rem;
+  .marketplace-topbar .market-topbar-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+    padding-block: 0.7rem;
+    width: 100%;
+  }
+
+  .marketplace-topbar .market-topbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+    min-height: 2.75rem;
+  }
+
+  .marketplace-topbar .market-logo {
+    max-width: none;
+    flex-shrink: 0;
+  }
+
+  .marketplace-topbar .market-logo-copy {
+    display: flex;
+  }
+
+  .marketplace-topbar .market-logo-word {
+    font-size: 1.125rem;
+  }
+
+  .marketplace-topbar .market-logo-tagline {
+    display: block;
+    font-size: 0.6875rem;
+  }
+
+  .marketplace-topbar .market-topbar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .marketplace-topbar .market-chrome-btn {
+    height: 1.85rem;
+    min-width: 1.85rem;
+  }
+
+  .marketplace-topbar .market-chrome-btn--selector {
+    height: 1.85rem;
+    padding-inline: 0.55rem;
+  }
+
+  .marketplace-topbar .market-chrome-btn--pill {
+    height: 1.85rem;
+    padding-inline: 0.55rem;
+  }
+
+  .marketplace-topbar .market-chrome-btn--icon svg {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+
+  .marketplace-topbar .market-chrome-btn-text {
+    font-size: 0.75rem;
+  }
+
+  .category-marketplace-hero {
+    margin-inline: 0;
+    min-height: 14rem;
+    border-radius: 1.25rem;
+  }
+
+  .category-marketplace-title {
+    font-size: 2rem;
+  }
+
+  .category-marketplace-body {
+    gap: 1rem;
+    padding-top: 1.15rem;
+  }
+
+  .marketplace-main .app-container--marketplace-desktop {
+    max-width: 72rem;
     width: 100%;
     margin: 0 auto;
     padding-inline: 2rem;
+    padding-top: 1.25rem;
     padding-bottom: 3rem;
   }
 
-  .marketplace-main:not(:has(.marketplace-topbar)) .app-container--marketplace-desktop {
-    padding-top: 1.5rem;
+  .marketplace-content-scroll--home .app-container--marketplace-desktop {
+    padding-top: 0;
   }
 
-  .marketplace-main:has(.marketplace-topbar) .app-container--marketplace-desktop {
-    padding-top: 1.25rem;
+  .marketplace-page--home {
+    padding-top: 0;
   }
 
-  .marketplace-page--home {    padding-top: 0.5rem;
+  .market-home {
+    gap: 0;
   }
 
-  .marketplace-page--home .type-hero {
-    font-size: 2.125rem;
-    letter-spacing: -0.03em;
-    line-height: 1.08;
+  .market-hero {
+    margin-inline: 0;
+    margin-top: 0;
+    min-height: 17.5rem;
+    padding-top: 0;
+    border-radius: 0 0 1.35rem 1.35rem;
   }
 
-  .marketplace-page--home .type-hero-sub {
+  .market-hero-content {
+    max-width: 34rem;
+    padding: 1.75rem 2rem 1.85rem;
+    gap: 0.65rem;
+  }
+
+  .market-hero-title {
+    max-width: none;
+    font-size: 2.35rem;
+  }
+
+  .market-hero-sub {
+    max-width: 28rem;
     font-size: 0.9375rem;
   }
 
-  .marketplace-page--home .max-w-\[18rem\] {
-    max-width: 32rem;
-  }
-
-  .marketplace-page--home .search-field {
-    max-width: 36rem;
-    padding-block: 0.9rem;
+  .market-hero-search {
+    max-width: 28rem;
+    height: 3.25rem;
     font-size: 0.875rem;
-    box-shadow: 0 12px 32px color-mix(in srgb, var(--foreground) 6%, transparent);
   }
 
-  .marketplace-page--home .trust-chip {
-    padding-block: 0.55rem;
+  .market-home-body {
+    gap: 2rem;
+    padding-top: 1.5rem;
   }
 
+  .market-product-grid,
   .marketplace-home-listings {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 1.1rem;
   }
 
-  .marketplace-page--home article.group {
-    box-shadow: 0 14px 36px color-mix(in srgb, var(--foreground) 7%, transparent);
+  .marketplace-page--home .listing-card {
+    box-shadow: 0 1px 2px rgba(20, 20, 22, 0.04);
   }
 
-  .marketplace-page--home article.group:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
-    box-shadow: 0 18px 42px color-mix(in srgb, var(--foreground) 10%, transparent);
+  .marketplace-page--home .listing-card:hover {
+    border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
   }
 
   .market-browse {
+    gap: 1.1rem;
     padding-top: 1.25rem;
     padding-bottom: 2.5rem;
   }
 
-  .market-browse .market-feed {
+  .market-browse-title {
+    font-size: 1.35rem;
+  }
+
+  .market-browse .market-feed,
+  .market-browse .market-product-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 1.1rem;
+  }
+
+  .market-home-body {
+    gap: 1.65rem;
+    padding-top: 1.15rem;
+  }
+
+  .category-cover-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1.15rem 1rem;
+  }
+
+  .category-cover-name {
+    font-size: 0.8125rem;
+  }
+
+  .category-cover-face {
+    border-radius: 1.2rem;
+  }
+
+  .category-tile,
+  .category-tile-media {
+    width: 6.15rem;
+  }
+
+  .category-tile-media {
+    height: 6.15rem;
+    border-radius: 0.9rem;
+    padding: 0.28rem;
+  }
+
+  .category-tile-label {
+    font-size: 0.6875rem;
+  }
+
+  .category-rail--sm .category-tile,
+  .category-rail--sm .category-tile-media {
+    width: 6.15rem;
+  }
+
+  .category-rail--sm .category-tile-media {
+    height: 6.15rem;
+  }
+
+  .category-rail-track {
+    gap: 0.55rem;
   }
 
   .market-browse .market-listing-card {
-    box-shadow: 0 10px 28px color-mix(in srgb, var(--foreground) 6%, transparent);
+    box-shadow: 0 1px 2px rgba(20, 20, 22, 0.04);
   }
 
   .market-browse .market-listing-card:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
   }
 
   .listing-image-gallery {
     gap: 1rem;
+    max-width: none;
+    margin-inline: 0;
   }
 
-  .listing-gallery-main {
-    position: static;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  .listing-gallery-stage {
+    border-radius: 1rem;
   }
 
   .listing-gallery-nav {
-    position: static;
-    width: 2.75rem;
-    height: 2.75rem;
-    flex-shrink: 0;
-    transform: none;
-    border-color: var(--border);
-    background: var(--surface);
-    box-shadow: 0 8px 22px color-mix(in srgb, var(--foreground) 8%, transparent);
+    width: 2.35rem;
+    height: 2.35rem;
+    opacity: 0;
   }
 
-  .listing-gallery-nav:active {
-    transform: scale(0.96);
+  @media (hover: hover) and (pointer: fine) {
+    .listing-gallery-stage:hover .listing-gallery-nav:not(.is-disabled):not(:disabled) {
+      opacity: 1;
+    }
   }
 
-  .listing-gallery-hero {
-    flex: 1;
-    min-width: 0;
+  @media (hover: none), (pointer: coarse) {
+    .listing-gallery-nav {
+      opacity: 0.92;
+    }
   }
 
   .listing-gallery-thumbs {
-    margin-top: 0.25rem;
-    padding-top: 1rem;
-    border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    padding-top: 0.15rem;
   }
 
-  .marketplace-listing-body {
+  .market-pdp-layout.marketplace-listing-body {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     gap: 2rem;
     align-items: start;
   }
 
-  .marketplace-listing-body > section:nth-of-type(1) {
+  .market-pdp-gallery {
     grid-column: 1;
-    grid-row: 1 / span 6;
+    grid-row: 1;
+    margin-inline: 0;
+    display: flex;
+    justify-content: center;
   }
 
-  .marketplace-listing-body > section:nth-of-type(2),
-  .marketplace-listing-body > section:nth-of-type(3),
-  .marketplace-listing-body > section:nth-of-type(4) {
+  .market-pdp-summary {
     grid-column: 2;
+    grid-row: 1;
   }
 
-  .marketplace-listing-body > section:nth-of-type(5):not(:last-of-type) {
-    grid-column: 2;
-  }
-
-  .marketplace-listing-body > section:last-of-type {
+  .market-pdp-related {
     grid-column: 1 / -1;
+    padding-top: 0.5rem;
+  }
+
+  .market-pdp-hero-photo {
+    border-radius: 1rem;
+  }
+
+  .market-pdp-thumbs {
+    padding-inline: 0;
   }
 
   .listing-detail-main {
@@ -366,13 +584,68 @@
     padding-bottom: 2rem;
   }
 
-  .listing-detail-main .grid.grid-cols-2 {
+  .market-pdp .market-product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
   }
 
+  .market-shop,
+  .market-saved,
+  .account-page,
+  .sell-studio {
+    max-width: none;
+  }
+
+  .market-shop .market-product-grid,
+  .market-saved .market-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .marketplace-page {
     max-width: 40rem;
+  }
+
+  .categories-page {
+    display: flex;
+    height: calc(100dvh - 8.25rem);
+    max-width: none;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .categories-explorer-desktop {
+    min-height: 0;
+    flex: 1;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .categories-panel-scroll {
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted) 42%, transparent) transparent;
+  }
+
+  .categories-panel-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .categories-panel-scroll::-webkit-scrollbar-track {
+    margin-block: 0.5rem;
+    background: transparent;
+  }
+
+  .categories-panel-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--muted) 42%, transparent);
+  }
+
+  .categories-panel-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--muted) 62%, transparent);
   }
 
   .marketplace-page--home,
@@ -383,11 +656,10 @@
 }
 
 @media (min-width: 1280px) {
-  .marketplace-home-listings {
+  .marketplace-home-listings,
+  .market-product-grid,
+  .market-browse .market-feed,
+  .market-browse .market-product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .market-browse .market-feed {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

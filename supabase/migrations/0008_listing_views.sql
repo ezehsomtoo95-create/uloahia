@@ -23,6 +23,10 @@ create policy "listing_views_no_direct_access"
   using (false)
   with check (false);
 
+-- DROP first: CREATE OR REPLACE cannot change return type (42P13) if an older
+-- or newer variant already exists (e.g. returns boolean from a later migration).
+DROP FUNCTION IF EXISTS public.record_listing_view(uuid, text, boolean);
+
 create or replace function public.record_listing_view(
   listing_uuid uuid,
   p_visitor_id text,

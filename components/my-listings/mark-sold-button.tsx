@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils/cn";
 type MarkSoldButtonProps = {
   listingId: string;
   isSold: boolean;
+  compact?: boolean;
 };
 
-export function MarkSoldButton({ listingId, isSold }: MarkSoldButtonProps) {
+export function MarkSoldButton({ listingId, isSold, compact = false }: MarkSoldButtonProps) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sold, setSold] = useState(isSold);
@@ -50,7 +51,7 @@ export function MarkSoldButton({ listingId, isSold }: MarkSoldButtonProps) {
           }
         }}
         className={cn(
-          actionButtonClass(sold ? "sold" : "default"),
+          actionButtonClass(sold ? "sold" : "default", compact ? "compact" : "default"),
           (sold || isPending) && "cursor-default opacity-70",
         )}
       >

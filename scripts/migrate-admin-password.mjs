@@ -176,7 +176,7 @@ if (profileError) {
     console.warn(
       "Password set on auth user, but profiles.password_set_at is missing.",
     );
-    console.warn("Apply supabase/migrations/0022_password_auth.sql, then rerun to mark profile.");
+    console.warn("Apply supabase/migrations/0024_password_auth.sql, then rerun to mark profile.");
   } else {
     console.error("Password set but profile update failed:", profileError.message);
     process.exit(1);

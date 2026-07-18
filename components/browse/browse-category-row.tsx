@@ -1,15 +1,21 @@
 "use client";
 
-import { CATEGORIES } from "@/lib/constants/categories";
-import type { ListingCategorySlug } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
+type CategoryChipItem = {
+  slug: string;
+  name: string;
+  icon?: string | null;
+};
+
 export function BrowseCategoryRow({
+  categories,
   active = "All",
   onSelect,
 }: {
-  active?: ListingCategorySlug | "All";
-  onSelect: (slug: ListingCategorySlug | "All") => void;
+  categories: CategoryChipItem[];
+  active?: string | "All";
+  onSelect: (slug: string | "All") => void;
 }) {
   return (
     <div className="market-hscroll">
@@ -20,7 +26,7 @@ export function BrowseCategoryRow({
         >
           All
         </CategoryChip>
-        {CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <CategoryChip
             key={category.slug}
             active={active === category.slug}

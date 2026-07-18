@@ -29,16 +29,16 @@ export function MyListingCard({
       <div className="relative flex gap-2.5">
         <StatusBadge status={listing.status} />
         {listing.imageUrl ? (
-          <div className="my-listing-thumb relative overflow-hidden">
+          <div className="product-media product-media--sm my-listing-thumb">
             <ListingListImage
               src={listing.imageUrl}
               alt={listing.title}
               variant="row"
-              className="size-full object-cover object-center"
+              className="product-media-img"
             />
           </div>
         ) : (
-          <div className="my-listing-thumb flex items-center justify-center text-[10px] text-muted">
+          <div className="product-media product-media--sm my-listing-thumb flex items-center justify-center text-[10px] text-muted">
             No photo
           </div>
         )}

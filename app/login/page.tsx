@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { assertSignupAvailability } from "@/app/actions/auth";
 
-import { BRAND_NAME } from "@/lib/constants/brand";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
@@ -22,9 +22,6 @@ import {
   signupSchema,
 } from "@/lib/validation/auth";
 import { cn } from "@/lib/utils/cn";
-
-const AUTH_VIEWPORT_HEIGHT =
-  "h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))] max-h-[calc(100dvh-56px-72px-env(safe-area-inset-bottom))]";
 
 type Mode = "login" | "signup" | "recover";
 
@@ -52,15 +49,10 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main
-          className={cn(
-            "flex flex-col items-center justify-center overflow-hidden py-1 sm:py-4",
-            AUTH_VIEWPORT_HEIGHT,
-          )}
-        >
-          <section className="touch-card w-full p-3 sm:p-4">
-            <div className="h-7 w-36 skeleton rounded-full" />
-            <div className="mt-3 h-20 w-full skeleton rounded-app" />
+        <main className="auth-screen">
+          <section className="auth-screen__card">
+            <div className="h-5 w-28 skeleton rounded-full" />
+            <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
           </section>
         </main>
       }
@@ -163,6 +155,33 @@ function LoginPageContent() {
       subscription.unsubscribe();
     };
   }, [supabase]);
+
+  async function handleGoogleSignIn() {
+    setMessage("");
+    setAuthError(null);
+    setIsLoading(true);
+
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnPath)}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account",
+        },
+      },
+    });
+
+    if (error) {
+      setIsLoading(false);
+      showAuthError({
+        message: error.message,
+        code: error.code,
+        status: error.status,
+      });
+    }
+  }
 
   async function handleSignup() {
 
@@ -404,190 +423,154 @@ function LoginPageContent() {
     setMessage("Verification email sent again. Check your inbox.");
   }
 
-  const isCompact = mode === "signup" && !showVerificationScreen;
-
   const signupFields = (
-    <>
-      <AuthField compact label="Full name">
+    <div className="auth-screen__fields">
+      <AuthField label="Full name">
         <input
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
-          className="w-full bg-transparent outline-none"
           placeholder="Your name"
+          autoComplete="name"
         />
       </AuthField>
-      <AuthField compact label="Email address">
-        <input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="w-full bg-transparent outline-none"
-          inputMode="email"
-          placeholder="you@example.com"
-        />
-      </AuthField>
-      <AuthField compact label="Phone number">
-        <input
-          value={phoneInput}
-          onChange={(event) => setPhoneInput(event.target.value)}
-          className="w-full bg-transparent outline-none"
-          inputMode="tel"
-          placeholder="08101234567"
-        />
-      </AuthField>
-      <AuthField compact label="Password">
-        <input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="w-full bg-transparent outline-none"
-          type="password"
-          placeholder="Min. 8 characters"
-        />
-      </AuthField>
-      <AuthField compact label="Confirm password">
-        <input
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          className="w-full bg-transparent outline-none"
-          type="password"
-          placeholder="Re-enter password"
-        />
-      </AuthField>
-    </>
-  );
-
-  const loginFields = (
-    <>
       <AuthField label="Email address">
         <input
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full bg-transparent outline-none"
           inputMode="email"
           placeholder="you@example.com"
+          autoComplete="email"
+        />
+      </AuthField>
+      <AuthField label="Phone number">
+        <input
+          value={phoneInput}
+          onChange={(event) => setPhoneInput(event.target.value)}
+          inputMode="tel"
+          placeholder="08101234567"
+          autoComplete="tel"
         />
       </AuthField>
       <AuthField label="Password">
         <input
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full bg-transparent outline-none"
           type="password"
-          placeholder="Your password"
+          placeholder="Min. 8 characters"
+          autoComplete="new-password"
         />
       </AuthField>
-      <div className="-mt-1 flex justify-end">
+      <AuthField label="Confirm password">
+        <input
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          type="password"
+          placeholder="Re-enter password"
+          autoComplete="new-password"
+        />
+      </AuthField>
+    </div>
+  );
+
+  const loginFields = (
+    <div className="auth-screen__fields">
+      <AuthField label="Email address">
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          inputMode="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+      </AuthField>
+      <AuthField label="Password">
+        <input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          type="password"
+          placeholder="Your password"
+          autoComplete="current-password"
+        />
+      </AuthField>
+      <div className="auth-screen__forgot">
         <button
           type="button"
           onClick={() => switchMode("recover")}
-          className="cursor-pointer text-[12px] text-muted transition-colors hover:text-primary"
+          className="auth-screen__forgot-btn"
         >
           Forgot password?
         </button>
       </div>
-    </>
+    </div>
   );
 
   const recoverFields = recoveryReady ? (
-    <>
+    <div className="auth-screen__fields">
       <AuthField label="New password">
         <input
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full bg-transparent outline-none"
           type="password"
           placeholder="Minimum 8 characters"
+          autoComplete="new-password"
         />
       </AuthField>
       <AuthField label="Confirm new password">
         <input
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
-          className="w-full bg-transparent outline-none"
           type="password"
           placeholder="Re-enter password"
+          autoComplete="new-password"
         />
       </AuthField>
-    </>
+    </div>
   ) : (
-    <AuthField label="Email address">
-      <input
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        className="w-full bg-transparent outline-none"
-        inputMode="email"
-        placeholder="you@example.com"
-      />
-    </AuthField>
+    <div className="auth-screen__fields">
+      <AuthField label="Email address">
+        <input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          inputMode="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+      </AuthField>
+    </div>
   );
 
   return (
-    <main
-      className={cn(
-        "flex flex-col items-center justify-center overflow-hidden py-1 sm:py-4",
-        AUTH_VIEWPORT_HEIGHT,
-      )}
-    >
-      <section
-        className={cn(
-          "touch-card flex w-full min-h-0 flex-col",
-          isCompact ? "p-3" : "p-4",
-        )}
-      >
-        <header className="shrink-0">
+    <main className={cn("auth-screen", mode === "signup" && "auth-screen--signup")}>
+      <section className="auth-screen__card">
+        <header className="auth-screen__header">
           <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-          <h1
-            className={cn(
-              "type-page-title",
-              isCompact ? "mt-0.5 text-[1rem]" : "mt-1",
-            )}
-          >
-            {copy.title}
-          </h1>
-          <p
-            className={cn(
-              "type-page-sub",
-              isCompact
-                ? "mt-0.5 line-clamp-2 text-[11px] leading-snug"
-                : "mt-1.5",
-            )}
-          >
-            {copy.helper}
-          </p>
+          <p className="text-[11px] font-medium tracking-wide text-muted">{BRAND_TAGLINE}</p>
+          <h1 className="type-page-title">{copy.title}</h1>
+          <p className="type-page-sub">{copy.helper}</p>
         </header>
 
-        <div
-          className={cn(
-            "mt-3 grid grid-cols-3 gap-1 rounded-full border border-border bg-background p-1",
-            isCompact && "mt-2",
-          )}
-        >
+        <div className="auth-screen__tabs" role="tablist" aria-label="Authentication mode">
           {(["login", "signup", "recover"] as const).map((item) => (
             <button
               key={item}
               type="button"
+              role="tab"
+              aria-selected={mode === item}
               onClick={() => switchMode(item)}
-              className={cn(
-                "type-btn rounded-full px-2 text-muted",
-                isCompact ? "py-1.5 text-[10px]" : "py-2 text-[11px]",
-                mode === item && "bg-primary text-primary-foreground",
-              )}
+              className={cn("auth-screen__tab", mode === item && "is-active")}
             >
               {item === "login" ? "Login" : item === "signup" ? "Signup" : "Recover"}
             </button>
           ))}
         </div>
 
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
-            isCompact ? "mt-2 space-y-2" : "mt-4 space-y-3",
-          )}
-        >
+        <div className="auth-screen__body">
           {showVerificationScreen && mode === "signup" ? (
-            <div className="rounded-app border border-border bg-background p-2.5 text-[12px] leading-5 text-muted sm:p-3">
-              <p className="font-semibold text-foreground">Check your email</p>
-              <p className="mt-1">
-                We sent a verification link to <span className="font-medium">{verificationEmail}</span>.
+            <div className="auth-screen__banner">
+              <p className="auth-screen__banner-title">Check your email</p>
+              <p className="auth-screen__banner-text">
+                We sent a verification link to{" "}
+                <span className="font-medium text-foreground">{verificationEmail}</span>.
                 Verify your email before logging in.
               </p>
             </div>
@@ -600,29 +583,16 @@ function LoginPageContent() {
           )}
 
           {authError ? (
-            <div
-              className={cn(
-                "rounded-app border border-border bg-background",
-                isCompact ? "p-2.5" : "p-3",
-              )}
-            >
+            <div className="auth-screen__banner" role="alert">
               {authError.title ? (
-                <p className="text-[13px] font-semibold">{authError.title}</p>
+                <p className="auth-screen__banner-title">{authError.title}</p>
               ) : null}
-              <p
-                className={
-                  authError.title
-                    ? "mt-1 text-[12px] leading-5 text-muted"
-                    : "text-[12px] leading-5 text-muted"
-                }
-              >
-                {authError.text}
-              </p>
+              <p className="auth-screen__banner-text">{authError.text}</p>
               {authError.showSignupButton ? (
                 <button
                   type="button"
                   onClick={() => switchMode("signup")}
-                  className="type-btn mt-3 h-9 w-full rounded-full bg-primary text-[12px] text-primary-foreground"
+                  className="auth-screen__banner-action"
                 >
                   Go to Signup
                 </button>
@@ -631,7 +601,7 @@ function LoginPageContent() {
                 <button
                   type="button"
                   onClick={() => switchMode("login")}
-                  className="mt-3 h-9 w-full rounded-full bg-primary text-[12px] font-semibold text-primary-foreground"
+                  className="auth-screen__banner-action"
                 >
                   Go to Login
                 </button>
@@ -640,12 +610,7 @@ function LoginPageContent() {
           ) : null}
 
           {message ? (
-            <p
-              className={cn(
-                "rounded-app border border-border bg-background text-[12px] leading-5 text-muted",
-                isCompact ? "p-2.5" : "p-3",
-              )}
-            >
+            <p className="auth-screen__banner" role="status">
               {message}
             </p>
           ) : null}
@@ -675,10 +640,7 @@ function LoginPageContent() {
 
               void handleRecoverRequest();
             }}
-            className={cn(
-              "type-btn w-full rounded-full bg-primary text-primary-foreground disabled:opacity-60",
-              isCompact ? "h-10 text-[13px]" : "h-11 text-[14px]",
-            )}
+            className="auth-screen__btn auth-screen__btn--primary"
           >
             {isLoading
               ? "Please wait..."
@@ -689,11 +651,30 @@ function LoginPageContent() {
                   : copy.button}
           </button>
 
+          {mode === "login" || (mode === "signup" && !showVerificationScreen) ? (
+            <>
+              <div className="auth-screen__divider" aria-hidden="true">
+                <span className="auth-screen__divider-line" />
+                <span className="auth-screen__divider-label">or</span>
+                <span className="auth-screen__divider-line" />
+              </div>
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => void handleGoogleSignIn()}
+                className="auth-screen__btn auth-screen__btn--google"
+              >
+                <GoogleMark />
+                Continue with Google
+              </button>
+            </>
+          ) : null}
+
           {mode === "login" ? (
             <button
               type="button"
               onClick={() => void resendVerificationEmail()}
-              className="w-full text-center text-[12px] font-medium text-primary"
+              className="auth-screen__link-btn"
             >
               Resend verification email
             </button>
@@ -704,34 +685,40 @@ function LoginPageContent() {
   );
 }
 
+function GoogleMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+      />
+    </svg>
+  );
+}
+
 function AuthField({
   label,
   children,
-  compact = false,
 }: {
   label: string;
   children: React.ReactNode;
-  compact?: boolean;
 }) {
   return (
-    <label
-      className={cn(
-        "block rounded-app border border-border bg-background",
-        compact ? "px-2.5 py-1.5" : "px-3 py-2",
-      )}
-    >
-      <span
-        className={cn(
-          "block font-medium text-muted",
-          compact ? "mb-0.5 text-[10px] leading-tight" : "mb-1 text-[11px]",
-        )}
-      >
-        {label}
-      </span>
-      <div className={cn("font-normal", compact ? "text-[13px] leading-snug" : "text-[14px]")}>
-        {children}
-      </div>
+    <label className="auth-screen__field">
+      <span className="auth-screen__field-label">{label}</span>
+      <div className="auth-screen__field-control">{children}</div>
     </label>
-
   );
 }

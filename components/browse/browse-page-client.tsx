@@ -1,14 +1,14 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { BrowseCategoryRow } from "@/components/market/category-row";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BrowseHeader } from "@/components/browse/browse-header";
 import {
   BrowseSortMenu,
   type BrowseSortOption,
 } from "@/components/browse/browse-sort-menu";
-import { BrowseListingRow } from "@/components/listings/browse-listing-row";
+import { ListingCard, ListingCardSkeleton } from "@/components/listings/listing-card";
+import { CategoryDiscoveryStrip } from "@/components/market/category-discovery-strip";
 import {
   BrowseFilters,
   matchesBrowseCondition,
@@ -17,21 +17,35 @@ import {
 } from "@/components/market/browse-filters";
 import { EmptyState } from "@/components/market/empty-state";
 import { SearchField } from "@/components/market/search-field";
+import { ViewToggle, useListingViewMode } from "@/components/ui/view-toggle";
+import type { CategoryDiscoveryItem } from "@/lib/categories/discovery";
+import { categoryOverviewHref } from "@/lib/categories/discovery";
+import { REGION_LABEL, SEARCH_PLACEHOLDER } from "@/lib/constants/brand";
 import {
   getCategoryName,
-  listingMatchesCategory,
   normalizeCategorySlug,
 } from "@/lib/constants/categories";
-import type { EasternState, Listing, ListingCategorySlug } from "@/lib/types";
+import type { Listing, LocationTreeState } from "@/lib/types";
+import { cn } from "@/lib/utils/cn";
 
 type BrowsePageClientProps = {
   initialListings: Listing[];
+  discoveryCategories: CategoryDiscoveryItem[];
+  locationTree: LocationTreeState[];
 };
 
-export function BrowsePageClient({ initialListings }: BrowsePageClientProps) {
+export function BrowsePageClient({
+  initialListings,
+  discoveryCategories,
+  locationTree,
+}: BrowsePageClientProps) {
   return (
     <Suspense fallback={<BrowsePageFallback />}>
-      <BrowsePageContent initialListings={initialListings} />
+      <BrowsePageContent
+        initialListings={initialListings}
+        discoveryCategories={discoveryCategories}
+        locationTree={locationTree}
+      />
     </Suspense>
   );
 }
@@ -41,69 +55,96 @@ function BrowsePageFallback() {
     <main className="market-browse">
       <div className="h-10 w-24 rounded skeleton" />
       <div className="mt-3 h-11 rounded-app skeleton" />
-      <div className="mt-3 flex gap-2">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-11 w-24 rounded-[10px] skeleton" />
-        ))}
-      </div>
       <div className="mt-3 flex gap-2 overflow-hidden">
         {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="h-8 w-20 shrink-0 rounded-full skeleton" />
+          <div key={index} className="h-[4.1rem] w-[4.1rem] shrink-0 rounded-[0.8rem] skeleton" />
         ))}
       </div>
       <div className="mt-4 flex justify-between">
         <div className="h-3 w-16 rounded-full skeleton" />
         <div className="h-3 w-20 rounded-full skeleton" />
       </div>
-      <section className="market-feed mt-3">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <FeedSkeleton key={index} />
+      <section className="market-product-grid mt-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <ListingCardSkeleton key={index} />
         ))}
       </section>
     </main>
   );
 }
 
-function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
+function BrowsePageContent({
+  initialListings,
+  discoveryCategories,
+  locationTree,
+}: BrowsePageClientProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
-  const [state, setState] = useState<EasternState | "All">("All");
+  const [state, setState] = useState<string | "All">("All");
   const [city, setCity] = useState("All");
   const [area, setArea] = useState("All");
-  const [category, setCategory] = useState<ListingCategorySlug | "All">("All");
   const [condition, setCondition] = useState<BrowseFilterCondition>("All");
   const [priceIndex, setPriceIndex] = useState(0);
   const [sort, setSort] = useState<BrowseSortOption>("newest");
+  const [viewMode, setViewMode] = useListingViewMode("grid");
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
 
   useEffect(() => {
-    const param = searchParams.get("category");
-    if (!param) {
+    const param =
+      searchParams.get("expand") ??
+      searchParams.get("cat") ??
+      searchParams.get("category");
+    if (param) {
+      const normalized = normalizeCategorySlug(param) ?? param;
+      router.replace(categoryOverviewHref(normalized));
       return;
     }
 
-    const normalized = normalizeCategorySlug(param);
-    if (normalized) {
-      setCategory(normalized);
+    const q = searchParams.get("q");
+    if (q) {
+      setQuery(q);
     }
-  }, [searchParams]);
+
+    const sortParam = searchParams.get("sort");
+    if (
+      sortParam === "newest" ||
+      sortParam === "popular" ||
+      sortParam === "price-asc" ||
+      sortParam === "price-desc"
+    ) {
+      setSort(sortParam);
+    }
+
+    const viewParam = searchParams.get("view");
+    if (viewParam === "list" || viewParam === "grid") {
+      setViewMode(viewParam);
+    }
+  }, [router, searchParams]);
 
   const filteredListings = useMemo(() => {
     const priceFilter = resolveBrowsePriceBounds(priceIndex);
     const normalizedQuery = query.trim().toLowerCase();
 
     return initialListings.filter((listing) => {
+      const attributeText = listing.attributes
+        ? JSON.stringify(listing.attributes).toLowerCase()
+        : "";
+      const categoryLabel = (
+        listing.categoryName ?? getCategoryName(listing.category)
+      ).toLowerCase();
+
       const matchesQuery =
         !normalizedQuery ||
         listing.title.toLowerCase().includes(normalizedQuery) ||
         listing.area.toLowerCase().includes(normalizedQuery) ||
         listing.city.toLowerCase().includes(normalizedQuery) ||
-        getCategoryName(listing.category).toLowerCase().includes(normalizedQuery);
+        categoryLabel.includes(normalizedQuery) ||
+        attributeText.includes(normalizedQuery);
       const matchesState = state === "All" || listing.state === state;
       const matchesCity = city === "All" || listing.city === city;
       const matchesArea = area === "All" || listing.area === area;
-      const matchesCategory = listingMatchesCategory(listing.category, category);
       const matchesCondition = matchesBrowseCondition(listing.condition, condition);
       const matchesPrice =
         listing.price >= priceFilter.min && listing.price <= priceFilter.max;
@@ -113,12 +154,11 @@ function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
         matchesState &&
         matchesCity &&
         matchesArea &&
-        matchesCategory &&
         matchesCondition &&
         matchesPrice
       );
     });
-  }, [area, category, city, condition, initialListings, priceIndex, query, state]);
+  }, [area, city, condition, initialListings, priceIndex, query, state]);
 
   const sortedListings = useMemo(() => {
     const next = [...filteredListings];
@@ -144,7 +184,7 @@ function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
         ? city
         : state !== "All"
           ? state
-          : "Eastern NG";
+          : REGION_LABEL;
 
   function triggerFilterMotion() {
     setIsFiltering(true);
@@ -158,7 +198,7 @@ function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
         onRegionClick={() => setLocationSheetOpen(true)}
       />
 
-      <div className="mt-3">
+      <div className="market-browse-search">
         <SearchField
           value={query}
           onChange={(value) => {
@@ -169,12 +209,17 @@ function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
             triggerFilterMotion();
             setQuery("");
           }}
-          placeholder="Search items, city, or area"
+          placeholder={SEARCH_PLACEHOLDER}
         />
       </div>
 
-      <div className="mt-3">
+      <div className="market-browse-categories">
+        <CategoryDiscoveryStrip categories={discoveryCategories} />
+      </div>
+
+      <div className="market-browse-filters">
         <BrowseFilters
+          locationTree={locationTree}
           state={state}
           city={city}
           area={area}
@@ -199,60 +244,36 @@ function BrowsePageContent({ initialListings }: BrowsePageClientProps) {
         />
       </div>
 
-      <div className="mt-3">
-        <BrowseCategoryRow
-          active={category}
-          onSelect={(next) => {
-            triggerFilterMotion();
-            setCategory(next);
-          }}
-        />
-      </div>
-
-      <div className="market-results-bar mt-4">
+      <div className="market-results-bar">
         <p className="market-results-count">
           {sortedListings.length} result{sortedListings.length === 1 ? "" : "s"}
         </p>
-        <BrowseSortMenu value={sort} onChange={setSort} />
+        <div className="market-results-actions">
+          <ViewToggle value={viewMode} onToggle={setViewMode} />
+          <BrowseSortMenu value={sort} onChange={setSort} />
+        </div>
       </div>
 
-      <section className="market-feed mt-3">
+      <section
+        className={cn(viewMode === "grid" ? "market-product-grid" : "market-product-list")}
+      >
         {isFiltering
-          ? Array.from({ length: 4 }).map((_, index) => (
-              <FeedSkeleton key={index} />
+          ? Array.from({ length: 6 }).map((_, index) => (
+              <ListingCardSkeleton key={index} variant={viewMode} />
             ))
           : sortedListings.map((listing) => (
-              <BrowseListingRow key={listing.id} listing={listing} />
+              <ListingCard key={listing.id} listing={listing} variant={viewMode} />
             ))}
       </section>
 
       {!isFiltering && sortedListings.length === 0 ? (
-        <div className="mt-4">
+        <div className="market-browse-empty">
           <EmptyState
-            title="No listings found."
-            description="Try another category or widen your filters."
+            title="No listings found"
+            description="Try another search or widen your filters."
           />
         </div>
       ) : null}
     </main>
-  );
-}
-
-function FeedSkeleton() {
-  return (
-    <div className="market-listing-card">
-      <div className="flex min-w-0 flex-1 gap-3">
-        <div className="market-listing-photo skeleton" />
-        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-          <div className="space-y-2">
-            <div className="h-4 w-20 rounded-full skeleton" />
-            <div className="h-3.5 w-full rounded-full skeleton" />
-            <div className="h-3 w-3/4 rounded-full skeleton" />
-            <div className="h-3 w-1/2 rounded-full skeleton" />
-          </div>
-          <div className="mt-2 h-2.5 w-14 rounded-full skeleton" />
-        </div>
-      </div>
-    </div>
   );
 }

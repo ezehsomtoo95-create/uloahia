@@ -3,21 +3,11 @@ import {
   getListingListImageUrl,
   type ListingListImageVariant,
 } from "@/lib/utils/storage";
+import { cn } from "@/lib/utils/cn";
 
-const VARIANT_CONFIG: Record<
-  ListingListImageVariant,
-  { width: number; height: number; sizes: string }
-> = {
-  grid: {
-    width: 400,
-    height: 400,
-    sizes: "(max-width: 640px) 45vw, 200px",
-  },
-  row: {
-    width: 240,
-    height: 240,
-    sizes: "120px",
-  },
+const VARIANT_SIZES: Record<ListingListImageVariant, string> = {
+  grid: "(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 220px",
+  row: "120px",
 };
 
 export function ListingListImage({
@@ -34,7 +24,6 @@ export function ListingListImage({
   priority?: boolean;
 }) {
   const optimizedSrc = getListingListImageUrl(src, variant);
-  const config = VARIANT_CONFIG[variant];
 
   if (!optimizedSrc) {
     return null;
@@ -44,12 +33,11 @@ export function ListingListImage({
     <Image
       src={optimizedSrc}
       alt={alt}
-      width={config.width}
-      height={config.height}
-      sizes={config.sizes}
+      fill
+      sizes={VARIANT_SIZES[variant]}
       priority={priority}
       loading={priority ? undefined : "lazy"}
-      className={className}
+      className={cn("object-cover object-center", className)}
     />
   );
 }

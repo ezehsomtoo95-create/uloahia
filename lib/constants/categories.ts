@@ -1,73 +1,104 @@
-export const CATEGORIES = [
-  { slug: "furniture", name: "Furniture" },
-  { slug: "beds", name: "Beds" },
-  { slug: "sofas", name: "Sofas" },
-  { slug: "tables", name: "Tables" },
-  { slug: "storage", name: "Storage" },
-  { slug: "kitchen", name: "Kitchen" },
-  { slug: "fridges", name: "Fridges" },
-  { slug: "tv", name: "TV" },
-  { slug: "office", name: "Office" },
-  { slug: "decor", name: "Decor" },
-  { slug: "household", name: "Household" },
-] as const;
+/**
+ * Catalog data (categories / locations / attributes) lives in the database.
+ * These helpers only format or enforce policy — they must not hardcode marketplace catalogs.
+ */
 
-export type ListingCategorySlug = (typeof CATEGORIES)[number]["slug"];
+import type { CategoryTreeNode } from "@/lib/types";
 
-export type Category = (typeof CATEGORIES)[number];
-
-export const HOME_CATEGORY_PREVIEW_COUNT = 5;
-
-export const HOME_CATEGORIES = CATEGORIES.slice(0, HOME_CATEGORY_PREVIEW_COUNT);
-
-const LEGACY_CATEGORY_SLUGS: Record<string, ListingCategorySlug> = {
-  chairs: "furniture",
-  "kitchen-appliances": "kitchen",
-  "office-furniture": "office",
-  "household-equipment": "household",
-};
-
-export function normalizeCategorySlug(value: string): ListingCategorySlug | null {
+export function getCategoryName(value: string, catalogNames?: Record<string, string>) {
   const slug = value.trim().toLowerCase();
-  if (CATEGORIES.some((category) => category.slug === slug)) {
-    return slug as ListingCategorySlug;
+  if (catalogNames?.[slug]) {
+    return catalogNames[slug];
   }
 
-  return LEGACY_CATEGORY_SLUGS[slug] ?? null;
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
-export function getCategoryName(value: string): string {
-  const normalized = normalizeCategorySlug(value);
-  if (!normalized) {
-    return value;
-  }
-
-  return CATEGORIES.find((category) => category.slug === normalized)?.name ?? value;
-}
-
-export function isListingCategorySlug(value: string): value is ListingCategorySlug {
-  return normalizeCategorySlug(value) !== null;
+export function normalizeCategorySlug(value: string): string | null {
+  const slug = value.trim().toLowerCase();
+  return slug.length > 0 ? slug : null;
 }
 
 export function listingMatchesCategory(
   listingCategory: string,
-  filter: ListingCategorySlug | "All",
+  filter: string | "All",
 ): boolean {
   if (filter === "All") {
     return true;
   }
 
-  return normalizeCategorySlug(listingCategory) === filter;
+  return normalizeCategorySlug(listingCategory) === normalizeCategorySlug(filter);
 }
 
+export function findCategoryNodeBySlug(
+  nodes: CategoryTreeNode[],
+  slug: string,
+): CategoryTreeNode | null {
+  const needle = slug.trim().toLowerCase();
+  for (const node of nodes) {
+    if (node.slug === needle) {
+      return node;
+    }
+    const child = findCategoryNodeBySlug(node.children, needle);
+    if (child) {
+      return child;
+    }
+  }
+  return null;
+}
+
+function collectDescendantSlugsAndIds(node: CategoryTreeNode): {
+  slugs: Set<string>;
+  ids: Set<string>;
+} {
+  const slugs = new Set<string>();
+  const ids = new Set<string>();
+
+  function walk(current: CategoryTreeNode) {
+    slugs.add(current.slug);
+    ids.add(current.id);
+    for (const child of current.children) {
+      walk(child);
+    }
+  }
+
+  walk(node);
+  return { slugs, ids };
+}
+
+/** Match listing against a category filter, including all descendants in the tree. */
+export function listingMatchesCategoryInTree(
+  listingCategoryId: string | null | undefined,
+  listingCategorySlug: string,
+  filterSlug: string | "All",
+  tree: CategoryTreeNode[],
+): boolean {
+  if (filterSlug === "All") {
+    return true;
+  }
+
+  const filterNode = findCategoryNodeBySlug(tree, filterSlug);
+  if (!filterNode) {
+    return listingMatchesCategory(listingCategorySlug, filterSlug);
+  }
+
+  const { slugs, ids } = collectDescendantSlugsAndIds(filterNode);
+  if (listingCategoryId && ids.has(listingCategoryId)) {
+    return true;
+  }
+
+  const listingSlug = normalizeCategorySlug(listingCategorySlug);
+  return listingSlug ? slugs.has(listingSlug) : false;
+}
+
+/** Truly prohibited marketplace items (not vertical categories). */
 export const DISALLOWED_ITEMS = [
-  "Cars",
-  "Phones",
-  "Land",
-  "Jobs",
-  "Services",
-  "Animals",
   "Weapons",
   "Crypto",
-  "Food",
+  "Stolen goods",
+  "Counterfeit documents",
 ] as const;

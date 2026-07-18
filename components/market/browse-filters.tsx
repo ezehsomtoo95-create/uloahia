@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
-import { EASTERN_NIGERIA_LOCATIONS } from "@/lib/constants/locations";
-import type { EasternState } from "@/lib/types";
+import { useHorizontalWheelScroll } from "@/lib/hooks/use-horizontal-wheel-scroll";
+import type { LocationTreeState } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
 
 type FilterSheet = "location" | "price" | "condition" | null;
@@ -25,13 +25,12 @@ type PricePreset = {
 
 export const BROWSE_PRICE_OPTIONS: PricePreset[] = [
   { label: "Any", min: 0, max: Infinity },
-  { label: "Under ₦50k", min: 0, max: 49999 },
-  { label: "₦50k–₦150k", min: 50000, max: 150000 },
-  { label: "₦150k–₦500k", min: 150001, max: 500000 },
-  { label: "₦500k–₦1M", min: 500001, max: 1000000 },
-  { label: "₦1M–₦3M", min: 1000001, max: 3000000 },
-  { label: "₦3M–₦10M", min: 3000001, max: 10000000 },
-  { label: "Above ₦10M", min: 10000001, max: Infinity },
+  { label: "Under ₦100k", min: 0, max: 100000 },
+  { label: "₦100k – ₦500k", min: 100000, max: 500000 },
+  { label: "₦500k – ₦2M", min: 500000, max: 2000000 },
+  { label: "₦2M – ₦10M", min: 2000000, max: 10000000 },
+  { label: "₦10M – ₦50M", min: 10000000, max: 50000000 },
+  { label: "Above ₦50M", min: 50000000, max: Infinity },
 ];
 
 /** @deprecated Use BROWSE_PRICE_OPTIONS */
@@ -89,15 +88,17 @@ export function matchesBrowseCondition(
 }
 
 type BrowseFiltersProps = {
-  state: EasternState | "All";
+  locationTree: LocationTreeState[];
+  state: string | "All";
   city: string;
   area: string;
   condition: BrowseFilterCondition;
   priceIndex: number;
   locationSheetOpen?: boolean;
   onLocationSheetClose?: () => void;
+  showCondition?: boolean;
   onLocationChange: (value: {
-    state: EasternState | "All";
+    state: string | "All";
     city: string;
     area: string;
   }) => void;
@@ -106,6 +107,7 @@ type BrowseFiltersProps = {
 };
 
 export function BrowseFilters({
+  locationTree,
   state,
   city,
   area,
@@ -113,11 +115,14 @@ export function BrowseFilters({
   priceIndex,
   locationSheetOpen,
   onLocationSheetClose,
+  showCondition = true,
   onLocationChange,
   onConditionChange,
   onPriceChange,
 }: BrowseFiltersProps) {
   const [activeSheet, setActiveSheet] = useState<FilterSheet>(null);
+  const filterScrollRef = useRef<HTMLDivElement>(null);
+  useHorizontalWheelScroll(filterScrollRef);
 
   useEffect(() => {
     if (locationSheetOpen) {
@@ -152,7 +157,7 @@ export function BrowseFilters({
 
   return (
     <>
-      <div className="market-hscroll">
+      <div ref={filterScrollRef} className="market-hscroll">
         <div className="market-hscroll-inner">
           <FilterPill
             label={locationLabel}
@@ -164,17 +169,20 @@ export function BrowseFilters({
             active={priceActive}
             onClick={() => setActiveSheet("price")}
           />
-          <FilterPill
-            label={conditionLabel}
-            active={conditionActive}
-            onClick={() => setActiveSheet("condition")}
-          />
+          {showCondition ? (
+            <FilterPill
+              label={conditionLabel}
+              active={conditionActive}
+              onClick={() => setActiveSheet("condition")}
+            />
+          ) : null}
         </div>
       </div>
 
       <LocationFilterSheet
         open={activeSheet === "location"}
         onClose={closeLocationSheet}
+        locationTree={locationTree}
         state={state}
         city={city}
         area={area}
@@ -202,23 +210,25 @@ export function BrowseFilters({
         ))}
       </BottomSheet>
 
-      <BottomSheet
-        open={activeSheet === "condition"}
-        onClose={closeSheet}
-        title="Condition"
-      >
-        {BROWSE_FILTER_CONDITIONS.map((option) => (
-          <BottomSheetOption
-            key={option.value}
-            label={option.label}
-            selected={condition === option.value}
-            onSelect={() => {
-              onConditionChange(option.value);
-              closeSheet();
-            }}
-          />
-        ))}
-      </BottomSheet>
+      {showCondition ? (
+        <BottomSheet
+          open={activeSheet === "condition"}
+          onClose={closeSheet}
+          title="Condition"
+        >
+          {BROWSE_FILTER_CONDITIONS.map((option) => (
+            <BottomSheetOption
+              key={option.value}
+              label={option.label}
+              selected={condition === option.value}
+              onSelect={() => {
+                onConditionChange(option.value);
+                closeSheet();
+              }}
+            />
+          ))}
+        </BottomSheet>
+      ) : null}
     </>
   );
 }
@@ -239,7 +249,7 @@ function FilterPill({
       className={cn("market-filter-btn snap-start", active && "is-active")}
     >
       <span className="min-w-0 truncate">{label}</span>
-      <ChevronDown size={14} className="shrink-0 opacity-70" aria-hidden />
+      <ChevronDown size={12} strokeWidth={2.2} className="shrink-0 opacity-60" aria-hidden />
     </button>
   );
 }
@@ -247,6 +257,7 @@ function FilterPill({
 function LocationFilterSheet({
   open,
   onClose,
+  locationTree,
   state,
   city,
   area,
@@ -254,17 +265,18 @@ function LocationFilterSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  state: EasternState | "All";
+  locationTree: LocationTreeState[];
+  state: string | "All";
   city: string;
   area: string;
   onApply: (value: {
-    state: EasternState | "All";
+    state: string | "All";
     city: string;
     area: string;
   }) => void;
 }) {
   const [step, setStep] = useState<LocationStep>("state");
-  const [draftState, setDraftState] = useState<EasternState | "All">("All");
+  const [draftState, setDraftState] = useState<string | "All">("All");
   const [draftCity, setDraftCity] = useState("All");
 
   useEffect(() => {
@@ -283,10 +295,9 @@ function LocationFilterSheet({
     }
 
     return (
-      EASTERN_NIGERIA_LOCATIONS.find((entry) => entry.state === draftState)?.cities ??
-      []
+      locationTree.find((entry) => entry.name === draftState)?.cities ?? []
     );
-  }, [draftState]);
+  }, [draftState, locationTree]);
 
   const areas = useMemo(() => {
     if (draftCity === "All") {
@@ -324,13 +335,13 @@ function LocationFilterSheet({
             selected={state === "All" && city === "All" && area === "All"}
             onSelect={() => onApply({ state: "All", city: "All", area: "All" })}
           />
-          {EASTERN_NIGERIA_LOCATIONS.map((entry) => (
+          {locationTree.map((entry) => (
             <BottomSheetOption
-              key={entry.state}
-              label={entry.state}
-              selected={draftState === entry.state}
+              key={entry.id}
+              label={entry.name}
+              selected={draftState === entry.name}
               onSelect={() => {
-                setDraftState(entry.state);
+                setDraftState(entry.name);
                 setDraftCity("All");
                 setStep("city");
               }}
@@ -350,7 +361,7 @@ function LocationFilterSheet({
           />
           {cities.map((cityEntry) => (
             <BottomSheetOption
-              key={cityEntry.name}
+              key={cityEntry.id}
               label={cityEntry.name}
               selected={draftCity === cityEntry.name}
               onSelect={() => {
@@ -373,14 +384,14 @@ function LocationFilterSheet({
           />
           {areas.map((areaOption) => (
             <BottomSheetOption
-              key={areaOption}
-              label={areaOption}
-              selected={area === areaOption}
+              key={areaOption.id}
+              label={areaOption.name}
+              selected={area === areaOption.name}
               onSelect={() =>
                 onApply({
                   state: draftState,
                   city: draftCity,
-                  area: areaOption,
+                  area: areaOption.name,
                 })
               }
             />

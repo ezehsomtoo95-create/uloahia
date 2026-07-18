@@ -291,11 +291,62 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Expected { type, details } or a listings INSERT webhook payload." }, 400);
   }
 
+  const resend = new Resend(resendApiKey);
+
+  if (payload.type === "chat_message_email") {
+    const details =
+      payload.details && typeof payload.details === "object"
+        ? (payload.details as Record<string, unknown>)
+        : {};
+    const toEmail = typeof details.to_email === "string" ? details.to_email.trim() : "";
+    if (!toEmail) {
+      return jsonResponse({ ok: false, error: "Missing to_email for chat_message_email." }, 200);
+    }
+
+    const subject = `[${APP_NAME}] New message on your listing`;
+    const text =
+      "You have received a new message regarding a listing on AhiaUlo. Log in to your dashboard to view and reply.";
+    const html = `<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#faf7f0;font-family:Inter,Arial,sans-serif;color:#1a1a1a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e8e0d4;border-radius:14px;">
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin:0 0 8px;font-size:12px;color:#0f6b4c;font-weight:600;">${APP_NAME}</p>
+                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">New marketplace message</h1>
+                <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">${text}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: `${APP_NAME} <${FROM_EMAIL}>`,
+        to: [toEmail],
+        subject,
+        text,
+        html,
+      });
+      if (error) throw error;
+      return jsonResponse({ ok: true, id: data?.id ?? null, type: payload.type });
+    } catch (error) {
+      console.error("Resend chat email error:", error);
+      return jsonResponse({ ok: false, error: "Failed to send chat email.", type: payload.type }, 200);
+    }
+  }
+
   const typeLabel = getTypeLabel(payload.type);
   const detailsText = formatDetails(payload.details);
   const subject = `[${APP_NAME}] ${typeLabel}`;
 
-  const resend = new Resend(resendApiKey);
   try {
     const { data, error } = await resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
@@ -306,7 +357,6 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      // Resend sometimes returns a structured error alongside `data`.
       throw error;
     }
 
@@ -318,7 +368,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Resend API error:", error);
 
-    // Always return HTTP 200 so the database trigger sees a "successful" HTTP response.
     return jsonResponse(
       {
         ok: false,
