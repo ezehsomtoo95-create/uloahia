@@ -30,4 +30,16 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# PWA / next-pwa build artifacts (regenerated on `next build`)
+/public/sw.js
+/public/sw.js.map
+/public/sw-*.js
+/public/sw-*.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-worker-*.js
+/public/swe-worker-*.js.map
+/public/fallback-*.js
+/public/fallback-*.js.map
+
 .vercel
