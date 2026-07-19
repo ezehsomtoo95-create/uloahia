@@ -1,7 +1,7 @@
 import { Resend } from "npm:resend@4.0.0";
 
-const ADMIN_EMAIL = "ezehsomtoo95@gmail.com";
-const FROM_EMAIL = "info@ahiaulo.ng";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL")?.trim() || "ezehsomtoo95@gmail.com";
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL")?.trim() || "info@ahiaulo.ng";
 const APP_NAME = "AhiaUlo";
 
 const corsHeaders = {
@@ -10,10 +10,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-admin-notify-secret",
 };
 
-type NotifyType = "new_user" | "new_listing" | string;
+type NotifyType = string;
 
 type NotifyPayload = {
   type?: NotifyType;
+  /** Alias for type */
+  event?: NotifyType;
+  /** Recipient email (user emails). Admin types ignore this and use ADMIN_EMAIL. */
+  to?: string;
+  email?: string;
+  recipient?: string;
+  subject?: string;
+  message?: string;
+  content?: string;
   details?: unknown;
 };
 
@@ -79,17 +88,84 @@ function isAuthorized(req: Request): { ok: true } | { ok: false; error: string }
   return { ok: true };
 }
 
-function normalizePayload(body: unknown): { type: NotifyType; details: unknown } | null {
+function canonicalizeType(raw: string): NotifyType {
+  switch (raw) {
+    case "new_signup":
+    case "signup":
+      return "new_user";
+    case "new_message":
+    case "message":
+      return "chat_message_email";
+    default:
+      return raw;
+  }
+}
+
+function pickRecipient(payload: NotifyPayload, details: Record<string, unknown>): string {
+  const candidates = [
+    payload.to,
+    payload.email,
+    payload.recipient,
+    typeof details.to_email === "string" ? details.to_email : "",
+    typeof details.email === "string" ? details.email : "",
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function pickMessage(payload: NotifyPayload, details: Record<string, unknown>): string {
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return payload.message.trim();
+  }
+  if (typeof payload.content === "string" && payload.content.trim()) {
+    return payload.content.trim();
+  }
+  if (typeof details.message === "string" && details.message.trim()) {
+    return details.message.trim();
+  }
+  if (typeof details.content === "string" && details.content.trim()) {
+    return details.content.trim();
+  }
+  if (typeof details.message_preview === "string" && details.message_preview.trim()) {
+    return details.message_preview.trim();
+  }
+  return "";
+}
+
+function normalizePayload(body: unknown): {
+  type: NotifyType;
+  details: Record<string, unknown>;
+  to: string;
+  subject: string;
+  message: string;
+} | null {
   if (!body || typeof body !== "object") {
     return null;
   }
 
   const direct = body as NotifyPayload;
-  if (direct.type) {
-    return {
-      type: direct.type,
-      details: direct.details ?? {},
-    };
+  const rawType = (direct.type || direct.event || "").trim();
+
+  if (rawType) {
+    const details =
+      direct.details && typeof direct.details === "object"
+        ? { ...(direct.details as Record<string, unknown>) }
+        : {};
+    const type = canonicalizeType(rawType);
+    const to = pickRecipient(direct, details);
+    const message = pickMessage(direct, details);
+    const subject =
+      typeof direct.subject === "string" && direct.subject.trim()
+        ? direct.subject.trim()
+        : "";
+
+    return { type, details, to, subject, message };
   }
 
   const webhook = body as SupabaseWebhookPayload;
@@ -108,6 +184,9 @@ function normalizePayload(body: unknown): { type: NotifyType; details: unknown }
         status: record.status,
         created_at: record.created_at,
       },
+      to: "",
+      subject: "",
+      message: "",
     };
   }
 
@@ -146,14 +225,18 @@ function getTypeLabel(type: NotifyType): string {
       return "New user signup";
     case "new_listing":
       return "New listing submitted";
+    case "chat_message_email":
+      return "New marketplace message";
+    case "listing_comment_email":
+      return "New listing comment";
     default:
       return type.replaceAll("_", " ");
   }
 }
 
-function buildEmailHtml(typeLabel: string, detailsText: string) {
-  const escapedType = escapeHtml(typeLabel);
-  const escapedDetails = escapeHtml(detailsText).replaceAll("\n", "<br />");
+function buildEmailHtml(heading: string, bodyText: string, eyebrow = `${APP_NAME} Admin`) {
+  const escapedHeading = escapeHtml(heading);
+  const escapedBody = escapeHtml(bodyText).replaceAll("\n", "<br />");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -163,22 +246,21 @@ function buildEmailHtml(typeLabel: string, detailsText: string) {
         <td align="center">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e4de;border-radius:16px;overflow:hidden;">
             <tr>
-              <td style="padding:20px 24px;background:#181614;color:#ffffff;">
-                <p style="margin:0;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;opacity:0.8;">${APP_NAME} Admin</p>
-                <h1 style="margin:8px 0 0;font-size:20px;font-weight:600;">${escapedType}</h1>
+              <td style="padding:20px 24px;background:#064E3B;color:#ffffff;">
+                <p style="margin:0;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;opacity:0.85;">${escapeHtml(eyebrow)}</p>
+                <h1 style="margin:8px 0 0;font-size:20px;font-weight:600;">${escapedHeading}</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:24px;">
-                <p style="margin:0 0 12px;font-size:13px;color:#666;">A new marketplace event needs your attention.</p>
                 <div style="border:1px solid #ece8e2;border-radius:12px;padding:16px;background:#faf9f7;">
-                  <pre style="margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;color:#222;">${escapedDetails}</pre>
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#333;">${escapedBody}</p>
                 </div>
               </td>
             </tr>
             <tr>
               <td style="padding:16px 24px 20px;border-top:1px solid #ece8e2;font-size:11px;color:#888;">
-                Sent automatically by ${APP_NAME} admin notifications.
+                Sent automatically by ${APP_NAME}.
               </td>
             </tr>
           </table>
@@ -198,29 +280,36 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
+async function sendResendEmail(args: {
+  resend: Resend;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  type: string;
+}) {
+  try {
+    const { data, error } = await args.resend.emails.send({
+      from: `${APP_NAME} <${FROM_EMAIL}>`,
+      to: [args.to],
+      subject: args.subject,
+      text: args.text,
+      html: args.html,
+    });
+    if (error) {
+      throw error;
+    }
+    return jsonResponse({ ok: true, id: data?.id ?? null, type: args.type });
+  } catch (error) {
+    console.error("Resend API error:", error);
+    return jsonResponse(
+      { ok: false, error: "Failed to send email.", type: args.type },
+      200,
+    );
+  }
+}
+
 Deno.serve(async (req) => {
-  const authHeader = req.headers.get("Authorization");
-  const secretHeader = req.headers.get("x-admin-notify-secret");
-  const authHeaderRedacted =
-    authHeader?.startsWith("Bearer ")
-      ? `Bearer ${maskSecret(authHeader.slice("Bearer ".length))}`
-      : authHeader ?? null;
-  console.log("Incoming Authorization Header:", authHeaderRedacted);
-  console.log(
-    "Incoming x-admin-notify-secret:",
-    secretHeader ? maskSecret(secretHeader) : null,
-  );
-
-  // Log request headers early to debug auth failures (do not print full secrets).
-  console.log("admin-notify incoming headers:", {
-    method: req.method,
-    contentType: req.headers.get("content-type"),
-    authorizationPresent: Boolean(authHeader),
-    adminNotifySecretPresent: Boolean(secretHeader),
-    "x-client-info": req.headers.get("x-client-info"),
-    "user-agent": req.headers.get("user-agent"),
-  });
-
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -241,9 +330,8 @@ Deno.serve(async (req) => {
   }
 
   let body: unknown = null;
-  let rawBody = "";
   try {
-    rawBody = await req.text();
+    const rawBody = await req.text();
     try {
       body = rawBody ? JSON.parse(rawBody) : null;
     } catch {
@@ -253,167 +341,90 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Invalid request body." }, 400);
   }
 
-  console.log(
-    "Function invoked with payload:",
-    JSON.stringify(body),
-  );
+  console.log("Function invoked with payload:", JSON.stringify(body));
 
   const payload = normalizePayload(body);
   if (!payload) {
-    return jsonResponse({ error: "Expected { type, details } or a listings INSERT webhook payload." }, 400);
+    return jsonResponse(
+      {
+        error:
+          "Expected { type, to?, message?, details? } — e.g. type: new_signup | new_message | new_listing.",
+      },
+      400,
+    );
   }
 
   const resend = new Resend(resendApiKey);
 
+  // User-facing engagement emails
   if (payload.type === "chat_message_email" || payload.type === "listing_comment_email") {
-    const details =
-      payload.details && typeof payload.details === "object"
-        ? (payload.details as Record<string, unknown>)
-        : {};
-    const toEmail = typeof details.to_email === "string" ? details.to_email.trim() : "";
+    const toEmail = payload.to;
     if (!toEmail) {
-      return jsonResponse({ ok: false, error: `Missing to_email for ${payload.type}.` }, 200);
+      return jsonResponse({ ok: false, error: `Missing recipient email for ${payload.type}.` }, 200);
     }
 
     const isComment = payload.type === "listing_comment_email";
-    const subject = isComment
-      ? `[${APP_NAME}] New comment on your listing`
-      : `[${APP_NAME}] New message on your listing`;
-    const text = isComment
+    const heading = isComment ? "New listing comment" : "New marketplace message";
+    const fallbackText = isComment
       ? "Someone left a comment on your listing on AhiaUlo. Log in to view and reply."
       : "You have received a new message regarding a listing on AhiaUlo. Log in to your dashboard to view and reply.";
-    const heading = isComment ? "New listing comment" : "New marketplace message";
-    const html = `<!DOCTYPE html>
-<html lang="en">
-  <body style="margin:0;padding:0;background:#faf7f0;font-family:Inter,Arial,sans-serif;color:#1a1a1a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e8e0d4;border-radius:14px;">
-            <tr>
-              <td style="padding:24px;">
-                <p style="margin:0 0 8px;font-size:12px;color:#0f6b4c;font-weight:600;">${APP_NAME}</p>
-                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">${heading}</h1>
-                <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">${text}</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+    const text = payload.message || fallbackText;
+    const subject =
+      payload.subject ||
+      (isComment
+        ? `[${APP_NAME}] New comment on your listing`
+        : `[${APP_NAME}] New message on your listing`);
 
-    try {
-      const { data, error } = await resend.emails.send({
-        from: `${APP_NAME} <${FROM_EMAIL}>`,
-        to: [toEmail],
-        subject,
-        text,
-        html,
-      });
-      if (error) throw error;
-      return jsonResponse({ ok: true, id: data?.id ?? null, type: payload.type });
-    } catch (error) {
-      console.error("Resend engagement email error:", error);
-      return jsonResponse({ ok: false, error: "Failed to send engagement email.", type: payload.type }, 200);
-    }
+    return await sendResendEmail({
+      resend,
+      to: toEmail,
+      subject,
+      text,
+      html: buildEmailHtml(heading, text, APP_NAME),
+      type: payload.type,
+    });
   }
 
   if (payload.type === "phone_change_security") {
-    const details =
-      payload.details && typeof payload.details === "object"
-        ? (payload.details as Record<string, unknown>)
-        : {};
-    const toEmail = typeof details.to_email === "string" ? details.to_email.trim() : "";
+    const toEmail = payload.to;
     const newPhone =
-      typeof details.new_phone === "string" && details.new_phone.trim()
-        ? details.new_phone.trim()
+      typeof payload.details.new_phone === "string" && payload.details.new_phone.trim()
+        ? payload.details.new_phone.trim()
         : "";
 
     if (!toEmail) {
       return jsonResponse({ ok: false, error: "Missing to_email for phone_change_security." }, 200);
     }
 
-    const text = "Your phone number has been updated.";
-    const detail =
-      newPhone
-        ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.55;color:#444;">New number: <strong>${escapeHtml(newPhone)}</strong></p>`
-        : "";
-    const html = `<!DOCTYPE html>
-<html lang="en">
-  <body style="margin:0;padding:0;background:#faf7f0;font-family:Inter,Arial,sans-serif;color:#1a1a1a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e8e0d4;border-radius:14px;">
-            <tr>
-              <td style="padding:24px;">
-                <p style="margin:0 0 8px;font-size:12px;color:#0f6b4c;font-weight:600;">${APP_NAME}</p>
-                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">Phone updated</h1>
-                <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">${escapeHtml(text)}</p>
-                ${detail}
-                <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#666;">If this wasn't you, please contact support immediately.</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+    const text = payload.message || "Your phone number has been updated.";
+    const detail = newPhone ? `\n\nNew number: ${newPhone}` : "";
 
-    try {
-      const { data, error } = await resend.emails.send({
-        from: `${APP_NAME} <${FROM_EMAIL}>`,
-        to: [toEmail],
-        subject: `[${APP_NAME}] Your phone number has been updated`,
-        text: newPhone ? `${text}\n\nNew number: ${newPhone}` : text,
-        html,
-      });
-      if (error) throw error;
-      return jsonResponse({ ok: true, id: data?.id ?? null, type: payload.type });
-    } catch (error) {
-      console.error("Resend phone-change security email error:", error);
-      return jsonResponse(
-        { ok: false, error: "Failed to send phone-change security email.", type: payload.type },
-        200,
-      );
-    }
-  }
-
-  const typeLabel = getTypeLabel(payload.type);
-  const detailsText = formatDetails(payload.details);
-  const subject = `[${APP_NAME}] ${typeLabel}`;
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
-      to: [ADMIN_EMAIL],
-      subject,
-      text: `${typeLabel}\n\n${detailsText}`,
-      html: buildEmailHtml(typeLabel, detailsText),
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return jsonResponse({
-      ok: true,
-      id: data?.id ?? null,
+    return await sendResendEmail({
+      resend,
+      to: toEmail,
+      subject: payload.subject || `[${APP_NAME}] Your phone number has been updated`,
+      text: `${text}${detail}`,
+      html: buildEmailHtml(
+        "Phone updated",
+        `${text}${newPhone ? `\n\nNew number: ${newPhone}` : ""}\n\nIf this wasn't you, please contact support immediately.`,
+        APP_NAME,
+      ),
       type: payload.type,
     });
-  } catch (error) {
-    console.error("Resend API error:", error);
-
-    return jsonResponse(
-      {
-        ok: false,
-        error: "Failed to send email.",
-        type: payload.type,
-      },
-      200,
-    );
   }
+
+  // Admin emails (signup, listing, custom)
+  const typeLabel = getTypeLabel(payload.type);
+  const detailsText = payload.message || formatDetails(payload.details);
+  const subject = payload.subject || `[${APP_NAME}] ${typeLabel}`;
+  const toAdmin = payload.to || ADMIN_EMAIL;
+
+  return await sendResendEmail({
+    resend,
+    to: toAdmin,
+    subject,
+    text: `${typeLabel}\n\n${detailsText}`,
+    html: buildEmailHtml(typeLabel, detailsText),
+    type: payload.type,
+  });
 });
