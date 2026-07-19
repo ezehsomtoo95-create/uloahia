@@ -59,9 +59,10 @@ export default async function AdminPage({
   }));
 
   return (
-    <div className={ADMIN_MAIN_CLASSNAME}>
-      <section id="admin-dashboard" className="scroll-mt-4 space-y-3 lg:space-y-6">
-        <AdminDashboardHeader notifications={overview.notifications} />
+    <>
+      <AdminDashboardHeader notifications={overview.notifications} />
+      <div className={ADMIN_MAIN_CLASSNAME}>
+      <section id="admin-dashboard" className="scroll-mt-4 flex flex-col gap-[0.85rem] lg:gap-[1.1rem]">
         <AdminKpiGrid kpis={overview.kpis} />
       </section>
 
@@ -98,6 +99,7 @@ export default async function AdminPage({
       <section id="admin-settings" className="scroll-mt-4">
         <AdminToolsPanel pendingCount={overview.pendingReview} />
       </section>
-    </div>
+      </div>
+    </>
   );
 }

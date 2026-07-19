@@ -1,5 +1,5 @@
 export const ADMIN_MAIN_CLASSNAME =
-  "space-y-3 pt-2 lg:mx-auto lg:max-w-[1400px] lg:space-y-6 lg:pt-0";
+  "flex flex-col gap-[1.15rem] px-[0.85rem] pt-4 lg:mx-auto lg:max-w-[1400px] lg:gap-[1.35rem] lg:px-8 lg:pt-5";
 
 export function AdminSectionHeader({
   eyebrow = "Operations",

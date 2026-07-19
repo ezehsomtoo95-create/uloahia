@@ -47,7 +47,7 @@ export function AdminHealthSection({
       </div>
       {isHealthy ? (
         <div className="rounded-[12px] border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] text-primary">
-          Marketplace is healthy 🎉
+          Marketplace is healthy
         </div>
       ) : null}
       <div className="grid grid-cols-2 gap-2">

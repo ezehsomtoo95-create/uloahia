@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AuthCardLayout } from "@/components/auth/auth-card-layout";
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthError, type AuthErrorDisplay } from "@/lib/utils/auth-errors";
@@ -117,77 +118,75 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <main className="auth-screen">
-      <section className="auth-screen__card">
-        <header className="auth-screen__header">
-          <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-          <h1 className="type-page-title">Set new password</h1>
-          <p className="type-page-sub">Choose a new password for your account.</p>
-        </header>
+    <AuthCardLayout>
+      <header className="auth-screen__header">
+        <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
+        <h1 className="type-page-title">Set new password</h1>
+        <p className="type-page-sub">Choose a new password for your account.</p>
+      </header>
 
-        <div className="auth-screen__body">
-          {isChecking ? (
-            <p className="auth-screen__banner">Verifying your reset link...</p>
-          ) : recoveryReady ? (
-            <div className="auth-screen__fields">
-              <AuthField label="New password">
-                <input
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  type="password"
-                  placeholder="Minimum 8 characters"
-                  autoComplete="new-password"
-                />
-              </AuthField>
-              <AuthField label="Confirm new password">
-                <input
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  type="password"
-                  placeholder="Re-enter password"
-                  autoComplete="new-password"
-                />
-              </AuthField>
-            </div>
-          ) : (
-            <p className="auth-screen__banner">
-              This reset link is invalid or expired. Request a new password reset email from the
-              login page.
-            </p>
-          )}
+      <div className="auth-screen__body">
+        {isChecking ? (
+          <p className="auth-screen__banner">Verifying your reset link...</p>
+        ) : recoveryReady ? (
+          <div className="auth-screen__fields">
+            <AuthField label="New password">
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                placeholder="Minimum 8 characters"
+                autoComplete="new-password"
+              />
+            </AuthField>
+            <AuthField label="Confirm new password">
+              <input
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                type="password"
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+              />
+            </AuthField>
+          </div>
+        ) : (
+          <p className="auth-screen__banner">
+            This reset link is invalid or expired. Request a new password reset email from the
+            login page.
+          </p>
+        )}
 
-          {authError ? (
-            <div className="auth-screen__banner" role="alert">
-              {authError.title ? (
-                <p className="auth-screen__banner-title">{authError.title}</p>
-              ) : null}
-              <p className="auth-screen__banner-text">{authError.text}</p>
-            </div>
-          ) : null}
+        {authError ? (
+          <div className="auth-screen__banner" role="alert">
+            {authError.title ? (
+              <p className="auth-screen__banner-title">{authError.title}</p>
+            ) : null}
+            <p className="auth-screen__banner-text">{authError.text}</p>
+          </div>
+        ) : null}
 
-          {message ? (
-            <p className="auth-screen__banner" role="status">
-              {message}
-            </p>
-          ) : null}
+        {message ? (
+          <p className="auth-screen__banner" role="status">
+            {message}
+          </p>
+        ) : null}
 
-          {recoveryReady ? (
-            <button
-              disabled={isLoading || isChecking}
-              type="button"
-              onClick={() => void handlePasswordReset()}
-              className="auth-screen__btn auth-screen__btn--primary"
-            >
-              {isLoading ? "Please wait..." : "Update password"}
-            </button>
-          ) : null}
+        {recoveryReady ? (
+          <button
+            disabled={isLoading || isChecking}
+            type="button"
+            onClick={() => void handlePasswordReset()}
+            className="auth-screen__btn auth-screen__btn--primary"
+          >
+            {isLoading ? "Please wait..." : "Update password"}
+          </button>
+        ) : null}
 
-          <Link href="/login?mode=recover" className="auth-screen__link-btn">
-            Back to recover access
-          </Link>
-        </div>
-      </section>
-    </main>
+        <Link href="/login?mode=recover" className="auth-screen__link-btn">
+          Back to recover access
+        </Link>
+      </div>
+    </AuthCardLayout>
   );
 }
 

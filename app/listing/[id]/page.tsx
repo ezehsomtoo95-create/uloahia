@@ -215,6 +215,7 @@ export default async function ListingDetailsPage({
               listingId={listing.id}
               comments={comments}
               isAuthenticated={Boolean(user)}
+              currentUserId={user?.id ?? null}
             />
           ) : null}
         </div>

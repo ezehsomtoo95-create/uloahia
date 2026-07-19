@@ -20,6 +20,7 @@ import {
   resetPasswordSchema,
   signupSchema,
 } from "@/lib/validation/auth";
+import { AuthCardLayout } from "@/components/auth/auth-card-layout";
 import { cn } from "@/lib/utils/cn";
 
 type Mode = "login" | "signup" | "recover";
@@ -68,15 +69,11 @@ export function UnifiedAuthScreenRoot({
 }
 
 export function UnifiedAuthFallback({ embedded = false }: { embedded?: boolean }) {
-  const Root = embedded ? "div" : "main";
-
   return (
-    <Root className={cn("auth-screen", embedded && "auth-screen--embedded")}>
-      <section className="auth-screen__card">
-        <div className="h-5 w-28 skeleton rounded-full" />
-        <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
-      </section>
-    </Root>
+    <AuthCardLayout embedded={embedded}>
+      <div className="h-5 w-28 skeleton rounded-full" />
+      <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
+    </AuthCardLayout>
   );
 }
 
@@ -119,7 +116,6 @@ export function UnifiedAuthScreen({
   const [resendTargetEmail, setResendTargetEmail] = useState("");
   const isRedirectingRef = useRef(false);
   const copy = MODE_COPY[mode];
-  const Root = embedded ? "div" : "main";
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
@@ -575,17 +571,10 @@ export function UnifiedAuthScreen({
   );
 
   return (
-    <Root
-      className={cn(
-        "auth-screen",
-        embedded && "auth-screen--embedded",
-        mode === "signup" && "auth-screen--signup",
-      )}
-    >
-      <section className="auth-screen__card">
+    <AuthCardLayout embedded={embedded} signup={mode === "signup"}>
         <header className="auth-screen__header">
           <p className="type-brand-sub text-primary">{BRAND_NAME}</p>
-          <p className="text-[11px] font-medium tracking-wide text-muted">{BRAND_TAGLINE}</p>
+          <p className="auth-screen__tagline">{BRAND_TAGLINE}</p>
           <h1 className="type-page-title">{copy.title}</h1>
           <p className="type-page-sub">{copy.helper}</p>
         </header>
@@ -721,8 +710,7 @@ export function UnifiedAuthScreen({
             </button>
           ) : null}
         </div>
-      </section>
-    </Root>
+    </AuthCardLayout>
   );
 }
 

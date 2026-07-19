@@ -10,6 +10,7 @@ import {
   useId,
 } from "react";
 import { Loader2 } from "lucide-react";
+import { AuthCardLayout } from "@/components/auth/auth-card-layout";
 import { cn } from "@/lib/utils/cn";
 
 export function AuthField({
@@ -153,14 +154,12 @@ export function AuthFormStack({
 
 export function AuthFallbackCard() {
   return (
-    <main className="auth-screen">
-      <section className="auth-screen__card">
-        <div className="h-5 w-28 skeleton rounded-full" />
-        <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
-        <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
-        <div className="mt-2 h-11 w-full skeleton rounded-[12px]" />
-        <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
-      </section>
-    </main>
+    <AuthCardLayout>
+      <div className="h-5 w-28 skeleton rounded-full" />
+      <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
+      <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
+      <div className="mt-2 h-11 w-full skeleton rounded-[12px]" />
+      <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
+    </AuthCardLayout>
   );
 }

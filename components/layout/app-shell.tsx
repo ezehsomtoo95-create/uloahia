@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
               </div>
-              <BottomNav />
+              {!isAdmin ? <BottomNav /> : null}
             </div>
           </ErrorBoundary>
         </EngagementBadgesProvider>

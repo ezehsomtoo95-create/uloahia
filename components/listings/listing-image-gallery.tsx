@@ -1,7 +1,6 @@
 "use client";
 
-import useEmblaCarousel from "embla-carousel-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { ListingDetailImage } from "@/components/listings/listing-detail-image";
 import { cn } from "@/lib/utils/cn";
@@ -24,42 +23,62 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
   const galleryImages = images.filter(Boolean);
   const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    containScroll: "trimSnaps",
-    dragFree: false,
-    loop: false,
-  });
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const visibleImages = galleryImages.filter((url) => !failedUrls.has(url));
   const hasMultipleImages = visibleImages.length > 1;
+  const canScrollPrev = selectedIndex > 0;
+  const canScrollNext = selectedIndex < visibleImages.length - 1;
 
-  const syncCarouselState = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
+  const syncIndexFromScroll = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || visibleImages.length === 0) return;
+
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    let nearest = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    slideRefs.current.forEach((slide, index) => {
+      if (!slide) return;
+      const slideCenter = slide.offsetLeft + slide.clientWidth / 2;
+      const distance = Math.abs(slideCenter - center);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = index;
+      }
+    });
+
+    setSelectedIndex(nearest);
+  }, [visibleImages.length]);
 
   useEffect(() => {
     setFailedUrls(new Set());
     setSelectedIndex(0);
-    emblaApi?.scrollTo(0, true);
-  }, [images.join("|"), emblaApi]);
+    slideRefs.current = [];
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      scroller.scrollTo({ left: 0, behavior: "auto" });
+    }
+  }, [images.join("|")]);
 
   useEffect(() => {
-    if (!emblaApi) return;
-    syncCarouselState();
-    emblaApi.on("select", syncCarouselState);
-    emblaApi.on("reInit", syncCarouselState);
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    syncIndexFromScroll();
+
+    function onScroll() {
+      syncIndexFromScroll();
+    }
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("scrollend", onScroll);
     return () => {
-      emblaApi.off("select", syncCarouselState);
-      emblaApi.off("reInit", syncCarouselState);
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("scrollend", onScroll);
     };
-  }, [emblaApi, syncCarouselState]);
+  }, [syncIndexFromScroll, visibleImages.length]);
 
   function markImageFailed(url: string) {
     setFailedUrls((current) => {
@@ -71,35 +90,53 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
   }
 
   function goToIndex(index: number) {
-    emblaApi?.scrollTo(index);
+    const slide = slideRefs.current[index];
+    if (!slide) return;
+    slide.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setSelectedIndex(index);
+  }
+
+  function scrollPrev() {
+    if (!canScrollPrev) return;
+    goToIndex(selectedIndex - 1);
+  }
+
+  function scrollNext() {
+    if (!canScrollNext) return;
+    goToIndex(selectedIndex + 1);
   }
 
   return (
     <section className="listing-image-gallery market-pdp-photos mx-auto w-full max-w-full">
       <div className="listing-gallery-stage">
-        <div className="listing-gallery-viewport aspect-square w-full overflow-hidden" ref={emblaRef}>
-          <div className="listing-gallery-track flex h-full">
-            {visibleImages.length > 0 ? (
-              visibleImages.map((url, index) => (
-                <div
-                  key={`${url}-${index}`}
-                  className="listing-gallery-slide relative min-w-0 flex-[0_0_100%] overflow-hidden bg-[color-mix(in_srgb,var(--muted)_22%,var(--background))]"
-                >
-                  <ListingDetailImage
-                    src={url}
-                    alt={`${title} photo ${index + 1}`}
-                    variant="hero"
-                    priority={index === 0}
-                    onError={() => markImageFailed(url)}
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="listing-gallery-slide relative min-w-0 flex-[0_0_100%]">
-                <GalleryFallback />
+        <div
+          ref={scrollerRef}
+          className="listing-gallery-viewport listing-gallery-scroller aspect-square w-full"
+          aria-label={`${title} photos`}
+        >
+          {visibleImages.length > 0 ? (
+            visibleImages.map((url, index) => (
+              <div
+                key={`${url}-${index}`}
+                ref={(node) => {
+                  slideRefs.current[index] = node;
+                }}
+                className="listing-gallery-slide relative overflow-hidden bg-[color-mix(in_srgb,var(--muted)_22%,var(--background))]"
+              >
+                <ListingDetailImage
+                  src={url}
+                  alt={`${title} photo ${index + 1}`}
+                  variant="hero"
+                  priority={index === 0}
+                  onError={() => markImageFailed(url)}
+                />
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="listing-gallery-slide relative">
+              <GalleryFallback />
+            </div>
+          )}
         </div>
 
         <div className="listing-gallery-veil pointer-events-none" aria-hidden />
@@ -110,7 +147,7 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
               type="button"
               aria-label="Previous photo"
               disabled={!canScrollPrev}
-              onClick={() => emblaApi?.scrollPrev()}
+              onClick={scrollPrev}
               className={cn(
                 "listing-gallery-nav listing-gallery-nav--prev",
                 !canScrollPrev && "is-disabled",
@@ -122,7 +159,7 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
               type="button"
               aria-label="Next photo"
               disabled={!canScrollNext}
-              onClick={() => emblaApi?.scrollNext()}
+              onClick={scrollNext}
               className={cn(
                 "listing-gallery-nav listing-gallery-nav--next",
                 !canScrollNext && "is-disabled",

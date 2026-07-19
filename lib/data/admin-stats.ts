@@ -1,4 +1,7 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase/service";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 
 export type AdminKpi = {
@@ -32,6 +35,7 @@ export type AdminHealthMetric = {
   label: string;
   value: string;
   hint?: string;
+  tone?: "good" | "warn" | "bad" | "neutral";
 };
 
 export type AdminOverview = {
@@ -55,6 +59,22 @@ export type AdminOverview = {
   pendingReview: number;
 };
 
+/** Local calendar YYYY-MM-DD (avoids UTC shift from toISOString). */
+function localDayKey(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function dayKeyFromTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+  return localDayKey(date);
+}
+
 function startOfDay(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -71,7 +91,7 @@ function last7DayLabels() {
   return Array.from({ length: 7 }, (_, index) => {
     const date = daysAgo(6 - index);
     return {
-      key: date.toISOString().slice(0, 10),
+      key: localDayKey(date),
       label: date.toLocaleDateString("en-NG", { weekday: "short" }),
     };
   });
@@ -84,7 +104,7 @@ function bucketByDay(
   const counts = new Map(labels.map((item) => [item.key, 0]));
 
   for (const row of rows) {
-    const key = row.created_at.slice(0, 10);
+    const key = dayKeyFromTimestamp(row.created_at);
     if (counts.has(key)) {
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
@@ -131,15 +151,28 @@ function formatCompactNumber(value: number) {
   return String(value);
 }
 
+function collectErrors(
+  labeled: Array<{ label: string; error: { message: string } | null }>,
+) {
+  return labeled
+    .filter((item) => item.error)
+    .map((item) => `${item.label}: ${item.error!.message}`);
+}
+
+/**
+ * Admin overview metrics. Uses the service-role client so RLS cannot zero-out
+ * counts for env-email admins. Call only after requireAdmin().
+ */
 export async function getAdminOverview(
-  supabase: SupabaseClient,
+  _sessionClient?: SupabaseClient,
 ): Promise<AdminOverview> {
+  const supabase = supabaseAdmin();
   const now = new Date();
   const todayStart = startOfDay(now).toISOString();
   const sevenDaysAgo = daysAgo(7).toISOString();
   const fourteenDaysAgo = daysAgo(14).toISOString();
   const chartLabels = last7DayLabels();
-  const chartStart = `${chartLabels[0]?.key}T00:00:00.000Z`;
+  const chartWindowStart = daysAgo(6).toISOString();
 
   const [
     profilesResult,
@@ -159,10 +192,12 @@ export async function getAdminOverview(
     recentReportsFeed,
     pendingListingsInbox,
     recentSignupsInbox,
+    analyticsUsersResult,
+    analyticsListingsResult,
   ] = await Promise.all([
-    supabase.from("profiles").select("id, created_at", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("profiles").select("id, created_at").gte("created_at", fourteenDaysAgo),
-    supabase.from("listings").select("id, status, views, price, created_at", { count: "exact", head: true }),
+    supabase.from("listings").select("id", { count: "exact", head: true }),
     supabase.from("listings").select("id, created_at, seller_id").gte("created_at", fourteenDaysAgo),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "approved"),
@@ -177,12 +212,12 @@ export async function getAdminOverview(
     supabase
       .from("profiles")
       .select("id, full_name, created_at")
-      .gte("created_at", chartStart)
+      .gte("created_at", chartWindowStart)
       .order("created_at", { ascending: false }),
     supabase
       .from("listings")
       .select("id, title, created_at, seller:profiles!seller_id(full_name)")
-      .gte("created_at", chartStart)
+      .gte("created_at", chartWindowStart)
       .order("created_at", { ascending: false }),
     supabase
       .from("listings")
@@ -212,7 +247,32 @@ export async function getAdminOverview(
       .select("id, full_name, created_at")
       .order("created_at", { ascending: false })
       .limit(12),
+    supabase
+      .from("analytics_events")
+      .select("created_at")
+      .eq("event_type", "new_user_signup")
+      .gte("created_at", chartWindowStart),
+    supabase
+      .from("analytics_events")
+      .select("created_at")
+      .eq("event_type", "listing_created")
+      .gte("created_at", chartWindowStart),
   ]);
+
+  const queryErrors = collectErrors([
+    { label: "profiles.count", error: profilesResult.error },
+    { label: "profiles.recent", error: recentProfilesResult.error },
+    { label: "listings.count", error: listingsResult.error },
+    { label: "listings.recent", error: recentListingsResult.error },
+    { label: "listings.pending", error: pendingListingsResult.error },
+    { label: "reports.open", error: reportsResult.error },
+    { label: "analytics.new_user", error: analyticsUsersResult.error },
+    { label: "analytics.listing", error: analyticsListingsResult.error },
+  ]);
+
+  if (queryErrors.length > 0) {
+    console.error("[admin-overview] query errors", queryErrors);
+  }
 
   const totalUsers = profilesResult.count ?? 0;
   const totalListings = listingsResult.count ?? 0;
@@ -254,11 +314,15 @@ export async function getAdminOverview(
   const soldRows = soldPricesResult.data ?? [];
   const revenue = soldRows.reduce((sum, row) => sum + Number(row.price ?? 0), 0);
 
-  const { data: viewsSample } = await supabase
+  const { data: viewsSample, error: viewsError } = await supabase
     .from("listings")
     .select("views")
     .eq("status", "approved")
     .limit(500);
+
+  if (viewsError) {
+    console.error("[admin-overview] views sample error", viewsError.message);
+  }
 
   const avgViews =
     viewsSample && viewsSample.length > 0
@@ -269,6 +333,47 @@ export async function getAdminOverview(
       : 0;
 
   const soldToday = soldTodayResult.count ?? 0;
+
+  const useAnalyticsUsers =
+    !analyticsUsersResult.error && Array.isArray(analyticsUsersResult.data);
+  const useAnalyticsListings =
+    !analyticsListingsResult.error && Array.isArray(analyticsListingsResult.data);
+
+  const newUsersChart = bucketByDay(
+    useAnalyticsUsers
+      ? analyticsUsersResult.data!
+      : profilesRecent.filter((row) => row.created_at >= chartWindowStart),
+    chartLabels,
+  );
+  const listingsChart = bucketByDay(
+    useAnalyticsListings
+      ? analyticsListingsResult.data!
+      : listingsRecent.filter((row) => row.created_at >= chartWindowStart),
+    chartLabels,
+  );
+
+  const newUsersTotal = newUsersChart.reduce((sum, point) => sum + point.value, 0);
+  const listingsCreatedTotal = listingsChart.reduce(
+    (sum, point) => sum + point.value,
+    0,
+  );
+
+  console.log("[admin-overview]", {
+    totalUsers,
+    totalListings,
+    pendingReview,
+    chartSource: {
+      newUsers: useAnalyticsUsers ? "analytics_events" : "profiles",
+      listings: useAnalyticsListings ? "analytics_events" : "listings",
+    },
+    last7Days: {
+      newUsersTotal,
+      listingsCreatedTotal,
+      newUsersByDay: newUsersChart.map((p) => p.value),
+      listingsByDay: listingsChart.map((p) => p.value),
+    },
+    errors: queryErrors,
+  });
 
   const kpis: AdminKpi[] = [
     {
@@ -324,17 +429,30 @@ export async function getAdminOverview(
     },
   ];
 
-  const newUsersChart = bucketByDay(profilesRecent, chartLabels);
-  const listingsChart = bucketByDay(listingsRecent, chartLabels);
-
   const health: AdminHealthMetric[] = [
-    { label: "Pending approvals", value: String(pendingReview) },
-    { label: "Listings sold today", value: String(soldToday) },
-    { label: "Avg listing views", value: String(avgViews) },
+    {
+      label: "Pending approvals",
+      value: String(pendingReview),
+      tone: pendingReview === 0 ? "good" : "warn",
+      hint: pendingReview === 0 ? "Queue clear" : "Needs review",
+    },
+    {
+      label: "Listings sold today",
+      value: String(soldToday),
+      tone: soldToday > 0 ? "good" : "neutral",
+      hint: soldToday > 0 ? "Closed deals" : "No closes yet",
+    },
+    {
+      label: "Avg listing views",
+      value: String(avgViews),
+      tone: avgViews >= 10 ? "good" : "neutral",
+      hint: "Approved listings sample",
+    },
     {
       label: "Reported listings",
       value: String(reportedListings),
-      hint: reportsResult.error ? "Limited access" : undefined,
+      tone: reportedListings === 0 ? "good" : "bad",
+      hint: reportsResult.error ? "Limited access" : reportedListings === 0 ? "No open reports" : "Open cases",
     },
   ];
 

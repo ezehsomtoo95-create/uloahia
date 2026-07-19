@@ -37,7 +37,10 @@
   }
 
   .marketplace-body--admin {
-    display: block;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
     overflow: hidden;
   }
 
@@ -119,8 +122,28 @@
   .marketplace-content-scroll--admin {
     display: flex;
     flex-direction: column;
+    height: 100%;
+    max-height: 100%;
     overflow: hidden;
     padding-bottom: 0;
+  }
+
+  .marketplace-content-scroll--admin .app-container--admin-desktop {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .marketplace-content-scroll--admin .admin-desktop-shell {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .marketplace-content-scroll--auth {
@@ -139,35 +162,41 @@
     padding-bottom: 0;
   }
 
-  .app-container--auth {
+  .app-container--auth,
+  .marketplace-main .app-container--marketplace-desktop.app-container--auth {
     display: block;
     flex: none;
     min-height: 0;
+    width: 100%;
+    max-width: 64rem;
+    margin-inline: auto;
+    padding-left: max(2.5rem, env(safe-area-inset-left));
+    padding-right: max(2.5rem, env(safe-area-inset-right));
     padding-bottom: 0;
   }
 
-  .app-container--chat {
+  .app-container--chat,
+  .marketplace-main .app-container--marketplace-desktop.app-container--chat {
     display: flex;
     min-height: 0;
     flex: 1;
     flex-direction: column;
+    width: 100%;
+    max-width: none;
     height: 100%;
+    margin-inline: 0;
     padding-top: 0.75rem;
     padding-bottom: 1.25rem;
   }
 
-  .marketplace-content-scroll--admin .app-container--admin-desktop {
-    display: flex;
-    min-height: 0;
-    flex: 1;
-    flex-direction: column;
+  .marketplace-page--chat {
+    max-width: none;
+    width: 100%;
   }
 
-  .marketplace-content-scroll--admin .admin-desktop-shell {
-    flex: 1;
-    min-height: 0;
-    height: auto;
-    max-height: none;
+  .chat-thread {
+    max-width: none;
+    width: 100%;
   }
 
   .marketplace-desktop-sidebar-nav {
@@ -602,8 +631,13 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .marketplace-page {
+  .marketplace-page:not(.marketplace-page--chat) {
     max-width: 40rem;
+  }
+
+  .marketplace-page--chat {
+    max-width: none;
+    width: 100%;
   }
 
   .categories-page {

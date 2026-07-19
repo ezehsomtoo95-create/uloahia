@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
@@ -7,7 +8,7 @@ import { deleteOwnAccount } from "@/app/profile/actions";
 import { AdminConfirmDialog } from "@/components/admin/admin-confirm-dialog";
 import { cn } from "@/lib/utils/cn";
 
-const SUPPORT_EMAIL_HREF = "mailto:info@ahiaulo.ng";
+import { SUPPORT_MAILTO_HREF } from "@/lib/constants/support";
 
 export function ProfileSupportSettings({
   showAccountActions = true,
@@ -41,13 +42,18 @@ export function ProfileSupportSettings({
         <h2 className="account-support__label">Support & Settings</h2>
 
         <div className="touch-card divide-y divide-border overflow-hidden rounded-xl">
-          <a
-            href={SUPPORT_EMAIL_HREF}
-            className="account-support__row"
-          >
+          <a href={SUPPORT_MAILTO_HREF} className="account-support__row">
             <span>Contact Support</span>
             <ExternalLink size={15} className="shrink-0 text-muted" aria-hidden />
           </a>
+
+          <Link href="/privacy" className="account-support__row">
+            <span>Privacy Policy</span>
+          </Link>
+
+          <Link href="/terms" className="account-support__row">
+            <span>Terms of Service</span>
+          </Link>
 
           {showAccountActions ? (
             <div>

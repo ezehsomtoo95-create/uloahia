@@ -7,10 +7,49 @@ import { ViewToggle, useListingViewMode } from "@/components/ui/view-toggle";
 import { buildAuthHref } from "@/lib/utils/auth-redirect";
 import { cn } from "@/lib/utils/cn";
 
-export function SavedPageContent() {
-  const { items, isReady, isAuthenticated } = useSavedListings();
+export function SavedPageContent({
+  isAuthenticated: initialAuthenticated,
+}: {
+  isAuthenticated: boolean;
+}) {
+  const { items, isReady, isAuthenticated: clientAuthenticated } = useSavedListings();
   const [viewMode, setViewMode] = useListingViewMode("grid");
   const listings = items.map((item) => item.listing);
+
+  // Prefer server auth for first paint; fall back to client once hydrated.
+  const isAuthenticated = isReady ? clientAuthenticated : initialAuthenticated;
+  const showGuestPrompt = !isAuthenticated;
+  const showLoading = isAuthenticated && !isReady;
+  const loginHref = buildAuthHref("login", "/saved");
+
+  if (showGuestPrompt) {
+    return (
+      <main className="market-saved pt-3">
+        <header className="market-page-head">
+          <h1 className="market-page-title">Saved</h1>
+          <p className="market-page-sub">Items you want to revisit</p>
+        </header>
+
+        <section className="market-block">
+          <div className="market-empty market-empty--center rounded-[16px] border border-border bg-surface px-5 py-10">
+            <p className="market-empty-title">Sign in to see your saved items</p>
+            <p className="market-empty-copy">
+              Bookmark listings while you browse, then come back here anytime to pick up
+              where you left off.
+            </p>
+            <div className="market-empty-actions">
+              <Link href={loginHref} className="market-empty-cta">
+                Sign in
+              </Link>
+              <Link href="/browse" className="market-empty-cta market-empty-cta--ghost">
+                Browse listings
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="market-saved pt-3">
@@ -24,16 +63,14 @@ export function SavedPageContent() {
           <div>
             <h2 className="market-block-title">Your saves</h2>
             <p className="market-block-sub">
-              {!isReady
+              {showLoading
                 ? "Loading…"
-                : !isAuthenticated
-                  ? "Sign in to sync bookmarks"
-                  : listings.length === 0
-                    ? "Nothing saved yet"
-                    : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`}
+                : listings.length === 0
+                  ? "Nothing saved yet"
+                  : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`}
             </p>
           </div>
-          {isReady && isAuthenticated && listings.length > 0 ? (
+          {!showLoading && listings.length > 0 ? (
             <div className="market-block-actions">
               <ViewToggle value={viewMode} onToggle={setViewMode} aria-label="Saved layout" />
             </div>
@@ -41,7 +78,7 @@ export function SavedPageContent() {
         </div>
 
         <div className="market-saved-body">
-          {!isReady ? (
+          {showLoading ? (
             <div
               className={cn(
                 viewMode === "grid" ? "market-product-grid" : "market-product-list",
@@ -50,24 +87,6 @@ export function SavedPageContent() {
               {Array.from({ length: 6 }).map((_, index) => (
                 <ListingCardSkeleton key={index} variant={viewMode} />
               ))}
-            </div>
-          ) : !isAuthenticated ? (
-            <div className="market-empty market-empty--center">
-              <p className="market-empty-title">Sign in to see saved items</p>
-              <p className="market-empty-copy">
-                Bookmark listings while you browse and pick up where you left off.
-              </p>
-              <div className="market-empty-actions">
-                <Link
-                  href={buildAuthHref("login", "/saved")}
-                  className="market-empty-cta"
-                >
-                  Log in or Sign up
-                </Link>
-                <Link href="/browse" className="market-empty-cta market-empty-cta--ghost">
-                  Browse listings
-                </Link>
-              </div>
             </div>
           ) : listings.length > 0 ? (
             <div
