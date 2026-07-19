@@ -137,17 +137,20 @@ export function BrowseFilters({
 
   function closeSheet() {
     setActiveSheet(null);
-    onLocationSheetClose?.();
   }
 
   const locationActive = state !== "All" || city !== "All" || area !== "All";
   const priceActive = priceIndex !== 0;
   const conditionActive = condition !== "All";
 
-  const locationValue =
-    area !== "All" ? area : city !== "All" ? city : state !== "All" ? state : null;
-
-  const locationLabel = locationValue ?? "Location";
+  const locationLabel =
+    area !== "All"
+      ? area
+      : city !== "All"
+        ? city
+        : state !== "All"
+          ? state
+          : "Location";
   const priceLabel = getBrowsePriceLabel(priceIndex);
   const conditionLabel =
     condition === "All"
@@ -326,6 +329,7 @@ function LocationFilterSheet({
       open={open}
       onClose={onClose}
       title={title}
+      scrollKey={step}
       onBack={step === "state" ? undefined : handleBack}
     >
       {step === "state" ? (
@@ -366,6 +370,14 @@ function LocationFilterSheet({
               selected={draftCity === cityEntry.name}
               onSelect={() => {
                 setDraftCity(cityEntry.name);
+                if ((cityEntry.areas?.length ?? 0) === 0) {
+                  onApply({
+                    state: draftState,
+                    city: cityEntry.name,
+                    area: "All",
+                  });
+                  return;
+                }
                 setStep("area");
               }}
             />

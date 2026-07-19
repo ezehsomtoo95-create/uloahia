@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isPendingProfilePhone } from "@/lib/types/engagement";
 import { getSafeReturnPath } from "@/lib/utils/auth-redirect";
 
 const AUTH_REQUIRED_PREFIXES = [
@@ -120,6 +121,7 @@ export async function middleware(request: NextRequest) {
   if (isAuthRoute && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("mode", "login");
     loginUrl.searchParams.set("next", pathname);
     return withSessionCookies(response, NextResponse.redirect(loginUrl));
   }
@@ -133,13 +135,17 @@ export async function middleware(request: NextRequest) {
     return withSessionCookies(response, NextResponse.redirect(loginUrl));
   }
 
-  // Google / OAuth users must add a phone before using protected marketplace features.
+  // Google / OAuth users must finish profile (phone) before account / sell / chat.
   const needsProfileGate =
     Boolean(user) &&
     !PROFILE_COMPLETE_EXEMPT.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     ) &&
-    (isAuthRoute || pathname.startsWith("/messages") || pathname.startsWith("/sell"));
+    (isAuthRoute ||
+      pathname === "/profile" ||
+      pathname.startsWith("/my-listings") ||
+      pathname.startsWith("/messages") ||
+      pathname.startsWith("/sell"));
 
   if (needsProfileGate && user) {
     const { data: profile } = await supabase
@@ -148,8 +154,7 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    const phone = profile?.phone ?? "";
-    if (!phone || phone.startsWith("pending:")) {
+    if (isPendingProfilePhone(profile?.phone)) {
       const completeUrl = request.nextUrl.clone();
       completeUrl.pathname = "/profile/complete";
       completeUrl.search = "";

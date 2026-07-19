@@ -55,7 +55,7 @@ export default async function HomePage() {
       <HomeCategoryFeed categories={discoveryCategories} listings={newListings} />
 
       <footer className="market-home-foot">
-        {BRAND_NAME} · Buy, sell, and discover across Nigeria
+        {BRAND_NAME} · {BRAND_TAGLINE}
       </footer>
     </main>
   );

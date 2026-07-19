@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { LOCALES, type LocaleCode } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils/cn";
@@ -11,7 +11,6 @@ export function LanguageSelector({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const activeLabel = locale === "en" ? "English" : "Igbo";
 
   useEffect(() => {
     if (!open) return;
@@ -45,15 +44,15 @@ export function LanguageSelector({ className }: { className?: string }) {
     <div ref={rootRef} className={cn("market-chrome-menu", className)}>
       <button
         type="button"
-        className="market-chrome-btn market-chrome-btn--selector"
+        className="market-chrome-btn market-chrome-btn--selector market-chrome-btn--selector-icon"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={t("nav.language")}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="market-chrome-btn-text">{activeLabel}</span>
-        <ChevronDown size={12} strokeWidth={2.25} className="shrink-0 opacity-70" aria-hidden />
+        <Globe size={11} strokeWidth={2} className="shrink-0" aria-hidden />
+        <ChevronDown size={10} strokeWidth={2.25} className="shrink-0 opacity-70" aria-hidden />
       </button>
 
       {open ? (

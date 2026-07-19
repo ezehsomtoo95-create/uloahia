@@ -37,13 +37,13 @@ export function ProfileSupportSettings({
 
   return (
     <>
-      <section className="space-y-2">
-        <h2 className="px-1 text-[13px] font-medium text-muted">Support & Settings</h2>
+      <section className={cn("account-support", !showAccountActions && "account-support--guest")}>
+        <h2 className="account-support__label">Support & Settings</h2>
 
-        <div className="touch-card divide-y divide-border overflow-hidden rounded-3xl">
+        <div className="touch-card divide-y divide-border overflow-hidden rounded-xl">
           <a
             href={SUPPORT_EMAIL_HREF}
-            className="flex items-center justify-between gap-3 p-4 text-[14px] font-medium"
+            className="account-support__row"
           >
             <span>Contact Support</span>
             <ExternalLink size={15} className="shrink-0 text-muted" aria-hidden />
@@ -55,7 +55,7 @@ export function ProfileSupportSettings({
                 type="button"
                 onClick={() => setPrivacyOpen((open) => !open)}
                 aria-expanded={privacyOpen}
-                className="flex w-full items-center justify-between gap-3 p-4 text-left text-[14px] font-medium"
+                className="account-support__row text-left"
               >
                 <span>Privacy & account</span>
                 <ChevronDown
@@ -69,7 +69,7 @@ export function ProfileSupportSettings({
               </button>
 
               {privacyOpen ? (
-                <div className="space-y-2 border-t border-border bg-background/50 px-4 py-3">
+                <div className="space-y-2 border-t border-border bg-background/50 px-3.5 py-2.5">
                   <p className="text-[12px] leading-5 text-muted">
                     Manage sensitive account actions. Deleting your profile permanently
                     removes your listings and saved data.

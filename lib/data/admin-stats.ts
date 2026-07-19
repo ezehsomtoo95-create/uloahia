@@ -43,6 +43,14 @@ export type AdminOverview = {
   health: AdminHealthMetric[];
   activities: AdminActivityItem[];
   notifications: AdminNotification[];
+  pendingInbox: Array<{
+    id: string;
+    kind: "signup" | "listing";
+    title: string;
+    meta: string;
+    href: string;
+    createdAt: string;
+  }>;
   isHealthy: boolean;
   pendingReview: number;
 };
@@ -149,6 +157,8 @@ export async function getAdminOverview(
     recentApprovedFeed,
     recentSoldFeed,
     recentReportsFeed,
+    pendingListingsInbox,
+    recentSignupsInbox,
   ] = await Promise.all([
     supabase.from("profiles").select("id, created_at", { count: "exact", head: true }),
     supabase.from("profiles").select("id, created_at").gte("created_at", fourteenDaysAgo),
@@ -191,6 +201,17 @@ export async function getAdminOverview(
       .select("id, reason, created_at, listing:listings(title)")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("listings")
+      .select("id, title, status, created_at, seller:profiles!seller_id(full_name)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("profiles")
+      .select("id, full_name, created_at")
+      .order("created_at", { ascending: false })
+      .limit(12),
   ]);
 
   const totalUsers = profilesResult.count ?? 0;
@@ -396,6 +417,27 @@ export async function getAdminOverview(
 
   const isHealthy = pendingReview === 0 && reportedListings === 0;
 
+  const pendingInbox = [
+    ...(pendingListingsInbox.data ?? []).map((row) => ({
+      id: `inbox-listing-${row.id}`,
+      kind: "listing" as const,
+      title: row.title,
+      meta: `${sellerName(row.seller as SellerRef)} · pending review`,
+      href: `/admin#admin-listings`,
+      createdAt: row.created_at,
+    })),
+    ...(recentSignupsInbox.data ?? []).slice(0, 8).map((row) => ({
+      id: `inbox-signup-${row.id}`,
+      kind: "signup" as const,
+      title: row.full_name?.trim() || "New user",
+      meta: "New marketplace signup",
+      href: `/admin/users`,
+      createdAt: row.created_at,
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 16);
+
   return {
     kpis,
     charts: {
@@ -405,6 +447,7 @@ export async function getAdminOverview(
     health,
     activities,
     notifications,
+    pendingInbox,
     isHealthy,
     pendingReview,
   };

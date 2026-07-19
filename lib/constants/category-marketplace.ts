@@ -7,7 +7,7 @@ export const CATEGORY_MARKETPLACE_COPY: Record<
 > = {
   vehicles: {
     eyebrow: "Vehicles marketplace",
-    description: "Cars, buses, motorcycles, and spare parts from sellers across Nigeria.",
+    description: "Cars, buses, motorcycles, and spare parts from sellers near you.",
   },
   property: {
     eyebrow: "Property marketplace",
@@ -88,7 +88,7 @@ export function getCategoryMarketplaceCopy(slug: string, name: string) {
   return {
     eyebrow: entry?.eyebrow ?? `${name} marketplace`,
     description:
-      entry?.description ?? `Browse ${name} listings from sellers across Nigeria.`,
+      entry?.description ?? `Browse ${name} listings from sellers near you.`,
     bannerImage: getCategoryImage(slug),
   };
 }

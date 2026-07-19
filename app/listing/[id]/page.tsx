@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin, Store } from "lucide-react";
-import { ListingCard } from "@/components/listings/listing-card";
 import { ListingCommentsSection } from "@/components/listings/listing-comments-section";
 import { ListingImageGallery } from "@/components/listings/listing-image-gallery";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
+import { RelatedListingsSection } from "@/components/listings/related-listings-section";
 import { ReportListingButton } from "@/components/listings/report-listing-button";
 import { getListingComments } from "@/lib/data/listing-comments";
 import {
@@ -203,22 +203,7 @@ export default async function ListingDetailsPage({
           ) : null}
         </div>
 
-        <section className="market-pdp-related">
-          <div className="market-block-head">
-            <div>
-              <h2 className="market-block-title">Related listings</h2>
-              <p className="market-block-sub">More to explore nearby</p>
-            </div>
-            <Link href="/browse" className="market-block-link">
-              Browse more
-            </Link>
-          </div>
-          <div className="market-product-grid">
-            {relatedListings.map((related) => (
-              <ListingCard key={related.id} listing={related} />
-            ))}
-          </div>
-        </section>
+        <RelatedListingsSection listings={relatedListings} />
       </div>
     </main>
   );

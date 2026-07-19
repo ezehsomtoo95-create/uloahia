@@ -13,6 +13,7 @@ export function ConversationThread({
   listingTitle,
   otherPartyName,
   otherPartyUsername,
+  otherPartyAvatarUrl,
   initialMessages,
   isBlocked,
 }: {
@@ -21,6 +22,7 @@ export function ConversationThread({
   listingTitle: string;
   otherPartyName: string;
   otherPartyUsername: string | null;
+  otherPartyAvatarUrl?: string | null;
   initialMessages: ChatMessage[];
   isBlocked: boolean;
 }) {
@@ -29,6 +31,12 @@ export function ConversationThread({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const messagesRef = useRef<HTMLDivElement>(null);
+
+  const nameParts = otherPartyName.trim().split(/\s+/).filter(Boolean);
+  const initials =
+    nameParts.length >= 2
+      ? `${nameParts[0]![0]}${nameParts[1]![0]}`.toUpperCase()
+      : (nameParts[0]?.[0] ?? "U").toUpperCase();
 
   useEffect(() => {
     void markConversationRead(conversationId);
@@ -83,9 +91,19 @@ export function ConversationThread({
           <span className="mx-1.5 text-border">/</span>
           Conversation
         </p>
-        <h1 className="mt-1 text-[17px] font-semibold tracking-tight text-foreground">
-          {otherPartyName}
-        </h1>
+        <div className="mt-1 flex items-center gap-2.5">
+          <div className="chat-inbox-avatar chat-inbox-avatar--sm" aria-hidden>
+            {otherPartyAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={otherPartyAvatarUrl} alt="" />
+            ) : (
+              <span>{initials}</span>
+            )}
+          </div>
+          <h1 className="text-[17px] font-semibold tracking-tight text-foreground">
+            {otherPartyName}
+          </h1>
+        </div>
         <p className="mt-0.5 text-[12px] text-muted">
           About{" "}
           <Link href={`/listing/${listingId}`} className="text-primary hover:underline">

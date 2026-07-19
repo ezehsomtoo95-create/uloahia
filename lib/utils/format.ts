@@ -52,6 +52,20 @@ export function sanitizeListingTitle(title: string) {
     .trim();
 }
 
+/** Two-letter (or one) initials for seller avatar fallbacks. */
+export function getSellerInitials(name: string | null | undefined) {
+  const parts = (name || "Seller")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0]![0]}${parts[1]![0]}`.toUpperCase();
+  }
+
+  return (parts[0]?.[0] ?? "S").toUpperCase();
+}
+
 export function formatSavedTime(savedAt: string) {
   const savedTime = new Date(savedAt).getTime();
   const diffMs = Date.now() - savedTime;

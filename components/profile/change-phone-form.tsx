@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { beginPhoneChange, finalizePhoneChange } from "@/app/profile/actions";
 import { AuthField } from "@/components/auth/auth-field";
 import {
   AuthFormStack,
@@ -11,7 +12,6 @@ import {
   AuthPhoneHint,
   AuthPrimaryButton,
 } from "@/components/auth/auth-primitives";
-import { syncAuthProfile } from "@/lib/auth/profile-sync";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthError, type AuthErrorDisplay, type AuthErrorInput, type AuthMode } from "@/lib/utils/auth-errors";
 import { formatDisplayPhone, isValidE164Phone, normalizeNigerianPhone } from "@/lib/utils/phone";
@@ -20,8 +20,14 @@ type Step = "phone" | "otp";
 
 export function ChangePhoneForm({
   currentPhone,
+  embedded = false,
+  onSuccess,
+  onCancel,
 }: {
   currentPhone: string;
+  embedded?: boolean;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -67,6 +73,13 @@ export function ChangePhoneForm({
     }
 
     setIsLoading(true);
+    const beginResult = await beginPhoneChange();
+    if (!beginResult.ok) {
+      setIsLoading(false);
+      setMessage(beginResult.error);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ phone: normalizedPhone });
     setIsLoading(false);
 
@@ -80,7 +93,7 @@ export function ChangePhoneForm({
     }
 
     setStep("otp");
-    setMessage(`OTP sent to ${normalizedPhone}.`);
+    setMessage(`OTP sent to ${formatDisplayPhone(normalizedPhone)}.`);
   }
 
   async function verifyPhoneChange() {
@@ -98,9 +111,9 @@ export function ChangePhoneForm({
       token: otp.trim(),
       type: "phone_change",
     });
-    setIsLoading(false);
 
     if (error || !data.user) {
+      setIsLoading(false);
       showAuthError(
         error
           ? {
@@ -113,14 +126,22 @@ export function ChangePhoneForm({
       return;
     }
 
-    await syncAuthProfile(supabase, {
-      userId: data.user.id,
-      phone: normalizedPhone,
-      fullName: data.user.user_metadata.full_name,
-    });
+    const result = await finalizePhoneChange(normalizedPhone);
+    setIsLoading(false);
 
-    router.push("/profile");
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+
+    if (onSuccess) {
+      onSuccess();
+    }
+
     router.refresh();
+    if (!embedded) {
+      router.push("/profile");
+    }
   }
 
   return (
@@ -182,6 +203,10 @@ export function ChangePhoneForm({
           }}
         >
           Change number
+        </AuthGhostButton>
+      ) : embedded && onCancel ? (
+        <AuthGhostButton type="button" onClick={onCancel}>
+          Cancel
         </AuthGhostButton>
       ) : (
         <Link href="/profile" className="auth-btn-ghost auth-btn-ghost--muted block text-center">

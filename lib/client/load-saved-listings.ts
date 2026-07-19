@@ -129,7 +129,7 @@ export async function loadSavedListings(): Promise<SavedListingItem[]> {
     savedRows.map((row) => [row.listing_id, row.created_at]),
   );
 
-  return (listings ?? [])
+  const mapped = (listings ?? [])
     .map((listing) =>
       mapListingRow(listing, savedAtById.get(listing.id) ?? listing.created_at),
     )
@@ -137,4 +137,63 @@ export async function loadSavedListings(): Promise<SavedListingItem[]> {
       (first, second) =>
         new Date(second.savedAt).getTime() - new Date(first.savedAt).getTime(),
     );
+
+  const sellerIds = [
+    ...new Set(
+      mapped
+        .map((item) => item.listing.sellerId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (sellerIds.length === 0) {
+    return mapped;
+  }
+
+  const { data: sellers, error: sellersError } = await supabase.rpc(
+    "get_public_sellers_by_ids",
+    { seller_uuids: sellerIds },
+  );
+
+  if (sellersError || !sellers?.length) {
+    if (sellersError) {
+      console.error("[saved] sellers attach error", formatSupabaseError(sellersError));
+    }
+    return mapped;
+  }
+
+  const sellerMap = new Map(
+    (
+      sellers as Array<{
+        id: string;
+        username: string | null;
+        full_name: string | null;
+        avatar_url: string | null;
+        phone_verified: boolean;
+      }>
+    ).map((row) => [
+      row.id,
+      {
+        sellerName: row.full_name?.trim() || row.username || "Seller",
+        sellerAvatarUrl: row.avatar_url,
+        sellerVerified: Boolean(row.phone_verified),
+      },
+    ]),
+  );
+
+  return mapped.map((item) => {
+    const seller = item.listing.sellerId
+      ? sellerMap.get(item.listing.sellerId)
+      : undefined;
+    if (!seller) {
+      return item;
+    }
+    return {
+      ...item,
+      listing: {
+        ...item.listing,
+        ...seller,
+      },
+    };
+  });
 }

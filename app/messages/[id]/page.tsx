@@ -38,6 +38,7 @@ export default async function ConversationPage({
         listingTitle={conversation.listingTitle}
         otherPartyName={conversation.otherPartyName}
         otherPartyUsername={conversation.otherPartyUsername}
+        otherPartyAvatarUrl={conversation.otherPartyAvatarUrl}
         initialMessages={messages}
         isBlocked={conversation.isBlocked}
       />

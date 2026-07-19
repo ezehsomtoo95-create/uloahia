@@ -43,66 +43,73 @@ export default async function MessagesPage() {
       ) : (
         <div className="chat-inbox" role="list">
           {conversations.map((conversation) => {
-            const initial = (conversation.otherPartyName || "U").slice(0, 1).toUpperCase();
+            const nameParts = (conversation.otherPartyName || "User")
+              .trim()
+              .split(/\s+/)
+              .filter(Boolean);
+            const initials =
+              nameParts.length >= 2
+                ? `${nameParts[0]![0]}${nameParts[1]![0]}`.toUpperCase()
+                : (nameParts[0]?.[0] ?? "U").toUpperCase();
             const unread = conversation.unreadCount > 0;
 
             return (
-              <Link
-                key={conversation.id}
-                href={`/messages/${conversation.id}`}
-                className="chat-inbox-row"
-                role="listitem"
-              >
-                <div className="chat-inbox-avatar" aria-hidden>
-                  {conversation.otherPartyAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={conversation.otherPartyAvatarUrl} alt="" />
-                  ) : (
-                    <span>{initial}</span>
-                  )}
-                </div>
-
-                <div className="chat-inbox-body">
-                  <div className="chat-inbox-top">
-                    <p
-                      className={cn(
-                        "chat-inbox-name",
-                        unread && "chat-inbox-name--unread",
-                      )}
-                    >
-                      {conversation.otherPartyName}
-                    </p>
-                    <time
-                      className="chat-inbox-time"
-                      dateTime={conversation.lastMessageAt}
-                    >
-                      {conversation.lastMessageAtLabel}
-                    </time>
+              <div key={conversation.id} className="chat-inbox-item" role="listitem">
+                <Link
+                  href={`/messages/${conversation.id}`}
+                  className="chat-inbox-row"
+                >
+                  <div className="chat-inbox-avatar" aria-hidden>
+                    {conversation.otherPartyAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={conversation.otherPartyAvatarUrl} alt="" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
                   </div>
 
-                  <div className="chat-inbox-meta">
-                    <span className="chat-inbox-listing" title={conversation.listingTitle}>
-                      {conversation.listingTitle}
-                    </span>
-                  </div>
+                  <div className="chat-inbox-body">
+                    <div className="chat-inbox-top">
+                      <p
+                        className={cn(
+                          "chat-inbox-name",
+                          unread && "chat-inbox-name--unread",
+                        )}
+                      >
+                        {conversation.otherPartyName}
+                      </p>
+                      <time
+                        className="chat-inbox-time"
+                        dateTime={conversation.lastMessageAt}
+                      >
+                        {conversation.lastMessageAtLabel}
+                      </time>
+                    </div>
 
-                  <div className="chat-inbox-preview-row">
-                    <p
-                      className={cn(
-                        "chat-inbox-preview",
-                        unread && "chat-inbox-preview--unread",
-                      )}
-                    >
-                      {conversation.lastMessagePreview}
-                    </p>
-                    {unread ? (
-                      <span className="chat-inbox-badge">
-                        {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                    <div className="chat-inbox-meta">
+                      <span className="chat-inbox-listing" title={conversation.listingTitle}>
+                        {conversation.listingTitle}
                       </span>
-                    ) : null}
+                    </div>
+
+                    <div className="chat-inbox-preview-row">
+                      <p
+                        className={cn(
+                          "chat-inbox-preview",
+                          unread && "chat-inbox-preview--unread",
+                        )}
+                      >
+                        {conversation.lastMessagePreview}
+                      </p>
+                      {unread ? (
+                        <span className="chat-inbox-badge">
+                          {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>

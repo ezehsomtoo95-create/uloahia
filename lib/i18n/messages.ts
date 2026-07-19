@@ -9,7 +9,7 @@ export type MessageKey =
   | "nav.profile"
   | "nav.notifications"
   | "nav.search"
-  | "nav.nigeria"
+  | "nav.location"
   | "nav.language"
   | "nav.themeLight"
   | "nav.themeDark"
@@ -45,14 +45,14 @@ const en: Dictionary = {
   "nav.profile": "Profile",
   "nav.notifications": "Notifications",
   "nav.search": "Search",
-  "nav.nigeria": "Nigeria",
+  "nav.location": "Location",
   "nav.language": "Language",
   "nav.themeLight": "Light mode",
   "nav.themeDark": "Dark mode",
   "home.shopByCategory": "Shop by category",
   "home.shopByCategorySub": "Find what you need fast",
   "home.featured": "Featured Spotlights",
-  "home.featuredSub": "Premium placements across Nigeria",
+  "home.featuredSub": "Premium placements near you",
   "home.explore": "Explore Marketplace Items",
   "home.exploreSub": "Fresh finds from sellers near you",
   "home.seeAll": "See all",
@@ -80,7 +80,7 @@ const ig: Dictionary = {
   "nav.profile": "Profaịlụ",
   "nav.notifications": "Ọkwa",
   "nav.search": "Chọọ",
-  "nav.nigeria": "Naijiria",
+  "nav.location": "Ebe",
   "nav.language": "Asụsụ",
   "nav.themeLight": "Ìhè",
   "nav.themeDark": "Ọchịchịrị",

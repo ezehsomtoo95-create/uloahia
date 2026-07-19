@@ -25,6 +25,7 @@ import { buildSaveListingFormData } from "@/lib/sell/build-save-form-data";
 import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 
 import { createClient } from "@/lib/supabase/client";
+import { buildAuthHref } from "@/lib/utils/auth-redirect";
 import { cn } from "@/lib/utils/cn";
 import { formatNaira } from "@/lib/utils/format";
 import { getAreasForCity, getCitiesForState } from "@/lib/utils/location-tree";
@@ -196,7 +197,7 @@ function SellPageContent({
       setHasAuthCheck(true);
 
       if (!session?.user) {
-        router.replace("/login?next=/sell");
+        router.replace(buildAuthHref("login", "/sell"));
       }
     }
 
@@ -219,7 +220,7 @@ function SellPageContent({
       const user = session?.user;
 
       if (!user) {
-        router.replace("/login?next=/sell");
+        router.replace(buildAuthHref("login", "/sell"));
         return;
       }
 
@@ -411,7 +412,7 @@ function SellPageContent({
       const user = session?.user;
 
       if (!user) {
-        router.replace("/login?next=/sell");
+        router.replace(buildAuthHref("login", "/sell"));
         return;
       }
 

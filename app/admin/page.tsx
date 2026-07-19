@@ -7,6 +7,7 @@ import {
   AdminAnalyticsSection,
   AdminHealthSection,
 } from "@/components/admin/admin-overview-sections";
+import { AdminPendingInbox } from "@/components/admin/admin-pending-inbox";
 import { AdminAllTablesPanel } from "@/components/admin/admin-tables-panel";
 import { AdminToolsPanel } from "@/components/admin/admin-tools-panel";
 import { ADMIN_MAIN_CLASSNAME } from "@/components/admin/admin-section-header";
@@ -74,6 +75,11 @@ export default async function AdminPage({
       <AdminHealthSection
         metrics={overview.health}
         isHealthy={overview.isHealthy}
+      />
+
+      <AdminPendingInbox
+        items={overview.pendingInbox}
+        pendingListingCount={overview.pendingReview}
       />
 
       <AdminActivityFeed activities={overview.activities} />

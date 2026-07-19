@@ -15,7 +15,7 @@ export default async function MyListingsPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?next=/my-listings");
   }
 
   const listings = await getMyListings();

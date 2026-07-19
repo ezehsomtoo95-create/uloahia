@@ -18,6 +18,7 @@ import {
 import { EmptyState } from "@/components/market/empty-state";
 import { SearchField } from "@/components/market/search-field";
 import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
+import { ViewToggle, useListingViewMode } from "@/components/ui/view-toggle";
 import { CATEGORY_PAGE_SIZE } from "@/lib/constants/category-marketplace";
 import {
   getCategoryName,
@@ -65,6 +66,7 @@ export function CategoryMarketplaceClient({
   const [activeAttributeKey, setActiveAttributeKey] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [viewMode, setViewMode] = useListingViewMode("grid");
 
   const activeCategorySlug = subCategory === "All" ? category.slug : subCategory;
 
@@ -335,16 +337,23 @@ export function CategoryMarketplaceClient({
           <p className="market-results-count">
             {sortedListings.length} result{sortedListings.length === 1 ? "" : "s"}
           </p>
-          <BrowseSortMenu value={sort} onChange={setSort} />
+          <div className="market-results-actions">
+            <ViewToggle value={viewMode} onToggle={setViewMode} aria-label="Category layout" />
+            <BrowseSortMenu value={sort} onChange={setSort} />
+          </div>
         </div>
 
-        <section className="market-product-grid">
+        <section
+          className={cn(
+            viewMode === "grid" ? "market-product-grid" : "market-product-list",
+          )}
+        >
           {isFiltering
             ? Array.from({ length: 6 }).map((_, index) => (
-                <ListingCardSkeleton key={index} />
+                <ListingCardSkeleton key={index} variant={viewMode} />
               ))
             : pageItems.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard key={listing.id} listing={listing} variant={viewMode} />
               ))}
         </section>
 

@@ -2,20 +2,45 @@
 
 import Link from "next/link";
 import { memo, useState } from "react";
-import { BadgeCheck, Bookmark, Eye, MapPin, Store } from "lucide-react";
-import { SaveAuthPrompt } from "@/components/auth/save-auth-prompt";
+import { usePathname, useRouter } from "next/navigation";
+import { BadgeCheck, Bookmark, Eye, MapPin } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { ListingListImage } from "@/components/listings/listing-list-image";
 import { useSaveToast } from "@/components/listings/save-toast";
 import { useSavedListings } from "@/components/listings/saved-listings-provider";
 import type { Listing } from "@/lib/types";
+import { buildAuthHref } from "@/lib/utils/auth-redirect";
 import { cn } from "@/lib/utils/cn";
 import {
   formatListingLocation,
   formatNaira,
   formatViewCount,
+  getSellerInitials,
   sanitizeListingTitle,
 } from "@/lib/utils/format";
+
+function SellerAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+}) {
+  if (avatarUrl) {
+    return (
+      <span className="listing-card-seller-avatar" aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarUrl} alt="" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="listing-card-seller-avatar" aria-hidden>
+      <span className="listing-card-seller-initials">{getSellerInitials(name)}</span>
+    </span>
+  );
+}
 
 export const ListingCard = memo(function ListingCard({
   listing,
@@ -31,11 +56,12 @@ export const ListingCard = memo(function ListingCard({
   hideSave?: boolean;
 }) {
   const { t } = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const { isSaved, toggleSave } = useSavedListings();
   const { showSaveToast } = useSaveToast();
   const saved = isSaved(listing.id);
   const [isSaving, setIsSaving] = useState(false);
-  const [authPromptOpen, setAuthPromptOpen] = useState(false);
 
   async function handleSave(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -46,7 +72,7 @@ export const ListingCard = memo(function ListingCard({
     setIsSaving(false);
 
     if ("requiresAuth" in result && result.requiresAuth) {
-      setAuthPromptOpen(true);
+      router.push(buildAuthHref("login", pathname || `/listing/${listing.id}`));
       return;
     }
 
@@ -68,7 +94,6 @@ export const ListingCard = memo(function ListingCard({
   const isList = variant === "list";
 
   return (
-    <>
       <article className={cn("listing-card", isList && "listing-card--list")}>
         <Link
           href={`/listing/${listing.id}`}
@@ -105,21 +130,23 @@ export const ListingCard = memo(function ListingCard({
             ) : null}
           </div>
           <div className="listing-card-body text-neutral-950 dark:text-neutral-50">
-            <p className="type-card-price text-neutral-950 dark:text-neutral-50">
-              {formatNaira(listing.price)}
-            </p>
+            <div className="listing-card-price-block">
+              <p className="type-card-price text-neutral-950 dark:text-neutral-50">
+                {formatNaira(listing.price)}
+              </p>
+              <p
+                className="listing-card-location"
+                title={`${listing.area}, ${listing.city}`}
+              >
+                <MapPin size={10} strokeWidth={1.8} className="shrink-0" aria-hidden />
+                <span className="truncate">
+                  {formatListingLocation(listing.area, listing.city, isList ? 32 : 24)}
+                </span>
+              </p>
+            </div>
             <h3 className="type-card-title line-clamp-2 text-neutral-950 dark:text-neutral-50">
               {displayTitle}
             </h3>
-            <p
-              className="type-card-meta listing-card-location text-neutral-600 dark:text-neutral-400"
-              title={`${listing.area}, ${listing.city}`}
-            >
-              <MapPin size={11} strokeWidth={2} className="shrink-0 opacity-70" />
-              <span className="truncate">
-                {formatListingLocation(listing.area, listing.city, isList ? 32 : 24)}
-              </span>
-            </p>
             <div className="listing-card-footer text-neutral-600 dark:text-neutral-400">
               <span className="listing-card-meta-row inline-flex min-w-0 items-center gap-2">
                 <span className="truncate">{listing.createdAt}</span>
@@ -143,14 +170,7 @@ export const ListingCard = memo(function ListingCard({
               title={sellerLabel}
               onClick={(event) => event.stopPropagation()}
             >
-              <span className="listing-card-seller-avatar" aria-hidden>
-                {listing.sellerAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={listing.sellerAvatarUrl} alt="" />
-                ) : (
-                  <Store size={11} strokeWidth={2} />
-                )}
-              </span>
+              <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
               {listing.sellerVerified ? (
                 <BadgeCheck size={11} strokeWidth={2.2} className="shrink-0 text-primary" />
               ) : null}
@@ -158,9 +178,7 @@ export const ListingCard = memo(function ListingCard({
             </Link>
           ) : (
             <span className="listing-card-seller-link listing-card-seller-link--muted">
-              <span className="listing-card-seller-avatar" aria-hidden>
-                <Store size={11} strokeWidth={2} />
-              </span>
+              <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
               <span className="truncate">{sellerLabel}</span>
             </span>
           )
@@ -179,8 +197,6 @@ export const ListingCard = memo(function ListingCard({
           </button>
         ) : null}
       </article>
-      <SaveAuthPrompt open={authPromptOpen} onClose={() => setAuthPromptOpen(false)} />
-    </>
   );
 });
 
@@ -190,7 +206,10 @@ export function ListingCardSkeleton({ variant = "grid" }: { variant?: "grid" | "
       <div className="listing-card listing-card--list listing-card--skeleton" aria-hidden="true">
         <div className="product-media product-media--sm listing-card-photo skeleton" />
         <div className="listing-card-body space-y-2 p-2.5">
-          <div className="h-3.5 w-16 skeleton rounded" />
+          <div className="space-y-1">
+            <div className="h-3.5 w-16 skeleton rounded" />
+            <div className="h-2.5 w-20 skeleton rounded" />
+          </div>
           <div className="h-3 w-full skeleton rounded" />
           <div className="h-3 w-[75%] skeleton rounded" />
         </div>
@@ -202,7 +221,10 @@ export function ListingCardSkeleton({ variant = "grid" }: { variant?: "grid" | "
     <div className="listing-card listing-card--skeleton" aria-hidden="true">
       <div className="product-media product-media--flush-top listing-card-photo skeleton" />
       <div className="listing-card-body space-y-2 p-2.5">
-        <div className="h-3.5 w-16 skeleton rounded" />
+        <div className="space-y-1">
+          <div className="h-3.5 w-16 skeleton rounded" />
+          <div className="h-2.5 w-20 skeleton rounded" />
+        </div>
         <div className="h-3 w-full skeleton rounded" />
         <div className="h-3 w-[75%] skeleton rounded" />
         <div className="h-3 w-1/2 skeleton rounded" />

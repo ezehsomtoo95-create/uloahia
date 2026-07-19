@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, MapPin, Store } from "lucide-react";
-import { ListingCard } from "@/components/listings/listing-card";
+import { BadgeCheck, MapPin } from "lucide-react";
+import { ListingCatalog } from "@/components/market/listing-catalog";
+import { StorefrontAvatar } from "@/components/store/storefront-avatar";
 import {
   getPublicSellerByUsername,
   getSellerActiveListings,
@@ -51,17 +52,7 @@ export default async function SellerShopPage({
     <main className="market-shop pb-4 pt-3">
       <header className="market-shop-header">
         <div className="market-shop-identity">
-          <div
-            className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-emerald-600 bg-neutral-100 dark:bg-neutral-800"
-            aria-hidden
-          >
-            {seller.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={seller.avatarUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <Store size={28} strokeWidth={1.6} />
-            )}
-          </div>
+          <StorefrontAvatar src={seller.avatarUrl} displayName={displayName || "Seller"} />
           <div className="market-shop-copy">
             <p className="market-shop-eyebrow">Seller shop</p>
             <h1 className="market-shop-name">{displayName}</h1>
@@ -112,36 +103,23 @@ export default async function SellerShopPage({
         </p>
       </header>
 
-      <section className="market-shop-listings">
-        <div className="market-block-head">
-          <div>
-            <h2 className="market-block-title">For sale</h2>
-            <p className="market-block-sub">
-              {listings.length === 0
-                ? "Nothing listed right now"
-                : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`}
-            </p>
-          </div>
-        </div>
-
-        {listings.length === 0 ? (
-          <div className="market-empty">
-            <p className="market-empty-title">No active listings</p>
-            <p className="market-empty-copy">
-              Check back later — this seller may post again soon.
-            </p>
-            <Link href="/browse" className="market-empty-cta">
-              Browse marketplace
-            </Link>
-          </div>
-        ) : (
-          <div className="market-product-grid">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        )}
-      </section>
+      <ListingCatalog
+        className="market-shop-listings"
+        listings={listings}
+        title="Catalog"
+        subtitle={
+          listings.length === 0
+            ? "Nothing listed right now"
+            : `${listings.length} ${listings.length === 1 ? "listing" : "listings"}`
+        }
+        emptyTitle="No active listings"
+        emptyCopy="Check back later — this seller may post again soon."
+        emptyAction={
+          <Link href="/browse" className="market-empty-cta">
+            Browse marketplace
+          </Link>
+        }
+      />
     </main>
   );
 }

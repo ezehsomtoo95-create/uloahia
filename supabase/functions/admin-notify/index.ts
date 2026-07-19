@@ -6,7 +6,8 @@ const APP_NAME = "AhiaUlo";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-admin-notify-secret",
 };
 
 type NotifyType = "new_user" | "new_listing" | string;
@@ -56,56 +57,22 @@ function isAuthorized(req: Request): { ok: true } | { ok: false; error: string }
     };
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    // Supabase Dashboard "Test" button does not include Authorization header.
-    const ua = (req.headers.get("User-Agent") ?? "").toLowerCase();
-    const clientInfo = (req.headers.get("x-client-info") ?? "").toLowerCase();
-    const looksLikeDashboardTest =
-      ua.includes("supabase") || clientInfo.includes("supabase") || clientInfo.includes("dashboard");
-
-    if (looksLikeDashboardTest) {
-      console.error(
-        "admin-notify auth bypass:",
-        "No Authorization header detected; allowing through for Supabase dashboard test.",
-      );
-      return { ok: true };
-    }
-
-    console.error("admin-notify auth error:", "Missing Authorization header.");
+  const headerSecret = req.headers.get("x-admin-notify-secret")?.trim() ?? "";
+  if (!headerSecret) {
+    console.error("admin-notify auth error:", "Missing x-admin-notify-secret header.");
     return {
       ok: false,
-      error: "Missing or invalid Authorization header. Expected: Bearer <ADMIN_NOTIFY_SECRET>.",
+      error: "Unauthorized. Missing x-admin-notify-secret header.",
     };
   }
 
-  if (!authHeader.startsWith("Bearer ")) {
+  if (headerSecret !== notifySecret) {
     console.error(
-      "admin-notify auth error:",
-      "Invalid Authorization scheme; expected 'Bearer <token>'.",
+      `Auth mismatch! Expected: ${maskSecret(notifySecret)}, Got: ${maskSecret(headerSecret)}`,
     );
     return {
       ok: false,
-      error: "Missing or invalid Authorization header. Expected: Bearer <ADMIN_NOTIFY_SECRET>.",
-    };
-  }
-
-  const token = authHeader.slice("Bearer ".length).trim();
-  if (!token) {
-    console.error("admin-notify auth error:", "Bearer token is empty.");
-    return {
-      ok: false,
-      error: "Missing admin notify secret in Authorization header.",
-    };
-  }
-
-  if (token !== notifySecret) {
-    console.error(
-      `Auth mismatch! Expected: ${maskSecret(notifySecret)}, Got: ${maskSecret(token)}`,
-    );
-    return {
-      ok: false,
-      error: "Invalid admin notify secret.",
+      error: "Unauthorized. Invalid x-admin-notify-secret.",
     };
   }
 
@@ -233,18 +200,23 @@ function escapeHtml(value: string) {
 
 Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
+  const secretHeader = req.headers.get("x-admin-notify-secret");
   const authHeaderRedacted =
     authHeader?.startsWith("Bearer ")
       ? `Bearer ${maskSecret(authHeader.slice("Bearer ".length))}`
       : authHeader ?? null;
   console.log("Incoming Authorization Header:", authHeaderRedacted);
+  console.log(
+    "Incoming x-admin-notify-secret:",
+    secretHeader ? maskSecret(secretHeader) : null,
+  );
 
-  // Log request headers early to debug auth failures (do not print full bearer token).
+  // Log request headers early to debug auth failures (do not print full secrets).
   console.log("admin-notify incoming headers:", {
     method: req.method,
     contentType: req.headers.get("content-type"),
     authorizationPresent: Boolean(authHeader),
-    authorizationStartsWithBearer: authHeader?.startsWith("Bearer ") ?? false,
+    adminNotifySecretPresent: Boolean(secretHeader),
     "x-client-info": req.headers.get("x-client-info"),
     "user-agent": req.headers.get("user-agent"),
   });
@@ -293,19 +265,24 @@ Deno.serve(async (req) => {
 
   const resend = new Resend(resendApiKey);
 
-  if (payload.type === "chat_message_email") {
+  if (payload.type === "chat_message_email" || payload.type === "listing_comment_email") {
     const details =
       payload.details && typeof payload.details === "object"
         ? (payload.details as Record<string, unknown>)
         : {};
     const toEmail = typeof details.to_email === "string" ? details.to_email.trim() : "";
     if (!toEmail) {
-      return jsonResponse({ ok: false, error: "Missing to_email for chat_message_email." }, 200);
+      return jsonResponse({ ok: false, error: `Missing to_email for ${payload.type}.` }, 200);
     }
 
-    const subject = `[${APP_NAME}] New message on your listing`;
-    const text =
-      "You have received a new message regarding a listing on AhiaUlo. Log in to your dashboard to view and reply.";
+    const isComment = payload.type === "listing_comment_email";
+    const subject = isComment
+      ? `[${APP_NAME}] New comment on your listing`
+      : `[${APP_NAME}] New message on your listing`;
+    const text = isComment
+      ? "Someone left a comment on your listing on AhiaUlo. Log in to view and reply."
+      : "You have received a new message regarding a listing on AhiaUlo. Log in to your dashboard to view and reply.";
+    const heading = isComment ? "New listing comment" : "New marketplace message";
     const html = `<!DOCTYPE html>
 <html lang="en">
   <body style="margin:0;padding:0;background:#faf7f0;font-family:Inter,Arial,sans-serif;color:#1a1a1a;">
@@ -316,7 +293,7 @@ Deno.serve(async (req) => {
             <tr>
               <td style="padding:24px;">
                 <p style="margin:0 0 8px;font-size:12px;color:#0f6b4c;font-weight:600;">${APP_NAME}</p>
-                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">New marketplace message</h1>
+                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">${heading}</h1>
                 <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">${text}</p>
               </td>
             </tr>
@@ -338,8 +315,70 @@ Deno.serve(async (req) => {
       if (error) throw error;
       return jsonResponse({ ok: true, id: data?.id ?? null, type: payload.type });
     } catch (error) {
-      console.error("Resend chat email error:", error);
-      return jsonResponse({ ok: false, error: "Failed to send chat email.", type: payload.type }, 200);
+      console.error("Resend engagement email error:", error);
+      return jsonResponse({ ok: false, error: "Failed to send engagement email.", type: payload.type }, 200);
+    }
+  }
+
+  if (payload.type === "phone_change_security") {
+    const details =
+      payload.details && typeof payload.details === "object"
+        ? (payload.details as Record<string, unknown>)
+        : {};
+    const toEmail = typeof details.to_email === "string" ? details.to_email.trim() : "";
+    const newPhone =
+      typeof details.new_phone === "string" && details.new_phone.trim()
+        ? details.new_phone.trim()
+        : "";
+
+    if (!toEmail) {
+      return jsonResponse({ ok: false, error: "Missing to_email for phone_change_security." }, 200);
+    }
+
+    const text = "Your phone number has been updated.";
+    const detail =
+      newPhone
+        ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.55;color:#444;">New number: <strong>${escapeHtml(newPhone)}</strong></p>`
+        : "";
+    const html = `<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#faf7f0;font-family:Inter,Arial,sans-serif;color:#1a1a1a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e8e0d4;border-radius:14px;">
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin:0 0 8px;font-size:12px;color:#0f6b4c;font-weight:600;">${APP_NAME}</p>
+                <h1 style="margin:0 0 12px;font-size:18px;font-weight:600;">Phone updated</h1>
+                <p style="margin:0;font-size:14px;line-height:1.55;color:#444;">${escapeHtml(text)}</p>
+                ${detail}
+                <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#666;">If this wasn't you, please contact support immediately.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: `${APP_NAME} <${FROM_EMAIL}>`,
+        to: [toEmail],
+        subject: `[${APP_NAME}] Your phone number has been updated`,
+        text: newPhone ? `${text}\n\nNew number: ${newPhone}` : text,
+        html,
+      });
+      if (error) throw error;
+      return jsonResponse({ ok: true, id: data?.id ?? null, type: payload.type });
+    } catch (error) {
+      console.error("Resend phone-change security email error:", error);
+      return jsonResponse(
+        { ok: false, error: "Failed to send phone-change security email.", type: payload.type },
+        200,
+      );
     }
   }
 

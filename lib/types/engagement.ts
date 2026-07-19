@@ -12,6 +12,7 @@ export type ReportListingReason = (typeof REPORT_LISTING_REASONS)[number];
 
 export type NotificationType =
   | "chat_message"
+  | "listing_comment"
   | "listing_approved"
   | "listing_rejected"
   | "listing_reported"

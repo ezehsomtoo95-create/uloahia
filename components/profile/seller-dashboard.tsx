@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
+import { PhoneNumberManager } from "@/components/profile/phone-number-manager";
 import { ProfileAvatarUploader } from "@/components/profile/profile-avatar-uploader";
 import { ProfileUsernameEditor } from "@/components/profile/profile-username-editor";
 import { cn } from "@/lib/utils/cn";
@@ -15,6 +16,7 @@ type SellerDashboardProps = {
   emailVerified: boolean;
   phoneVerified: boolean;
   phoneLabel: string | null;
+  phoneRaw: string;
   needsPhone: boolean;
   activeListings: number;
   totalViews: number;
@@ -38,6 +40,7 @@ export function SellerDashboard({
   emailVerified,
   phoneVerified,
   phoneLabel,
+  phoneRaw,
   needsPhone,
   activeListings,
   totalViews,
@@ -74,6 +77,12 @@ export function SellerDashboard({
             </p>
           ) : null}
 
+          <PhoneNumberManager
+            phoneLabel={phoneLabel}
+            phoneRaw={phoneRaw}
+            needsPhone={needsPhone}
+          />
+
           <p className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[12px] text-neutral-600 dark:text-neutral-400">
             <span>
               Member since{" "}
@@ -94,13 +103,6 @@ export function SellerDashboard({
               Email{" "}
               <strong className="font-semibold text-neutral-950 dark:text-neutral-50">
                 {emailVerified ? "verified" : "not verified"}
-              </strong>
-            </span>
-            <span aria-hidden>·</span>
-            <span>
-              Phone{" "}
-              <strong className="font-semibold text-neutral-950 dark:text-neutral-50">
-                {needsPhone ? "add phone" : phoneVerified ? "verified" : phoneLabel || "—"}
               </strong>
             </span>
           </p>

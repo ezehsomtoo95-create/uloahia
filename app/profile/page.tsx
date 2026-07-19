@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { signOut } from "@/app/profile/actions";
 import { AdminAccessDebugLogger } from "@/components/profile/admin-access-debug-logger";
 import { AdminDashboardButton } from "@/components/profile/admin-dashboard-button";
+import { AccountNavLinks } from "@/components/profile/account-nav-links";
+import { ProfileGuestPanel } from "@/components/profile/profile-guest-panel";
 import { ProfileSupportSettings } from "@/components/profile/profile-support-settings";
 import { SellerDashboard } from "@/components/profile/seller-dashboard";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
@@ -56,7 +57,7 @@ export default async function ProfilePage() {
     myListings.reduce((sum, listing) => sum + (listing.views ?? 0), 0);
 
   return (
-    <main className="account-page pb-safe">
+    <main className={user ? "account-page" : "account-page account-page--guest"}>
       {adminAccess ? (
         <AdminAccessDebugLogger
           debug={adminAccess.debug}
@@ -65,17 +66,17 @@ export default async function ProfilePage() {
         />
       ) : null}
 
-      <header className="market-page-head">
-        <h1 className="market-page-title text-neutral-950 dark:text-neutral-50">Seller dashboard</h1>
-        <p className="market-page-sub">
-          {user
-            ? `Your ${BRAND_NAME} account, performance, and listings.`
-            : `Support and settings for your ${BRAND_NAME} experience.`}
-        </p>
-      </header>
-
       {user ? (
         <>
+          <header className="market-page-head">
+            <h1 className="market-page-title text-neutral-950 dark:text-neutral-50">
+              Seller dashboard
+            </h1>
+            <p className="market-page-sub">
+              Your {BRAND_NAME} account, performance, and listings.
+            </p>
+          </header>
+
           <SellerDashboard
             sellerId={user.id}
             displayName={profile?.full_name || "Your account"}
@@ -85,26 +86,21 @@ export default async function ProfilePage() {
             memberSince={memberSince}
             locationLabel={locationLabel}
             emailVerified={Boolean(user.email_confirmed_at)}
-            phoneVerified={Boolean(profile?.phone_verified_at || publicSeller?.phoneVerified)}
-            phoneLabel={profile?.phone ? formatDisplayPhone(profile.phone) : null}
+            phoneVerified={Boolean(profile?.phone_verified_at)}
+            phoneLabel={
+              profile?.phone && !needsPhone ? formatDisplayPhone(profile.phone) : null
+            }
+            phoneRaw={profile?.phone && !needsPhone ? profile.phone : ""}
             needsPhone={needsPhone}
             activeListings={activeListings}
             totalViews={totalViews}
             salesCount={salesCount}
           />
 
-          <nav className="account-nav" aria-label="Account links">
-            <Link href="/messages">Messages</Link>
-            <Link href="/notifications">Notifications</Link>
-            <Link href="/saved">Saved listings</Link>
-            <Link href={`/store/${user.id}`}>My public store</Link>
-            {profile?.username ? (
-              <Link href={`/shop/${encodeURIComponent(profile.username)}`}>My shop username</Link>
-            ) : null}
-          </nav>
+          <AccountNavLinks storeHref={`/store/${user.id}`} />
 
           {showAdminCard ? (
-            <div className="flex items-center justify-between gap-3 border-y border-border py-3">
+            <div className="flex items-center justify-between gap-3 border-y border-border py-2.5">
               <div className="min-w-0">
                 <h2 className="text-[13px] font-medium leading-4 text-neutral-950 dark:text-neutral-50">
                   Admin
@@ -126,29 +122,7 @@ export default async function ProfilePage() {
           <ProfileSupportSettings showAccountActions />
         </>
       ) : (
-        <>
-          <div className="market-empty">
-            <p className="market-empty-title text-neutral-950 dark:text-neutral-50">
-              Log in to manage your account
-            </p>
-            <p className="market-empty-copy">
-              Save listings, message sellers, and post items for sale.
-            </p>
-            <div className="market-empty-actions">
-              <Link href="/login?next=/profile" className="market-empty-cta">
-                Log in
-              </Link>
-              <Link
-                href="/login?mode=signup&next=/profile"
-                className="market-empty-cta market-empty-cta--ghost"
-              >
-                Sign up
-              </Link>
-            </div>
-          </div>
-
-          <ProfileSupportSettings showAccountActions={false} />
-        </>
+        <ProfileGuestPanel />
       )}
     </main>
   );

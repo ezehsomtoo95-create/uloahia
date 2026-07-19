@@ -43,7 +43,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         setTheme(next);
       }}
     >
-      {isDark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+      {isDark ? <Sun size={11} strokeWidth={2} /> : <Moon size={11} strokeWidth={2} />}
     </button>
   );
 }

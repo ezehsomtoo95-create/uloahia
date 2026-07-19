@@ -12,83 +12,6 @@ import {
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
-export function AuthPageShell({
-  children,
-  centered = true,
-}: {
-  children: ReactNode;
-  centered?: boolean;
-}) {
-  return (
-    <main
-      className={cn(
-        "auth-page",
-        centered && "auth-page--centered",
-      )}
-    >
-      <div className="auth-page__inner">{children}</div>
-    </main>
-  );
-}
-
-export function AuthCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("auth-card", className)}>{children}</section>;
-}
-
-export function AuthHeading({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow?: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <header className="auth-heading">
-      {eyebrow ? <p className="auth-heading__eyebrow">{eyebrow}</p> : null}
-      <h1 className="auth-heading__title">{title}</h1>
-      <p className="auth-heading__description">{description}</p>
-    </header>
-  );
-}
-
-export function AuthModeTabs({
-  activeMode,
-  onChange,
-  modes,
-}: {
-  activeMode: string;
-  onChange: (mode: "login" | "signup" | "forgot") => void;
-  modes: readonly ("login" | "signup" | "forgot")[];
-}) {
-  const labels = {
-    login: "Login",
-    signup: "Signup",
-    forgot: "Forgot",
-  } as const;
-
-  return (
-    <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
-      {modes.map((item) => {
-        const selected = activeMode === item;
-        return (
-          <button
-            key={item}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onChange(item)}
-            className={cn("auth-tab", selected && "auth-tab--active")}
-          >
-            {labels[item]}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function AuthField({
   label,
   hint,
@@ -230,16 +153,14 @@ export function AuthFormStack({
 
 export function AuthFallbackCard() {
   return (
-    <AuthPageShell>
-      <AuthCard>
-        <div className="auth-skeleton">
-          <div className="auth-skeleton__title skeleton" />
-          <div className="auth-skeleton__line skeleton" />
-          <div className="auth-skeleton__field skeleton" />
-          <div className="auth-skeleton__field skeleton" />
-          <div className="auth-skeleton__button skeleton" />
-        </div>
-      </AuthCard>
-    </AuthPageShell>
+    <main className="auth-screen">
+      <section className="auth-screen__card">
+        <div className="h-5 w-28 skeleton rounded-full" />
+        <div className="mt-2 h-16 w-full skeleton rounded-[14px]" />
+        <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
+        <div className="mt-2 h-11 w-full skeleton rounded-[12px]" />
+        <div className="mt-4 h-11 w-full skeleton rounded-[12px]" />
+      </section>
+    </main>
   );
 }

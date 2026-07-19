@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Categories",
-  description: "Browse every marketplace category on AhiaUlo across Nigeria.",
+  description: "Browse every marketplace category on AhiaUlo.",
 };
 
 type CategoriesPageProps = {
@@ -36,8 +36,8 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   const defaultExpandedId = resolveExpandedId(parents, expandSlug);
 
   return (
-    <main className="categories-page market-categories pb-4 pt-3">
-      <header className="market-page-head shrink-0">
+    <main className="categories-page market-categories">
+      <header className="market-page-head categories-page-head shrink-0">
         <p className="text-[12px] text-muted">
           <Link href="/" className="text-primary hover:underline">
             Home
@@ -47,7 +47,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
         </p>
         <h1 className="market-page-title mt-1">All categories</h1>
         <p className="market-page-sub max-w-xl">
-          Explore products, property, jobs, and services across Nigeria.
+          Explore products, property, jobs, and services near you.
         </p>
       </header>
 

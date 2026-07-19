@@ -53,10 +53,25 @@ export function HomeCategoryFeed({ categories, listings }: HomeCategoryFeedProps
               <h2 className="market-block-title">{t("home.featured")}</h2>
               <p className="market-block-sub">{t("home.featuredSub")}</p>
             </div>
+            <div className="market-block-actions">
+              <ViewToggle
+                value={viewMode}
+                onToggle={setViewMode}
+                aria-label="Featured listings layout"
+              />
+            </div>
           </div>
-          <div className="market-product-grid">
+          <div
+            className={cn(
+              viewMode === "grid" ? "market-product-grid" : "market-product-list",
+            )}
+          >
             {featuredListings.map((listing) => (
-              <ListingCard key={`featured-${listing.id}`} listing={listing} />
+              <ListingCard
+                key={`featured-${listing.id}`}
+                listing={listing}
+                variant={viewMode}
+              />
             ))}
           </div>
         </section>
@@ -69,7 +84,11 @@ export function HomeCategoryFeed({ categories, listings }: HomeCategoryFeedProps
             <p className="market-block-sub">{t("home.exploreSub")}</p>
           </div>
           <div className="market-block-actions">
-            <ViewToggle value={viewMode} onToggle={setViewMode} />
+            <ViewToggle
+              value={viewMode}
+              onToggle={setViewMode}
+              aria-label="Explore listings layout"
+            />
             <Link href="/browse" className="market-block-link">
               {t("home.seeMore")}
             </Link>

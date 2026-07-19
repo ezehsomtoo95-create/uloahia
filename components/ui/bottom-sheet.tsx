@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils/cn";
 
@@ -12,6 +12,7 @@ export function BottomSheet({
   onBack,
   children,
   className,
+  scrollKey,
 }: {
   open: boolean;
   onClose: () => void;
@@ -19,8 +20,11 @@ export function BottomSheet({
   onBack?: () => void;
   children: React.ReactNode;
   className?: string;
+  /** Change this when the list step changes so the body scrolls back to top. */
+  scrollKey?: string | number;
 }) {
   const [mounted, setMounted] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -46,6 +50,13 @@ export function BottomSheet({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [open, title, scrollKey]);
 
   if (!mounted || !open) {
     return null;
@@ -95,7 +106,10 @@ export function BottomSheet({
             <X size={16} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-1">
+        <div
+          ref={bodyRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-1"
+        >
           {children}
         </div>
       </div>

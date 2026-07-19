@@ -17,7 +17,9 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-surface-primary: var(--surface-primary);
-  --font-sans: var(--font-marketplace), ui-sans-serif, system-ui, sans-serif;
+  --font-emoji: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla",
+    "EmojiOne Color", sans-serif;
+  --font-sans: var(--font-marketplace), ui-sans-serif, system-ui, var(--font-emoji), sans-serif;
   --radius-app: 14px;
   --radius-card: 12px;
   --shadow-soft: 0 8px 24px rgba(20, 20, 22, 0.06);
@@ -33,11 +35,15 @@
   --border: #e8e0d4;
   --primary: #0f6b4c;
   --primary-foreground: #ffffff;
-  --accent: #d4a017;
-  --accent-foreground: #1a1408;
+  --accent: #0f6b4c;
+  --accent-foreground: #ffffff;
   --indigo: #4f46e5;
   --text-primary: #0a0a0a;
   --text-secondary: color-mix(in srgb, #0a0a0a 62%, transparent);
+  --text-body: 0.9375rem;
+  --text-meta: 0.75rem;
+  --text-title: 1.125rem;
+  --font-body-weight: 400;
   --surface-primary: #ffffff;
   --chip-border: color-mix(in srgb, var(--foreground) 10%, transparent);
   --chip-bg: var(--surface-primary);
@@ -62,8 +68,8 @@
   --border: #e8e0d4;
   --primary: #0f6b4c;
   --primary-foreground: #ffffff;
-  --accent: #d4a017;
-  --accent-foreground: #1a1408;
+  --accent: #0f6b4c;
+  --accent-foreground: #ffffff;
   --indigo: #4f46e5;
   --text-primary: #0a0a0a;
   --text-secondary: color-mix(in srgb, #0a0a0a 62%, transparent);
@@ -91,8 +97,8 @@
   --border: #2e2e2e;
   --primary: #3dba84;
   --primary-foreground: #07150f;
-  --accent: #e0b53a;
-  --accent-foreground: #faf6eb;
+  --accent: #3dba84;
+  --accent-foreground: #07150f;
   --indigo: #b8b7ff;
   --text-primary: #fafafa;
   --text-secondary: rgba(250, 250, 250, 0.68);
@@ -121,8 +127,8 @@
     --border: #2e2e2e;
     --primary: #3dba84;
     --primary-foreground: #07150f;
-    --accent: #e0b53a;
-    --accent-foreground: #faf6eb;
+    --accent: #3dba84;
+    --accent-foreground: #07150f;
     --indigo: #b8b7ff;
     --text-primary: #fafafa;
     --text-secondary: rgba(250, 250, 250, 0.68);
@@ -163,7 +169,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  font-weight: 400;
+  font-size: var(--text-body, 0.9375rem);
+  font-weight: var(--font-body-weight, 400);
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
   overflow-y: auto;
@@ -264,7 +272,9 @@ select option:hover {
   .marketplace-content-scroll--chat {
     display: flex;
     flex-direction: column;
+    height: 100vh;
     height: 100dvh;
+    max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
     padding-bottom: 0;
@@ -273,11 +283,22 @@ select option:hover {
   .app-container--chat {
     display: flex;
     min-height: 0;
-    flex: 1;
+    flex: 1 1 auto;
     flex-direction: column;
     height: 100%;
+    max-height: 100%;
     padding-top: 0.65rem;
     padding-bottom: max(0.75rem, calc(72px + env(safe-area-inset-bottom)));
+  }
+
+  .marketplace-page--chat {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .app-container--auth {
@@ -291,10 +312,16 @@ select option:hover {
 
   .app-container {
     width: 100%;
-    max-width: 430px;
+    max-width: min(430px, 100%);
     margin: 0 auto;
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  @media (orientation: landscape) and (max-height: 500px) {
+    .app-container {
+      max-width: min(720px, 100%);
+    }
   }
 
   /* —— Marketplace chrome (header + bottom nav): locked forest green —— */
@@ -347,21 +374,31 @@ select option:hover {
     border-color: rgba(167, 243, 208, 0.22);
     background: rgba(236, 253, 245, 0.08);
     color: #ecfdf5;
+    font-family: var(--font-sans);
   }
 
   .market-chrome-brand .market-chrome-btn--selector {
     border-color: rgba(167, 243, 208, 0.22);
     background: rgba(236, 253, 245, 0.08);
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    line-height: 1.15;
   }
 
   .market-chrome-brand .market-chrome-dropdown {
     border-color: rgba(167, 243, 208, 0.16);
     background: #0b3f31;
     color: #ecfdf5;
+    font-family: var(--font-sans);
   }
 
   .market-chrome-brand .market-chrome-dropdown-item {
     color: #ecfdf5;
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    line-height: 1.15;
   }
 
   .market-chrome-brand .market-chrome-dropdown-item.is-active {
@@ -375,18 +412,63 @@ select option:hover {
     backdrop-filter: none;
   }
 
-  /* Deep-link anchors: clear fixed header on jump (mobile + desktop) */
+  /* Deep-link anchors: small offset inside the local scroller (not page chrome) */
   .category-deep-link-target,
   [id^="category-"] {
-    scroll-margin-top: 100px;
+    scroll-margin-top: 0.5rem;
   }
 
-  /* Let the last accordion sections scroll fully above the bottom nav */
-  .categories-accordion-list {
-    padding-bottom: max(
-      12rem,
-      calc(100dvh - 14rem - env(safe-area-inset-bottom, 0px))
+  .categories-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    padding-top: 0.75rem;
+    padding-bottom: 0;
+  }
+
+  .categories-page-head {
+    margin-bottom: 0;
+  }
+
+  /*
+   * Contained category overview list:
+   * only this region scrolls — page does not bounce past the bottom nav.
+   * Header (~3.75rem) + page title (~6.5rem) + bottom nav (~72px + safe area).
+   */
+  .categories-overview-scroll {
+    max-height: calc(
+      100dvh
+      - 3.75rem
+      - 6.75rem
+      - max(4.5rem, calc(72px + env(safe-area-inset-bottom, 0px)))
+      - 0.75rem
     );
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+  }
+
+  .categories-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .categories-panel-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .categories-explorer-desktop .categories-parent-rail {
+    max-height: min(70dvh, 40rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .market-topbar-inner {
@@ -458,7 +540,7 @@ select option:hover {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.3rem;
+    gap: 0.22rem;
     margin-left: auto;
     flex-shrink: 0;
   }
@@ -467,114 +549,182 @@ select option:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.2rem;
-    min-width: 1.6rem;
-    height: 1.65rem;
-    padding-inline: 0.4rem;
+    gap: 0.18rem;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    padding-inline: 0.28rem;
     border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-    border-radius: 0.4rem;
+    border-radius: 0.3rem;
     background: transparent;
     color: inherit;
-    font-size: 0.6875rem;
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
     cursor: pointer;
   }
 
   .market-chrome-btn--selector {
+    box-sizing: border-box;
+    width: auto;
     min-width: 0;
-    height: 1.65rem;
-    gap: 0.25rem;
-    padding: 0 0.45rem;
-    border-radius: 0.4rem;
+    max-width: none;
+    height: 1.3rem;
+    min-height: 1.3rem;
+    justify-content: center;
+    align-items: center;
+    gap: 0.18rem;
+    padding: 0.06rem 0.32rem;
+    border-radius: 0.3rem;
     border-color: color-mix(in srgb, currentColor 20%, transparent);
     background: color-mix(in srgb, currentColor 6%, transparent);
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
+    font-weight: 500;
+    line-height: 1.15;
+    overflow: visible;
+  }
+
+  .market-chrome-btn--selector-icon {
+    min-width: 1.3rem;
+    padding-inline: 0.28rem;
   }
 
   .market-chrome-btn--selector .market-chrome-btn-text {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    line-height: 1;
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+    white-space: nowrap;
+    text-align: left;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
   }
 
   .market-chrome-btn--selector svg {
+    width: 0.62rem;
+    height: 0.62rem;
+    margin-left: 0;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  .market-chrome-btn--selector-icon svg:first-of-type {
     width: 0.7rem;
     height: 0.7rem;
+    opacity: 0.95;
   }
 
   .market-chrome-btn--pill {
     min-width: 0;
-    height: 1.65rem;
-    padding-inline: 0.45rem;
-    gap: 0.25rem;
+    height: 1.3rem;
+    padding-inline: 0.32rem;
+    gap: 0.18rem;
   }
 
   .market-chrome-btn--icon {
-    min-width: 1.65rem;
+    width: 1.3rem;
+    min-width: 1.3rem;
+    height: 1.3rem;
     padding-inline: 0;
   }
 
   .market-chrome-btn--icon svg {
-    width: 0.8rem;
-    height: 0.8rem;
+    width: 0.62rem;
+    height: 0.62rem;
   }
 
   .market-chrome-btn--ghost {
     border-color: transparent;
     background: transparent;
-    min-width: 1.5rem;
-    height: 1.5rem;
+    min-width: 1.2rem;
+    height: 1.2rem;
   }
 
   .market-chrome-btn-text {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    line-height: 1;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
   }
 
   .market-chrome-menu {
     position: relative;
+    display: inline-flex;
+    align-items: center;
   }
 
   .market-chrome-dropdown {
     position: absolute;
-    top: calc(100% + 0.35rem);
+    top: calc(100% + 0.22rem);
     right: 0;
     z-index: 60;
-    min-width: 9.5rem;
+    width: max-content;
+    min-width: 100%;
     margin: 0;
     list-style: none;
-    padding: 0.3rem;
+    padding: 0.14rem;
     border: 1px solid var(--border);
-    border-radius: 0.55rem;
+    border-radius: 0.3rem;
     background: var(--surface);
-    box-shadow: 0 10px 28px rgba(20, 20, 22, 0.12);
+    box-shadow: 0 8px 18px rgba(20, 20, 22, 0.12);
+    font-family: var(--font-sans);
   }
 
   .market-chrome-dropdown--compact {
-    min-width: 8rem;
-    padding: 0.25rem;
+    width: max-content;
+    min-width: 100%;
+    padding: 0.14rem;
   }
 
   .market-chrome-dropdown-item {
     display: flex;
     width: 100%;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: flex-start;
+    gap: 0.28rem;
     margin: 0;
     border: 0;
-    border-radius: 0.35rem;
+    border-radius: 0.24rem;
     background: transparent;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.28rem 0.36rem;
+    font-family: var(--font-sans);
+    font-size: 0.5625rem;
     font-weight: 500;
-    line-height: 1.2;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
     color: var(--text-primary);
     text-align: left;
     text-decoration: none;
     cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .market-chrome-dropdown-item--region {
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+
+  .market-chrome-dropdown-item span {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
+
+  .market-chrome-dropdown-item .nigeria-flag-icon {
+    width: 0.95em;
+    height: 0.64em;
+    flex-shrink: 0;
+    border-radius: 0.08em;
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
+    object-fit: cover;
   }
 
   .market-chrome-dropdown-item.is-active {
@@ -629,48 +779,73 @@ select option:hover {
 
   @media (min-width: 768px) {
     .market-topbar-actions {
-      gap: 0.45rem;
+      gap: 0.25rem;
     }
 
     .market-chrome-btn {
-      min-width: 1.85rem;
-      height: 1.85rem;
-      gap: 0.25rem;
-      padding-inline: 0.45rem;
-      border-radius: 0.4rem;
-      font-size: 0.75rem;
+      min-width: 1.4rem;
+      height: 1.4rem;
+      gap: 0.18rem;
+      padding-inline: 0.32rem;
+      border-radius: 0.3rem;
+      font-size: 0.625rem;
+      line-height: 1.15;
     }
 
     .market-chrome-btn--selector {
-      height: 1.85rem;
-      padding: 0 0.55rem;
+      width: auto;
+      min-width: 0;
+      max-width: none;
+      height: 1.4rem;
+      min-height: 1.4rem;
+      padding: 0.08rem 0.36rem;
+      font-size: 0.625rem;
+      line-height: 1.15;
     }
 
     .market-chrome-btn--selector .market-chrome-btn-text {
-      font-size: 0.75rem;
+      font-size: inherit;
+      line-height: inherit;
     }
 
     .market-chrome-btn--selector svg {
-      width: 0.75rem;
-      height: 0.75rem;
+      width: 0.58rem;
+      height: 0.58rem;
+    }
+
+    .market-chrome-dropdown,
+    .market-chrome-dropdown--compact {
+      width: max-content;
+      min-width: 100%;
+      border-radius: 0.3rem;
+      padding: 0.16rem;
+    }
+
+    .market-chrome-dropdown-item {
+      font-size: 0.625rem;
+      line-height: 1.15;
+      padding: 0.3rem 0.38rem;
     }
 
     .market-chrome-btn--pill {
-      height: 1.85rem;
-      padding-inline: 0.55rem;
+      height: 1.4rem;
+      padding-inline: 0.36rem;
     }
 
     .market-chrome-btn--icon {
-      min-width: 1.85rem;
+      width: 1.4rem;
+      min-width: 1.4rem;
+      height: 1.4rem;
     }
 
     .market-chrome-btn--icon svg {
-      width: 0.875rem;
-      height: 0.875rem;
+      width: 0.68rem;
+      height: 0.68rem;
     }
 
     .market-chrome-btn-text {
-      font-size: 0.75rem;
+      font-size: inherit;
+      line-height: inherit;
     }
   }
 
@@ -684,14 +859,6 @@ select option:hover {
   .marketplace-page,
   .marketplace-page--home {
     overflow: visible;
-  }
-
-  .marketplace-page--chat {
-    display: flex;
-    min-height: 0;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
   }
 
   .admin-desktop-main {
@@ -1416,6 +1583,10 @@ select option:hover {
   .product-media-img,
   .listing-card-photo-img,
   .market-listing-photo-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     object-position: center;
   }
@@ -1486,11 +1657,30 @@ select option:hover {
     background: color-mix(in srgb, var(--surface) 92%, var(--background));
   }
 
-  .listing-card-location {
+  .listing-card-price-block {
     display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.5rem;
     min-width: 0;
+  }
+
+  .listing-card-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+    max-width: min(100%, 9.5rem);
+    font-size: 0.6875rem;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--text-secondary);
+  }
+
+  .listing-card-location svg {
+    opacity: 0.65;
+    flex-shrink: 0;
   }
 
   .listing-card-footer {
@@ -1557,6 +1747,15 @@ select option:hover {
     object-fit: cover;
   }
 
+  .listing-card-seller-initials {
+    font-size: 0.5rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
   .listing-card-seller-link--muted {
     color: var(--text-secondary);
     font-weight: 400;
@@ -1595,6 +1794,17 @@ select option:hover {
     min-width: 0;
     padding: 0.15rem 0;
     justify-content: center;
+  }
+
+  .listing-card--list .listing-card-price-block {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.5rem;
+  }
+
+  .listing-card--list .listing-card-location {
+    max-width: min(100%, 14rem);
   }
 
   .listing-card--list .listing-card-seller-link {
@@ -2363,7 +2573,7 @@ select option:hover {
 
   .market-browse-region {
     display: inline-flex;
-    max-width: 9rem;
+    max-width: 11rem;
     align-items: center;
     gap: 0.375rem;
     height: 2.25rem;
@@ -2376,6 +2586,47 @@ select option:hover {
     line-height: 1;
     color: var(--text-primary);
     cursor: pointer;
+  }
+
+  .market-browse-region-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .region-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    max-width: 100%;
+    vertical-align: baseline;
+  }
+
+  .region-label--flag-end {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .nigeria-flag-icon {
+    display: inline-block;
+    width: 1.15em;
+    height: 0.77em;
+    flex-shrink: 0;
+    border-radius: 0.08em;
+    box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+    object-fit: cover;
+  }
+
+  .market-chrome-dropdown-item--region {
+    display: flex;
+    width: 100%;
+    align-items: center;
+  }
+
+  .market-chrome-dropdown-item--region .region-label {
+    width: 100%;
   }
 
   .market-hscroll {
@@ -2761,7 +3012,7 @@ select option:hover {
     overflow: hidden;
     margin-inline: -12px;
     margin-top: 0;
-    min-height: calc(15.5rem + 3.75rem + env(safe-area-inset-top, 0px));
+    min-height: 0;
     padding-top: calc(3.75rem + env(safe-area-inset-top, 0px));
     border-radius: 0 0 1.25rem 1.25rem;
   }
@@ -2780,15 +3031,16 @@ select option:hover {
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--background) 18%, transparent) 0%,
-        color-mix(in srgb, var(--background) 55%, transparent) 42%,
-        color-mix(in srgb, var(--background) 92%, transparent) 78%,
+        color-mix(in srgb, var(--background) 32%, transparent) 0%,
+        color-mix(in srgb, var(--background) 48%, transparent) 28%,
+        color-mix(in srgb, var(--background) 78%, transparent) 68%,
         var(--background) 100%
       ),
       linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--background) 55%, transparent),
-        transparent 55%
+        105deg,
+        color-mix(in srgb, var(--background) 78%, transparent) 0%,
+        color-mix(in srgb, var(--background) 42%, transparent) 42%,
+        transparent 72%
       );
   }
 
@@ -2797,8 +3049,8 @@ select option:hover {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
-    padding: 1.15rem 1rem 1.35rem;
+    gap: 0.4rem;
+    padding: 1rem 1rem 0.55rem;
     pointer-events: auto;
   }
 
@@ -2813,24 +3065,27 @@ select option:hover {
 
   .market-hero-accent {
     margin-inline: 0.35rem;
-    color: var(--accent);
+    color: color-mix(in srgb, var(--primary) 55%, var(--text-secondary));
   }
 
   .market-hero-title {
     margin: 0;
     max-width: 16rem;
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
     color: var(--text-primary);
+    text-shadow:
+      0 1px 1px color-mix(in srgb, var(--background) 70%, transparent),
+      0 0 28px color-mix(in srgb, var(--background) 55%, transparent);
   }
 
   .market-hero-sub {
-    margin: 0;
+    margin: 0.55rem 0 0;
     max-width: 20rem;
     font-size: 0.8125rem;
-    line-height: 1.4;
+    line-height: 1.45;
     color: var(--text-secondary);
   }
 
@@ -2838,7 +3093,7 @@ select option:hover {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    margin-top: 0.35rem;
+    margin-top: 0.2rem;
     height: 3rem;
     border-radius: 999px;
     border: 1px solid var(--border);
@@ -2859,8 +3114,8 @@ select option:hover {
   .market-home-body {
     display: flex;
     flex-direction: column;
-    gap: 1.35rem;
-    padding-top: 0.85rem;
+    gap: 1.15rem;
+    padding-top: 0.2rem;
   }
 
   .market-block {
@@ -3193,12 +3448,12 @@ select option:hover {
   @media (min-width: 640px) {
     .market-hero {
       margin-inline: 0;
-      min-height: calc(17rem + 3.75rem + env(safe-area-inset-top, 0px));
+      min-height: 0;
       border-radius: 0 0 1.25rem 1.25rem;
     }
 
     .market-hero-content {
-      padding: 1.5rem;
+      padding: 1.35rem 1.5rem 0.65rem;
     }
 
     .market-hero-title {
@@ -3777,9 +4032,104 @@ select option:hover {
   .account-page {
     display: flex;
     flex-direction: column;
-    gap: 1.15rem;
-    padding-top: 0.75rem;
-    padding-bottom: 1rem;
+    gap: 0.85rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* Guest: fill the mobile viewport with embedded auth + support */
+  .account-page--guest {
+    box-sizing: border-box;
+    min-height: calc(100dvh - 3.75rem - 5.75rem);
+    justify-content: flex-start;
+    gap: 0;
+    padding-block: 0.5rem 1rem;
+  }
+
+  .account-guest {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    flex: 1;
+  }
+
+  .auth-screen--embedded {
+    flex: 0 0 auto;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+    justify-content: flex-start;
+    padding: 0;
+    background: transparent;
+  }
+
+  .auth-screen--embedded .auth-screen__card {
+    flex: none;
+    max-height: none;
+    box-shadow: 0 8px 24px rgba(20, 20, 22, 0.06);
+  }
+
+  .account-page .market-page-head {
+    margin: 0;
+    padding: 0;
+  }
+
+  .account-page .market-page-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .account-page .market-page-sub {
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .account-page--guest .touch-card {
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  .account-support {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .account-support__label {
+    margin: 0;
+    padding-inline: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .account-support__row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 0.95rem;
+    border: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 550;
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .account-support--guest {
+    gap: 0.4rem;
+  }
+
+  .account-support--guest .account-support__row {
+    padding-block: 0.85rem;
   }
 
   .account-identity {
@@ -3821,9 +4171,13 @@ select option:hover {
   }
 
   .account-nav a,
-  .account-nav button {
-    display: block;
+  .account-nav button,
+  .account-nav-link {
+    display: flex;
     width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
     padding: 0.9rem 0;
     border: 0;
     border-bottom: 1px solid var(--border);
@@ -3833,11 +4187,28 @@ select option:hover {
     font-weight: 600;
     color: var(--text-primary);
     cursor: pointer;
+    text-decoration: none;
   }
 
   .account-nav a:last-child,
-  .account-nav button:last-child {
+  .account-nav button:last-child,
+  .account-nav-link:last-child {
     border-bottom: 0;
+  }
+
+  .account-nav-badge {
+    display: inline-grid;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--primary);
+    padding-inline: 0.35rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--primary-foreground);
   }
 
   .account-inbox {
@@ -3874,48 +4245,72 @@ select option:hover {
     object-fit: cover;
   }
 
-  /* Instagram-style messages overview (compact) */
+  /* App-like messages inbox rows */
   .chat-inbox {
     display: flex;
     flex-direction: column;
-    margin-inline: -0.25rem;
+    overflow: hidden;
+    margin-inline: 0;
+    border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+    border-radius: 0.85rem;
+    background: var(--surface);
+  }
+
+  .chat-inbox-item {
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  }
+
+  .chat-inbox-item:last-child {
+    border-bottom: none;
   }
 
   .chat-inbox-row {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.55rem 0.45rem;
-    border-radius: 0.55rem;
+    gap: 0.9rem;
+    width: 100%;
+    padding: 1rem 0.9rem;
     text-decoration: none;
     color: inherit;
     transition: background-color 0.15s ease;
   }
 
+  .chat-inbox-item:hover .chat-inbox-row,
   .chat-inbox-row:hover {
-    background: color-mix(in srgb, var(--muted) 28%, transparent);
+    background: color-mix(in srgb, var(--foreground) 5.5%, var(--surface));
   }
 
   @media (hover: hover) and (pointer: fine) {
     .chat-inbox-row:focus-visible {
       outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
-      outline-offset: 1px;
+      outline-offset: -2px;
     }
+  }
+
+  [data-theme="dark"] .chat-inbox-item:hover .chat-inbox-row,
+  [data-theme="dark"] .chat-inbox-row:hover {
+    background: color-mix(in srgb, #ffffff 8%, var(--surface));
   }
 
   .chat-inbox-avatar {
     display: grid;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     flex-shrink: 0;
     place-items: center;
     overflow: hidden;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    background: color-mix(in srgb, var(--muted) 22%, var(--surface));
+    background: color-mix(in srgb, var(--muted) 18%, var(--surface-raised));
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--text-secondary);
+  }
+
+  .chat-inbox-avatar--sm {
+    width: 1.875rem;
+    height: 1.875rem;
+    font-size: 0.6875rem;
   }
 
   .chat-inbox-avatar img {
@@ -3931,9 +4326,9 @@ select option:hover {
 
   .chat-inbox-top {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
 
   .chat-inbox-name {
@@ -3942,7 +4337,7 @@ select option:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1.25;
     color: var(--text-primary);
@@ -3961,7 +4356,7 @@ select option:hover {
 
   .chat-inbox-meta {
     display: flex;
-    margin-top: 0.15rem;
+    margin-top: 0.28rem;
     min-width: 0;
   }
 
@@ -3984,8 +4379,8 @@ select option:hover {
   .chat-inbox-preview-row {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.15rem;
+    gap: 0.45rem;
+    margin-top: 0.28rem;
   }
 
   .chat-inbox-preview {
@@ -3995,8 +4390,8 @@ select option:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.75rem;
-    line-height: 1.3;
+    font-size: 0.8125rem;
+    line-height: 1.35;
     color: var(--text-secondary);
   }
 
@@ -4007,8 +4402,8 @@ select option:hover {
 
   .chat-inbox-badge {
     display: grid;
-    min-width: 1rem;
-    height: 1rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
     flex-shrink: 0;
     place-items: center;
     border-radius: 999px;
@@ -4020,12 +4415,124 @@ select option:hover {
     color: var(--primary-foreground);
   }
 
+  /* Full-screen location explorer */
+  .location-explorer {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+
+  .location-explorer-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    background: var(--surface);
+  }
+
+  .location-explorer-icon-btn {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .location-explorer-eyebrow {
+    margin: 0;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .location-explorer-title {
+    margin: 0.1rem 0 0;
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  .location-explorer-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0.85rem 0.35rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--foreground) 3%, var(--surface));
+  }
+
+  .location-explorer-input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    outline: none;
+  }
+
+  .location-explorer-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.35rem 0.5rem 1.25rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .location-explorer-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    min-height: 2.75rem;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    border-radius: 0.35rem;
+    background: transparent;
+    padding: 0.7rem 0.65rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-align: left;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+
+  .location-explorer-row:last-child {
+    border-bottom: none;
+  }
+
+  .location-explorer-row.is-active {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    box-shadow: inset 3px 0 0 var(--primary);
+    font-weight: 600;
+  }
+
+  .location-explorer-row:hover {
+    background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  }
+
   .chat-thread {
     display: flex;
     min-height: 0;
-    flex: 1;
+    flex: 1 1 auto;
     flex-direction: column;
     height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .chat-thread-head {
@@ -4037,7 +4544,8 @@ select option:hover {
   .chat-thread-messages {
     display: flex;
     min-height: 0;
-    flex: 1;
+    flex: 1 1 auto;
+    flex-grow: 1;
     flex-direction: column;
     gap: 0.5rem;
     overflow-x: hidden;
@@ -4048,11 +4556,16 @@ select option:hover {
   }
 
   .chat-thread-composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    flex: 0 0 auto;
     flex-shrink: 0;
+    min-height: 4.25rem;
     border-top: 1px solid var(--border);
     background: var(--background);
     padding-top: 0.75rem;
-    padding-bottom: 0.35rem;
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
   }
 
   .chat-bubble {

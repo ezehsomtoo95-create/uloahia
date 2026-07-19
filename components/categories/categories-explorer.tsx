@@ -99,23 +99,31 @@ function CategoriesExplorerView({
   const [expandedId, setExpandedId] = useState<string | null>(() => urlExpandedId);
 
   const contentRef = useRef<HTMLElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
   const skipInitialDesktopScroll = useRef(true);
 
-  // Shared: URL `expand` drives both desktop selection and mobile accordion.
+  // Deep-link only: jump once when URL expand changes — avoid erratic scroll on manual toggles.
+  const deepLinkScrolledFor = useRef<string | null>(null);
+
   useLayoutEffect(() => {
     if (!urlExpandedId) return;
     setExpandedId(urlExpandedId);
     setSelectedId(urlExpandedId);
-  }, [urlExpandedId]);
 
-  // Instant jump after the expanded/selected DOM is committed (no delay, no smooth scroll).
-  useLayoutEffect(() => {
-    if (!expandedId) return;
+    if (deepLinkScrolledFor.current === urlExpandedId) return;
+    deepLinkScrolledFor.current = urlExpandedId;
 
-    const element = document.getElementById(`category-${expandedId}`);
-    element?.scrollIntoView({ behavior: "auto", block: "start" });
+    const element = document.getElementById(`category-${urlExpandedId}`);
+    const scroller = listScrollRef.current;
+    if (element && scroller) {
+      const rootRect = scroller.getBoundingClientRect();
+      const elRect = element.getBoundingClientRect();
+      scroller.scrollTop += elRect.top - rootRect.top - 8;
+    } else {
+      element?.scrollIntoView({ behavior: "auto", block: "nearest" });
+    }
     contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [expandedId]);
+  }, [urlExpandedId]);
 
   useEffect(() => {
     if (skipInitialDesktopScroll.current) {
@@ -288,17 +296,19 @@ function CategoriesExplorerView({
   }
 
   return (
-    <div className="space-y-2.5 categories-accordion-list">
-      {parents.map((category) => (
-        <CategoryAccordionItem
-          key={category.id}
-          category={category}
-          isOpen={expandedId === category.id}
-          onToggle={() =>
-            handleAccordionToggle(category.id, expandedId === category.id)
-          }
-        />
-      ))}
+    <div ref={listScrollRef} className="categories-overview-scroll">
+      <div className="categories-accordion-list">
+        {parents.map((category) => (
+          <CategoryAccordionItem
+            key={category.id}
+            category={category}
+            isOpen={expandedId === category.id}
+            onToggle={() =>
+              handleAccordionToggle(category.id, expandedId === category.id)
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -120,6 +120,11 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
     return [];
   }
 
+  const seller = await getPublicSellerById(sellerId);
+  const sellerName = seller?.fullName?.trim() || seller?.username || "Seller";
+  const sellerAvatarUrl = seller?.avatarUrl ?? null;
+  const sellerVerified = Boolean(seller?.phoneVerified);
+
   return data.map((row) => {
     const images = [...((row.listing_images ?? []) as ListingImageRow[])].sort(
       (a, b) => a.position - b.position,
@@ -161,7 +166,9 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
       createdAtMs: new Date(row.created_at).getTime(),
       images: imageUrls,
       imageUrl: imageUrls[0] ?? null,
-      sellerVerified: true,
+      sellerName,
+      sellerAvatarUrl,
+      sellerVerified,
     } satisfies Listing;
   });
 }

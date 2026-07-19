@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
-import { REGION_LABEL } from "@/lib/constants/brand";
 import { cn } from "@/lib/utils/cn";
-
-const REGIONS = [{ id: "ng", label: "Nigeria", href: "/browse" }] as const;
 
 export function RegionSelector({ className }: { className?: string }) {
   const { t } = useLocale();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -38,6 +37,11 @@ export function RegionSelector({ className }: { className?: string }) {
     };
   }, [open]);
 
+  function openLocationPicker() {
+    setOpen(false);
+    router.push("/browse?openLocation=1");
+  }
+
   return (
     <div ref={rootRef} className={cn("market-chrome-menu", className)}>
       <button
@@ -46,11 +50,11 @@ export function RegionSelector({ className }: { className?: string }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label={t("nav.nigeria")}
+        aria-label={t("nav.location")}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="market-chrome-btn-text">{REGION_LABEL}</span>
-        <ChevronDown size={12} strokeWidth={2.25} className="shrink-0 opacity-70" aria-hidden />
+        <span className="market-chrome-btn-text">Nigeria</span>
+        <ChevronDown size={10} strokeWidth={2.25} className="shrink-0 opacity-70" aria-hidden />
       </button>
 
       {open ? (
@@ -58,19 +62,26 @@ export function RegionSelector({ className }: { className?: string }) {
           id={menuId}
           role="listbox"
           className="market-chrome-dropdown market-chrome-dropdown--compact"
-          aria-label={t("nav.nigeria")}
+          aria-label={t("nav.location")}
         >
-          {REGIONS.map((region) => (
-            <li key={region.id} role="option" aria-selected>
-              <Link
-                href={region.href}
-                className="market-chrome-dropdown-item is-active"
-                onClick={() => setOpen(false)}
-              >
-                <span>{region.label}</span>
-              </Link>
-            </li>
-          ))}
+          <li role="option" aria-selected>
+            <button
+              type="button"
+              className="market-chrome-dropdown-item market-chrome-dropdown-item--region is-active"
+              onClick={openLocationPicker}
+            >
+              <span>Nigeria</span>
+              <Image
+                src="/nigeria-flag.svg"
+                alt=""
+                width={16}
+                height={11}
+                className="nigeria-flag-icon"
+                aria-hidden
+                unoptimized
+              />
+            </button>
+          </li>
         </ul>
       ) : null}
     </div>

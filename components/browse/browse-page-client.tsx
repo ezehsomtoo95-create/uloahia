@@ -92,6 +92,19 @@ function BrowsePageContent({
   const [isFiltering, setIsFiltering] = useState(false);
 
   useEffect(() => {
+    const nextState = searchParams.get("state");
+    const nextCity = searchParams.get("city");
+    const nextArea = searchParams.get("area");
+    if (nextState || nextCity || nextArea) {
+      setState(nextState || "All");
+      setCity(nextCity || "All");
+      setArea(nextArea || "All");
+    }
+
+    if (searchParams.get("openLocation") === "1") {
+      setLocationSheetOpen(true);
+    }
+
     const param =
       searchParams.get("expand") ??
       searchParams.get("cat") ??
@@ -193,10 +206,7 @@ function BrowsePageContent({
 
   return (
     <main className="market-browse">
-      <BrowseHeader
-        regionLabel={regionLabel}
-        onRegionClick={() => setLocationSheetOpen(true)}
-      />
+      <BrowseHeader regionLabel={regionLabel} />
 
       <div className="market-browse-search">
         <SearchField
@@ -226,12 +236,30 @@ function BrowsePageContent({
           condition={condition}
           priceIndex={priceIndex}
           locationSheetOpen={locationSheetOpen}
-          onLocationSheetClose={() => setLocationSheetOpen(false)}
+          onLocationSheetClose={() => {
+            setLocationSheetOpen(false);
+            if (searchParams.get("openLocation") === "1") {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("openLocation");
+              const query = params.toString();
+              router.replace(query ? `/browse?${query}` : "/browse", { scroll: false });
+            }
+          }}
           onLocationChange={({ state: nextState, city: nextCity, area: nextArea }) => {
             triggerFilterMotion();
             setState(nextState);
             setCity(nextCity);
             setArea(nextArea);
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("openLocation");
+            if (nextState !== "All") params.set("state", nextState);
+            else params.delete("state");
+            if (nextCity !== "All") params.set("city", nextCity);
+            else params.delete("city");
+            if (nextArea !== "All") params.set("area", nextArea);
+            else params.delete("area");
+            const query = params.toString();
+            router.replace(query ? `/browse?${query}` : "/browse", { scroll: false });
           }}
           onConditionChange={(next) => {
             triggerFilterMotion();

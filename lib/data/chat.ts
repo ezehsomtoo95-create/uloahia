@@ -9,6 +9,13 @@ import type {
 import { resolveListingImages } from "@/lib/utils/storage";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 
+type PublicChatProfileRow = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
 function formatClock(value: string) {
   return new Date(value).toLocaleString("en-NG", {
     day: "numeric",
@@ -16,6 +23,40 @@ function formatClock(value: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function displayNameFromProfile(profile: {
+  full_name?: string | null;
+  username?: string | null;
+} | null | undefined) {
+  const fullName = profile?.full_name?.trim();
+  if (fullName) return fullName;
+  const username = profile?.username?.trim();
+  if (username) return username;
+  return "User";
+}
+
+async function getPublicChatProfilesByIds(userIds: string[]) {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return new Map<string, PublicChatProfileRow>();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_public_sellers_by_ids", {
+    seller_uuids: uniqueIds,
+  });
+
+  if (error || !data?.length) {
+    if (error) {
+      console.error("[chat] get_public_sellers_by_ids", error.message);
+    }
+    return new Map<string, PublicChatProfileRow>();
+  }
+
+  return new Map(
+    (data as PublicChatProfileRow[]).map((row) => [row.id, row]),
+  );
 }
 
 export async function getUnreadMessageCount(userId: string) {
@@ -82,9 +123,7 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
       listing:listings (
         title,
         listing_images ( image_url, position )
-      ),
-      buyer:profiles!buyer_id ( full_name, username, avatar_url ),
-      seller:profiles!seller_id ( full_name, username, avatar_url )
+      )
     `,
     )
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
@@ -97,17 +136,21 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
     return [];
   }
 
-  return data
-    .filter((row) => Boolean(row.last_message_preview?.trim()))
-    .map((row) => {
+  const rows = data.filter((row) => Boolean(row.last_message_preview?.trim()));
+  const otherPartyIds = rows.map((row) =>
+    row.buyer_id === userId ? row.seller_id : row.buyer_id,
+  );
+  const profiles = await getPublicChatProfilesByIds(otherPartyIds);
+
+  return rows.map((row) => {
     const isBuyer = row.buyer_id === userId;
-    const other = isBuyer
-      ? (Array.isArray(row.seller) ? row.seller[0] : row.seller)
-      : (Array.isArray(row.buyer) ? row.buyer[0] : row.buyer);
+    const otherPartyId = isBuyer ? row.seller_id : row.buyer_id;
+    const other = profiles.get(otherPartyId) ?? null;
     const listing = Array.isArray(row.listing) ? row.listing[0] : row.listing;
-    const images = [...((listing as { listing_images?: Array<{ image_url: string; position: number }> } | null)?.listing_images ?? [])].sort(
-      (a, b) => a.position - b.position,
-    );
+    const images = [
+      ...((listing as { listing_images?: Array<{ image_url: string; position: number }> } | null)
+        ?.listing_images ?? []),
+    ].sort((a, b) => a.position - b.position);
     const imageUrls = resolveListingImages(images.map((image) => image.image_url));
 
     return {
@@ -115,7 +158,7 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
       listingId: row.listing_id,
       listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
       listingImageUrl: imageUrls[0] ?? null,
-      otherPartyName: other?.full_name || other?.username || "Marketplace user",
+      otherPartyName: displayNameFromProfile(other),
       otherPartyUsername: other?.username ?? null,
       otherPartyAvatarUrl: other?.avatar_url ?? null,
       lastMessagePreview: row.last_message_preview,
@@ -148,9 +191,7 @@ export async function getConversationForUser(conversationId: string, userId: str
         title,
         status,
         listing_images ( image_url, position )
-      ),
-      buyer:profiles!buyer_id ( id, full_name, username ),
-      seller:profiles!seller_id ( id, full_name, username )
+      )
     `,
     )
     .eq("id", conversationId)
@@ -165,13 +206,14 @@ export async function getConversationForUser(conversationId: string, userId: str
   }
 
   const isBuyer = data.buyer_id === userId;
-  const other = isBuyer
-    ? (Array.isArray(data.seller) ? data.seller[0] : data.seller)
-    : (Array.isArray(data.buyer) ? data.buyer[0] : data.buyer);
+  const otherPartyId = isBuyer ? data.seller_id : data.buyer_id;
+  const profiles = await getPublicChatProfilesByIds([otherPartyId]);
+  const other = profiles.get(otherPartyId) ?? null;
   const listing = Array.isArray(data.listing) ? data.listing[0] : data.listing;
-  const images = [...((listing as { listing_images?: Array<{ image_url: string; position: number }> } | null)?.listing_images ?? [])].sort(
-    (a, b) => a.position - b.position,
-  );
+  const images = [
+    ...((listing as { listing_images?: Array<{ image_url: string; position: number }> } | null)
+      ?.listing_images ?? []),
+  ].sort((a, b) => a.position - b.position);
   const imageUrls = resolveListingImages(images.map((image) => image.image_url));
 
   return {
@@ -180,9 +222,10 @@ export async function getConversationForUser(conversationId: string, userId: str
     listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
     listingImageUrl: imageUrls[0] ?? null,
     listingStatus: (listing as { status?: string } | null)?.status ?? null,
-    otherPartyName: other?.full_name || other?.username || "Marketplace user",
+    otherPartyName: displayNameFromProfile(other),
     otherPartyUsername: other?.username ?? null,
-    otherPartyId: other?.id ?? null,
+    otherPartyAvatarUrl: other?.avatar_url ?? null,
+    otherPartyId,
     lastMessagePreview: data.last_message_preview,
     lastMessageAt: data.last_message_at,
     lastMessageAtLabel: formatRelativeTime(data.last_message_at),

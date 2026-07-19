@@ -1,13 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 export type ListingViewMode = "grid" | "list";
 
+const STORAGE_KEY = "ahiaulo-listing-view-mode";
+
+function readStoredViewMode(fallback: ListingViewMode): ListingViewMode {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "grid" || stored === "list") {
+      return stored;
+    }
+  } catch {
+    // ignore storage failures
+  }
+
+  return fallback;
+}
+
+function writeStoredViewMode(mode: ListingViewMode) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, mode);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+/** Shared Grid/List preference across Home, Browse, Related, Saved, etc. */
 export function useListingViewMode(initial: ListingViewMode = "grid") {
-  return useState<ListingViewMode>(initial);
+  const [viewMode, setViewModeState] = useState<ListingViewMode>(initial);
+
+  useEffect(() => {
+    setViewModeState(readStoredViewMode(initial));
+  }, [initial]);
+
+  function setViewMode(mode: ListingViewMode) {
+    setViewModeState(mode);
+    writeStoredViewMode(mode);
+  }
+
+  return [viewMode, setViewMode] as const;
 }
 
 type ViewToggleProps = {

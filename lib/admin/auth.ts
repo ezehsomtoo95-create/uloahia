@@ -58,8 +58,7 @@ export async function requireAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-
-    redirect("/login");
+    redirect("/login?next=/admin");
   }
 
   const { data: profile } = await supabase
