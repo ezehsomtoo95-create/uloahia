@@ -45,6 +45,9 @@ const withPWA = withPWAInit({
   // Avoid serving stale authenticated HTML after client navigations.
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
+  // Plugin-level option (not workboxOptions) — merges custom runtimeCaching
+  // with next-pwa defaults instead of replacing them.
+  extendDefaultRuntimeCaching: true,
   fallbacks: {
     document: "/~offline",
   },
@@ -52,9 +55,6 @@ const withPWA = withPWAInit({
     disableDevLogs: true,
     skipWaiting: true,
     clientsClaim: true,
-    // Keep default Workbox strategies (static assets CacheFirst, etc.)
-    // and extend with image / font caching for faster loads.
-    extendDefaultRuntimeCaching: true,
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
