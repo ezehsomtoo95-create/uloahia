@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: "bottom-right",
   },
+  reactCompiler: true,
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
@@ -46,7 +47,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [384, 640, 750, 828, 1080],
-    imageSizes: [120, 200, 240, 400],
+    imageSizes: [32, 48, 64, 96, 120, 200, 240, 400],
     remotePatterns: [
       {
         protocol: "https",

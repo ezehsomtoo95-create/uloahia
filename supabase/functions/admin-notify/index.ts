@@ -358,22 +358,30 @@ Deno.serve(async (req) => {
 
   // User-facing engagement emails
   if (payload.type === "chat_message_email" || payload.type === "listing_comment_email") {
-    const toEmail = payload.to;
+    const details = payload.details;
+    const toEmail =
+      payload.to ||
+      (typeof details.to_email === "string" ? details.to_email.trim() : "") ||
+      (typeof details.email === "string" ? details.email.trim() : "");
+
     if (!toEmail) {
+      console.error(`Missing recipient email for ${payload.type}`, details);
       return jsonResponse({ ok: false, error: `Missing recipient email for ${payload.type}.` }, 200);
     }
 
     const isComment = payload.type === "listing_comment_email";
-    const heading = isComment ? "New listing comment" : "New marketplace message";
+    const heading = isComment ? "New listing comment" : "New message";
     const fallbackText = isComment
       ? "Someone left a comment on your listing on AhiaUlo. Log in to view and reply."
-      : "You have received a new message regarding a listing on AhiaUlo. Log in to your dashboard to view and reply.";
+      : "You have a new message on AhiaUlo. Log in to Chat to view and reply.";
     const text = payload.message || fallbackText;
     const subject =
       payload.subject ||
       (isComment
         ? `[${APP_NAME}] New comment on your listing`
-        : `[${APP_NAME}] New message on your listing`);
+        : `[${APP_NAME}] New message`);
+
+    console.log("Sending engagement email:", { type: payload.type, to: toEmail });
 
     return await sendResendEmail({
       resend,

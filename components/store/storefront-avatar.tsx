@@ -2,6 +2,7 @@
 
 import { Store } from "lucide-react";
 import { AvatarLightbox } from "@/components/profile/avatar-lightbox";
+import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -29,8 +30,7 @@ export function StorefrontAvatar({
         aria-label={src ? "View profile photo" : undefined}
       >
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          <LazyAvatar src={src} size={80} className="h-full w-full rounded-full" />
         ) : (
           <Store size={28} strokeWidth={1.6} />
         )}

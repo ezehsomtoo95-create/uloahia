@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { getConversationsForUser } from "@/lib/data/chat";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
@@ -61,8 +62,11 @@ export default async function MessagesPage() {
                 >
                   <div className="chat-inbox-avatar" aria-hidden>
                     {conversation.otherPartyAvatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={conversation.otherPartyAvatarUrl} alt="" />
+                      <LazyAvatar
+                        src={conversation.otherPartyAvatarUrl}
+                        size={48}
+                        className="size-full rounded-full"
+                      />
                     ) : (
                       <span>{initials}</span>
                     )}

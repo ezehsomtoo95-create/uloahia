@@ -1,13 +1,14 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin, Store } from "lucide-react";
 import { ListingCommentsSection } from "@/components/listings/listing-comments-section";
-import { ListingImageGallery } from "@/components/listings/listing-image-gallery";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
 import { RelatedListingsSection } from "@/components/listings/related-listings-section";
 import { ReportListingButton } from "@/components/listings/report-listing-button";
+import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { getListingComments } from "@/lib/data/listing-comments";
 import {
   getListingForViewer,
@@ -20,6 +21,18 @@ import {
 import { getPublicSellerById } from "@/lib/data/sellers";
 import { formatListingLocation, formatNaira, formatViews, sanitizeListingTitle } from "@/lib/utils/format";
 import { maskDisplayPhone } from "@/lib/utils/phone";
+
+const ListingImageGallery = dynamic(
+  () =>
+    import("@/components/listings/listing-image-gallery").then(
+      (mod) => mod.ListingImageGallery,
+    ),
+  {
+    loading: () => (
+      <div className="aspect-square w-full skeleton rounded-none sm:rounded-[1rem]" />
+    ),
+  },
+);
 
 export default async function ListingDetailsPage({
   params,
@@ -107,8 +120,11 @@ export default async function ListingDetailsPage({
               <Link href={storeHref} className="market-pdp-seller-link">
                 <div className="market-pdp-seller-avatar" aria-hidden>
                   {sellerProfile?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={sellerProfile.avatarUrl} alt="" />
+                    <LazyAvatar
+                      src={sellerProfile.avatarUrl}
+                      size={44}
+                      className="size-full rounded-full"
+                    />
                   ) : (
                     <Store size={18} strokeWidth={1.75} />
                   )}

@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { BadgeCheck, Bookmark, Eye, MapPin } from "lucide-react";
+import { memo } from "react";
+import { BadgeCheck, Eye, MapPin } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { ListingCardSaveButton } from "@/components/listings/listing-card-save-button";
 import { ListingListImage } from "@/components/listings/listing-list-image";
-import { useSaveToast } from "@/components/listings/save-toast";
-import { useSavedListings } from "@/components/listings/saved-listings-provider";
+import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import type { Listing } from "@/lib/types";
-import { buildAuthHref } from "@/lib/utils/auth-redirect";
 import { cn } from "@/lib/utils/cn";
 import {
   formatListingLocation,
@@ -26,18 +24,13 @@ function SellerAvatar({
   name: string;
   avatarUrl?: string | null;
 }) {
-  if (avatarUrl) {
-    return (
-      <span className="listing-card-seller-avatar" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={avatarUrl} alt="" />
-      </span>
-    );
-  }
-
   return (
     <span className="listing-card-seller-avatar" aria-hidden>
-      <span className="listing-card-seller-initials">{getSellerInitials(name)}</span>
+      {avatarUrl ? (
+        <LazyAvatar src={avatarUrl} size={28} className="size-full rounded-full" />
+      ) : (
+        <span className="listing-card-seller-initials">{getSellerInitials(name)}</span>
+      )}
     </span>
   );
 }
@@ -56,147 +49,110 @@ export const ListingCard = memo(function ListingCard({
   hideSave?: boolean;
 }) {
   const { t } = useLocale();
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isSaved, toggleSave } = useSavedListings();
-  const { showSaveToast } = useSaveToast();
-  const saved = isSaved(listing.id);
-  const [isSaving, setIsSaving] = useState(false);
-
-  async function handleSave(event: React.MouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    setIsSaving(true);
-    const result = await toggleSave(listing);
-    setIsSaving(false);
-
-    if ("requiresAuth" in result && result.requiresAuth) {
-      router.push(buildAuthHref("login", pathname || `/listing/${listing.id}`));
-      return;
-    }
-
-    if ("failed" in result && result.failed) {
-      showSaveToast("Could not save");
-      return;
-    }
-
-    if ("saved" in result) {
-      const nextSaved = Boolean(result.saved);
-      onSaveChange?.(nextSaved);
-      showSaveToast(nextSaved ? "Saved" : "Removed from saved");
-    }
-  }
-
   const displayTitle = sanitizeListingTitle(listing.title);
   const storeHref = listing.sellerId ? `/store/${listing.sellerId}` : null;
   const sellerLabel = listing.sellerName || t("card.seller");
   const isList = variant === "list";
 
   return (
-      <article className={cn("listing-card", isList && "listing-card--list")}>
-        <Link
-          href={`/listing/${listing.id}`}
-          className={cn("listing-card-link", isList && "listing-card-link--list")}
+    <article className={cn("listing-card", isList && "listing-card--list")}>
+      <Link
+        href={`/listing/${listing.id}`}
+        className={cn("listing-card-link", isList && "listing-card-link--list")}
+      >
+        <div
+          className={cn(
+            "product-media listing-card-photo",
+            isList ? "product-media--sm" : "product-media--flush-top",
+          )}
         >
-          <div
-            className={cn(
-              "product-media listing-card-photo",
-              isList ? "product-media--sm" : "product-media--flush-top",
-            )}
-          >
-            {listing.imageUrl ? (
-              <ListingListImage
-                src={listing.imageUrl}
-                alt={displayTitle}
-                variant={isList ? "row" : "grid"}
-                className="product-media-img listing-card-photo-img"
-              />
-            ) : (
-              <div className="listing-card-photo-empty">
-                <span>No photo</span>
-              </div>
-            )}
-            {listing.verified ? (
-              <span className="listing-card-badge">
-                <BadgeCheck size={11} strokeWidth={2.2} />
-                {t("card.verified")}
-              </span>
-            ) : null}
-            {listing.condition ? (
-              <span className="listing-card-condition bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
-                {listing.condition}
-              </span>
-            ) : null}
-          </div>
-          <div className="listing-card-body text-neutral-950 dark:text-neutral-50">
-            <div className="listing-card-price-block">
-              <p className="type-card-price text-neutral-950 dark:text-neutral-50">
-                {formatNaira(listing.price)}
-              </p>
-              <p
-                className="listing-card-location"
-                title={`${listing.area}, ${listing.city}`}
-              >
-                <MapPin size={10} strokeWidth={1.8} className="shrink-0" aria-hidden />
-                <span className="truncate">
-                  {formatListingLocation(listing.area, listing.city, isList ? 32 : 24)}
-                </span>
-              </p>
-            </div>
-            <h3 className="type-card-title line-clamp-2 text-neutral-950 dark:text-neutral-50">
-              {displayTitle}
-            </h3>
-            <div className="listing-card-footer text-neutral-600 dark:text-neutral-400">
-              <span className="listing-card-meta-row inline-flex min-w-0 items-center gap-2">
-                <span className="truncate">{listing.createdAt}</span>
-                <span
-                  className="inline-flex shrink-0 items-center gap-0.5 tabular-nums"
-                  title={`${listing.views ?? 0} views`}
-                >
-                  <Eye size={11} strokeWidth={2} className="opacity-70" aria-hidden />
-                  {formatViewCount(listing.views ?? 0)}
-                </span>
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        {!hideSeller ? (
-          storeHref ? (
-            <Link
-              href={storeHref}
-              className="listing-card-seller-link"
-              title={sellerLabel}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
-              {listing.sellerVerified ? (
-                <BadgeCheck size={11} strokeWidth={2.2} className="shrink-0 text-primary" />
-              ) : null}
-              <span className="truncate">{sellerLabel}</span>
-            </Link>
+          {listing.imageUrl ? (
+            <ListingListImage
+              src={listing.imageUrl}
+              alt={displayTitle}
+              variant={isList ? "row" : "grid"}
+              className="product-media-img listing-card-photo-img"
+            />
           ) : (
-            <span className="listing-card-seller-link listing-card-seller-link--muted">
-              <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
-              <span className="truncate">{sellerLabel}</span>
+            <div className="listing-card-photo-empty">
+              <span>No photo</span>
+            </div>
+          )}
+          {listing.verified ? (
+            <span className="listing-card-badge">
+              <BadgeCheck size={11} strokeWidth={2.2} />
+              {t("card.verified")}
             </span>
-          )
-        ) : null}
+          ) : null}
+          {listing.condition ? (
+            <span className="listing-card-condition bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
+              {listing.condition}
+            </span>
+          ) : null}
+        </div>
+        <div className="listing-card-body text-neutral-950 dark:text-neutral-50">
+          <div className="listing-card-price-block">
+            <p className="type-card-price text-neutral-950 dark:text-neutral-50">
+              {formatNaira(listing.price)}
+            </p>
+            <p
+              className="listing-card-location"
+              title={`${listing.area}, ${listing.city}`}
+            >
+              <MapPin size={10} strokeWidth={1.8} className="shrink-0" aria-hidden />
+              <span className="truncate">
+                {formatListingLocation(listing.area, listing.city, isList ? 32 : 24)}
+              </span>
+            </p>
+          </div>
+          <h3 className="type-card-title line-clamp-2 text-neutral-950 dark:text-neutral-50">
+            {displayTitle}
+          </h3>
+          <div className="listing-card-footer text-neutral-600 dark:text-neutral-400">
+            <span className="listing-card-meta-row inline-flex min-w-0 items-center gap-2">
+              <span className="truncate">{listing.createdAt}</span>
+              <span
+                className="inline-flex shrink-0 items-center gap-0.5 tabular-nums"
+                title={`${listing.views ?? 0} views`}
+              >
+                <Eye size={11} strokeWidth={2} className="opacity-70" aria-hidden />
+                {formatViewCount(listing.views ?? 0)}
+              </span>
+            </span>
+          </div>
+        </div>
+      </Link>
 
-        {!hideSave ? (
-          <button
-            type="button"
-            aria-label={saved ? "Remove from saved" : "Save listing"}
-            aria-pressed={saved}
-            disabled={isSaving}
-            onClick={handleSave}
-            className={cn("listing-card-save", isList && "listing-card-save--row", saved && "is-saved")}
+      {!hideSeller ? (
+        storeHref ? (
+          <Link
+            href={storeHref}
+            className="listing-card-seller-link"
+            title={sellerLabel}
+            onClick={(event) => event.stopPropagation()}
           >
-            <Bookmark size={14} strokeWidth={2.2} fill={saved ? "currentColor" : "none"} />
-          </button>
-        ) : null}
-      </article>
+            <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
+            {listing.sellerVerified ? (
+              <BadgeCheck size={11} strokeWidth={2.2} className="shrink-0 text-primary" />
+            ) : null}
+            <span className="truncate">{sellerLabel}</span>
+          </Link>
+        ) : (
+          <span className="listing-card-seller-link listing-card-seller-link--muted">
+            <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
+            <span className="truncate">{sellerLabel}</span>
+          </span>
+        )
+      ) : null}
+
+      {!hideSave ? (
+        <ListingCardSaveButton
+          listing={listing}
+          variant={variant}
+          onSaveChange={onSaveChange}
+        />
+      ) : null}
+    </article>
   );
 });
 

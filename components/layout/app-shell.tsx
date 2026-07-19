@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { EngagementBadgesProvider } from "@/components/layout/engagement-badges-provider";
@@ -10,8 +11,23 @@ import { SaveToastProvider } from "@/components/listings/save-toast";
 import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { cn } from "@/lib/utils/cn";
 
+function useIsDesktopLayout() {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isDesktop;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isDesktop = useIsDesktopLayout();
   const isAdmin = pathname.startsWith("/admin");
   const isHome = pathname === "/";
   const isChatThread = /^\/messages\/[^/]+$/.test(pathname);
@@ -34,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   isAdmin && "marketplace-body--admin",
                 )}
               >
-                {!isAdmin ? <MarketplaceDesktopSidebar /> : null}
+                {!isAdmin && isDesktop ? <MarketplaceDesktopSidebar /> : null}
                 <div className="marketplace-main">
                   <div
                     className={cn(

@@ -36,6 +36,7 @@ export default async function ConversationPage({
         conversationId={conversation.id}
         listingId={conversation.listingId}
         listingTitle={conversation.listingTitle}
+        otherPartyId={conversation.otherPartyId}
         otherPartyName={conversation.otherPartyName}
         otherPartyUsername={conversation.otherPartyUsername}
         otherPartyAvatarUrl={conversation.otherPartyAvatarUrl}

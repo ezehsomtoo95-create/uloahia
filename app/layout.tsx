@@ -14,6 +14,8 @@ const manrope = Manrope({
   variable: "--font-marketplace",
   subsets: ["latin"],
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -40,6 +42,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#FAF7F0",
 };

@@ -73,12 +73,24 @@ export function EngagementBadgesProvider({ children }: { children: React.ReactNo
     });
 
     const interval = window.setInterval(() => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
       void refresh();
-    }, 45000);
+    }, 60000);
+
+    function onVisibility() {
+      if (document.visibilityState === "visible") {
+        void refresh();
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       subscription.unsubscribe();
       window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refresh]);
 

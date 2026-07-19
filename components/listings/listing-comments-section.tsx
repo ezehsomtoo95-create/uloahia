@@ -3,6 +3,7 @@
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { postListingComment } from "@/app/actions/listing-comments";
+import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { buildAuthHref } from "@/lib/utils/auth-redirect";
 import { cn } from "@/lib/utils/cn";
 
@@ -91,11 +92,10 @@ export function ListingCommentsSection({
               <div className="flex items-center gap-2">
                 <span className="grid size-7 place-items-center overflow-hidden rounded-full bg-neutral-200 text-[11px] font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
                   {comment.authorAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <LazyAvatar
                       src={comment.authorAvatarUrl}
-                      alt=""
-                      className="size-full object-cover"
+                      size={28}
+                      className="size-full rounded-full"
                     />
                   ) : (
                     comment.authorName.slice(0, 1).toUpperCase()

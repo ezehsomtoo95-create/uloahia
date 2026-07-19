@@ -212,6 +212,30 @@ textarea {
   color-scheme: light dark;
 }
 
+/* iOS Safari zooms focused inputs under 16px — keep form controls at least 16px on mobile. */
+@media (max-width: 1024px) {
+  input,
+  select,
+  textarea,
+  .search-field-input,
+  .auth-screen__field-control,
+  .auth-screen__field-control input,
+  .location-explorer-input,
+  .chat-composer-input {
+    font-size: 16px !important;
+  }
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  overscroll-behavior-x: none;
+}
+
 select option {
   background: var(--surface);
   color: var(--foreground);
@@ -1155,9 +1179,9 @@ select option:hover {
   }
 
   .auth-screen__field-control {
-    font-size: 0.8125rem;
+    font-size: 1rem;
     font-weight: 400;
-    line-height: 1.1;
+    line-height: 1.2;
   }
 
   .auth-screen__field-control input {
@@ -4480,7 +4504,7 @@ select option:hover {
     border: 0;
     background: transparent;
     font: inherit;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--text-primary);
     outline: none;
   }
@@ -4541,6 +4565,18 @@ select option:hover {
     border-bottom: 1px solid var(--border);
   }
 
+  .chat-thread-profile {
+    width: fit-content;
+    max-width: 100%;
+    color: inherit;
+    border-radius: 0.5rem;
+    transition: opacity 0.15s ease;
+  }
+
+  .chat-thread-profile:active {
+    opacity: 0.75;
+  }
+
   .chat-thread-messages {
     display: flex;
     min-height: 0;
@@ -4552,6 +4588,7 @@ select option:hover {
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     padding-block: 0.75rem;
   }
 
@@ -4568,12 +4605,22 @@ select option:hover {
     padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
   }
 
+  .chat-composer-input {
+    font-size: 1rem;
+  }
+
   .chat-bubble {
     max-width: 85%;
     border-radius: 1rem;
     padding: 0.55rem 0.75rem;
     font-size: 0.8125rem;
     line-height: 1.45;
+    touch-action: pan-y;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    cursor: default;
   }
 
   .chat-bubble--mine {
