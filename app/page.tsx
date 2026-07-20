@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import nextDynamic from "next/dynamic";
 import { Search } from "lucide-react";
-import { HomeCategoryFeed } from "@/components/home/home-category-feed";
 import {
   BRAND_NAME,
   BRAND_TAGLINE,
@@ -13,11 +13,28 @@ import { MARKETPLACE_HERO_IMAGE } from "@/lib/constants/category-imagery";
 import { getDiscoveryCategories } from "@/lib/data/categories";
 import { getApprovedListings } from "@/lib/data/listings";
 
+const HomeCategoryFeed = nextDynamic(
+  () =>
+    import("@/components/home/home-category-feed").then((mod) => mod.HomeCategoryFeed),
+  {
+    loading: () => (
+      <div className="mt-4 space-y-4 px-1" aria-hidden>
+        <div className="h-10 w-full skeleton rounded-full" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="aspect-[4/5] skeleton rounded-xl" />
+          ))}
+        </div>
+      </div>
+    ),
+  },
+);
+
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [newListings, discoveryCategories] = await Promise.all([
-    getApprovedListings(36),
+    getApprovedListings(24),
     getDiscoveryCategories(),
   ]);
 

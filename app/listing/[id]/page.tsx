@@ -2,11 +2,9 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin, Store } from "lucide-react";
-import { ListingCommentsSection } from "@/components/listings/listing-comments-section";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
-import { RelatedListingsSection } from "@/components/listings/related-listings-section";
 import { ReportListingButton } from "@/components/listings/report-listing-button";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { getListingComments } from "@/lib/data/listing-comments";
@@ -30,6 +28,30 @@ const ListingImageGallery = dynamic(
   {
     loading: () => (
       <div className="aspect-square w-full skeleton rounded-none sm:rounded-[1rem]" />
+    ),
+  },
+);
+
+const ListingCommentsSection = dynamic(
+  () =>
+    import("@/components/listings/listing-comments-section").then(
+      (mod) => mod.ListingCommentsSection,
+    ),
+  {
+    loading: () => (
+      <div className="mt-4 h-40 w-full skeleton rounded-xl" aria-hidden />
+    ),
+  },
+);
+
+const RelatedListingsSection = dynamic(
+  () =>
+    import("@/components/listings/related-listings-section").then(
+      (mod) => mod.RelatedListingsSection,
+    ),
+  {
+    loading: () => (
+      <div className="mt-4 h-48 w-full skeleton rounded-xl" aria-hidden />
     ),
   },
 );

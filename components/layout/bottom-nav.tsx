@@ -22,11 +22,11 @@ export function BottomNav() {
 
   return (
     <nav
-      className="marketplace-bottom-nav market-chrome-brand fixed inset-x-0 bottom-0 z-40 overflow-hidden border-t border-emerald-400/15 bg-[#064E3B] shadow-[0_-12px_28px_rgba(2,44,34,0.35)] lg:hidden"
+      className="marketplace-bottom-nav market-chrome-brand fixed inset-x-0 bottom-0 z-40 border-t border-emerald-400/15 bg-[#064E3B] pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-12px_28px_rgba(2,44,34,0.35)] lg:hidden"
       aria-label="Primary"
     >
       <div className="app-container relative z-10 grid h-[72px] grid-cols-5 items-center">
-        {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isSell = "emphasized" in item && item.emphasized;
           const isActive =
@@ -46,6 +46,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               className={cn(
                 "relative z-10 flex h-14 flex-col items-center justify-center gap-1 rounded-app text-[10.5px] font-medium text-emerald-50/70",
                 isActive && "font-semibold text-emerald-50",

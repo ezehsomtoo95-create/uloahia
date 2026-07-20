@@ -21,6 +21,7 @@ import {
   signupSchema,
 } from "@/lib/validation/auth";
 import { AuthCardLayout } from "@/components/auth/auth-card-layout";
+import { SHOW_GOOGLE_SIGN_IN } from "@/lib/constants/auth-features";
 import { cn } from "@/lib/utils/cn";
 
 type Mode = "login" | "signup" | "recover";
@@ -224,7 +225,6 @@ export function UnifiedAuthScreen({
     const envError = getSupabaseEnvError();
     if (envError) {
       setMessage(envError);
-      console.log("signup env error", envError);
       return;
     }
 
@@ -681,7 +681,8 @@ export function UnifiedAuthScreen({
                   : copy.button}
           </button>
 
-          {mode === "login" || (mode === "signup" && !showVerificationScreen) ? (
+          {SHOW_GOOGLE_SIGN_IN &&
+          (mode === "login" || (mode === "signup" && !showVerificationScreen)) ? (
             <>
               <div className="auth-screen__divider" aria-hidden="true">
                 <span className="auth-screen__divider-line" />

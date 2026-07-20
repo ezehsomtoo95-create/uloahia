@@ -199,6 +199,15 @@
     width: 100%;
   }
 
+  .chat-thread-composer {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: 0.75rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-bottom: 0;
+  }
+
   .marketplace-desktop-sidebar-nav {
     display: flex;
     flex: 1;

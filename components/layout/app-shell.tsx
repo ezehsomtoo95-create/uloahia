@@ -1,15 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { EngagementBadgesProvider } from "@/components/layout/engagement-badges-provider";
-import { MarketplaceDesktopSidebar } from "@/components/layout/marketplace-desktop-sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SaveToastProvider } from "@/components/listings/save-toast";
 import { SavedListingsProvider } from "@/components/listings/saved-listings-provider";
 import { cn } from "@/lib/utils/cn";
+
+const MarketplaceDesktopSidebar = dynamic(
+  () =>
+    import("@/components/layout/marketplace-desktop-sidebar").then(
+      (mod) => mod.MarketplaceDesktopSidebar,
+    ),
+  { ssr: false },
+);
 
 function useIsDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(false);
