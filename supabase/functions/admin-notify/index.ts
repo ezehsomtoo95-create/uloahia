@@ -107,7 +107,7 @@ function pickRecipient(payload: NotifyPayload, details: Record<string, unknown>)
     payload.email,
     payload.recipient,
     typeof details.to_email === "string" ? details.to_email : "",
-    typeof details.email === "string" ? details.email : "",
+    // Do not use details.email — signup/listing payloads include the user's email as metadata, not the recipient.
   ];
 
   for (const value of candidates) {
@@ -421,11 +421,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Admin emails (signup, listing, custom)
+  // Admin emails (signup, listing, custom) — always to marketplace owner, never the user in details.
   const typeLabel = getTypeLabel(payload.type);
   const detailsText = payload.message || formatDetails(payload.details);
   const subject = payload.subject || `[${APP_NAME}] ${typeLabel}`;
-  const toAdmin = payload.to || ADMIN_EMAIL;
+  const toAdmin = ADMIN_EMAIL;
 
   return await sendResendEmail({
     resend,
