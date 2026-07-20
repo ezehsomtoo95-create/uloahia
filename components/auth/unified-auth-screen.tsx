@@ -20,7 +20,7 @@ import {
   resetPasswordSchema,
   signupSchema,
 } from "@/lib/validation/auth";
-import { formatZodError } from "@/lib/validation/common";
+import { coerceAuthBannerText, formatZodError } from "@/lib/validation/common";
 import { AuthCardLayout } from "@/components/auth/auth-card-layout";
 import { SHOW_GOOGLE_SIGN_IN } from "@/lib/constants/auth-features";
 import { cn } from "@/lib/utils/cn";
@@ -51,19 +51,6 @@ const MODE_COPY = {
     button: "Send reset email",
   },
 } as const;
-
-function toAuthBannerMessage(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function toActionErrorMessage(value: unknown, fallback: string) {
-  return toAuthBannerMessage(value) ?? fallback;
-}
 
 export function UnifiedAuthScreenRoot({
   embedded,
@@ -134,7 +121,20 @@ export function UnifiedAuthScreen({
   const showGoogleAuth =
     SHOW_GOOGLE_SIGN_IN &&
     (mode === "login" || (mode === "signup" && !showVerificationScreen));
-  const statusMessage = toAuthBannerMessage(message);
+  const statusMessage = (() => {
+    const text = coerceAuthBannerText(message, "");
+    return text ? text : null;
+  })();
+  const authErrorTitle = authError?.title
+    ? coerceAuthBannerText(authError.title, "")
+    : "";
+  const authErrorText = authError
+    ? coerceAuthBannerText(authError.text, "Something went wrong.")
+    : "";
+
+  function setBannerMessage(value: unknown, fallback = "") {
+    setMessage(coerceAuthBannerText(value, fallback));
+  }
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
@@ -242,7 +242,7 @@ export function UnifiedAuthScreen({
 
     const envError = getSupabaseEnvError();
     if (envError) {
-      setMessage(envError);
+      setBannerMessage(envError);
       return;
     }
 
@@ -254,7 +254,7 @@ export function UnifiedAuthScreen({
       confirmPassword,
     });
     if (!validation.success) {
-      setMessage(formatZodError(validation.error));
+      setBannerMessage(formatZodError(validation.error, "Invalid signup details."));
       return;
     }
 
@@ -263,16 +263,14 @@ export function UnifiedAuthScreen({
       availability = await assertSignupAvailability(validation.data);
     } catch (error) {
       console.error("signup availability error", error);
-      setMessage("Could not validate signup details. Please try again.");
+      setBannerMessage("Could not validate signup details. Please try again.");
       return;
     }
 
     if (!availability?.success) {
-      setMessage(
-        toActionErrorMessage(
-          availability?.error,
-          "Could not validate signup details. Please try again.",
-        ),
+      setBannerMessage(
+        availability?.error,
+        "Could not validate signup details. Please try again.",
       );
       return;
     }
@@ -308,7 +306,7 @@ export function UnifiedAuthScreen({
       setMessage("");
     } catch (error) {
       console.error("signup error", error);
-      setMessage("Could not complete signup. Please try again.");
+      setBannerMessage("Could not complete signup. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -320,7 +318,10 @@ export function UnifiedAuthScreen({
 
     const validation = loginSchema.safeParse({ email, password });
     if (!validation.success) {
-      setMessage(validation.error.issues[0]?.message ?? "Invalid login details.");
+      setBannerMessage(
+        validation.error.issues[0]?.message,
+        "Invalid login details.",
+      );
       return;
     }
 
@@ -371,7 +372,7 @@ export function UnifiedAuthScreen({
 
       if (!session?.user?.email_confirmed_at) {
         console.error("LIVE LOGIN FAILURE: Could not establish login session.", session);
-        setMessage("Could not establish login session. Please try again.");
+        setBannerMessage("Could not establish login session. Please try again.");
         return;
       }
 
@@ -399,7 +400,7 @@ export function UnifiedAuthScreen({
 
     const validation = recoverSchema.safeParse({ email });
     if (!validation.success) {
-      setMessage(validation.error.issues[0]?.message ?? "Enter a valid email.");
+      setBannerMessage(validation.error.issues[0]?.message, "Enter a valid email.");
 
       return;
     }
@@ -434,7 +435,7 @@ export function UnifiedAuthScreen({
       confirmPassword,
     });
     if (!validation.success) {
-      setMessage(validation.error.issues[0]?.message ?? "Invalid password.");
+      setBannerMessage(validation.error.issues[0]?.message, "Invalid password.");
 
       return;
     }
@@ -650,10 +651,10 @@ export function UnifiedAuthScreen({
 
           {authError ? (
             <div className="auth-screen__banner" role="alert">
-              {authError.title ? (
-                <p className="auth-screen__banner-title">{authError.title}</p>
+              {authErrorTitle ? (
+                <p className="auth-screen__banner-title">{authErrorTitle}</p>
               ) : null}
-              <p className="auth-screen__banner-text">{authError.text}</p>
+              <p className="auth-screen__banner-text">{authErrorText}</p>
               {authError.showSignupButton ? (
                 <button
                   type="button"

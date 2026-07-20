@@ -12,14 +12,51 @@ export function parseInput<T extends z.ZodType>(
   return schema.parse(input);
 }
 
-export function formatZodError(error: unknown): string {
+/** Plain text for auth banners — never pass through objects (avoids literal `{}` in JSX). */
+export function coerceAuthBannerText(value: unknown, fallback = ""): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "{}" || trimmed === "[object Object]") {
+      return fallback;
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (value instanceof Error) {
+    return coerceAuthBannerText(value.message, fallback);
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if ("message" in record) {
+      return coerceAuthBannerText(record.message, fallback);
+    }
+
+    if ("error" in record) {
+      return coerceAuthBannerText(record.error, fallback);
+    }
+  }
+
+  return fallback;
+}
+
+export function formatZodError(error: unknown, fallback = "Invalid input."): string {
   if (error instanceof z.ZodError) {
-    return error.issues[0]?.message ?? "Invalid input.";
+    return coerceAuthBannerText(error.issues[0]?.message, fallback);
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return coerceAuthBannerText(error.message, fallback);
   }
 
-  return "Invalid input.";
+  return fallback;
 }
