@@ -52,6 +52,22 @@ const MODE_COPY = {
   },
 } as const;
 
+function logSignupAuthFailure(phase: string, error: unknown) {
+  if (error && typeof error === "object") {
+    const record = error as AuthErrorInput & { name?: string; stack?: string };
+    console.error(`Signup failed (${phase}):`, {
+      message: record.message,
+      code: record.code,
+      status: record.status,
+      name: record.name,
+      stack: record.stack,
+    });
+    return;
+  }
+
+  console.error(`Signup failed (${phase}):`, error);
+}
+
 export function UnifiedAuthScreenRoot({
   embedded,
   returnPath,
@@ -290,6 +306,7 @@ export function UnifiedAuthScreen({
       });
 
       if (error) {
+        logSignupAuthFailure("supabase.auth.signUp", error);
         showAuthError({
           message: error.message,
           code: error.code,
@@ -305,7 +322,7 @@ export function UnifiedAuthScreen({
       setShowVerificationScreen(true);
       setMessage("");
     } catch (error) {
-      console.error("signup error", error);
+      logSignupAuthFailure("handleSignup", error);
       setBannerMessage("Could not complete signup. Please try again.");
     } finally {
       setIsLoading(false);

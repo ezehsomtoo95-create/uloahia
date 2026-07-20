@@ -100,6 +100,14 @@ function isInvalidCredentialsMessage(message: string, code: string) {
   );
 }
 
+function isDatabaseSignupFailureMessage(message: string, code: string) {
+  return (
+    code === "unexpected_failure" ||
+    message.includes("database error saving new user") ||
+    message.includes("profile_phone_already_linked")
+  );
+}
+
 export function mapAuthError(
   error: AuthErrorInput | string,
   mode: AuthMode,
@@ -116,6 +124,23 @@ export function mapAuthError(
       text: "This email already has an account. Login instead.",
 
       showLoginButton: true,
+    };
+  }
+
+  if (mode === "signup" && isDatabaseSignupFailureMessage(message, code)) {
+    if (
+      message.includes("profile_phone") ||
+      message.includes("already linked") ||
+      message.includes("unique")
+    ) {
+      return {
+        text: "This phone number is already linked to an account.",
+        showLoginButton: true,
+      };
+    }
+
+    return {
+      text: "We could not finish creating your account. Please try again in a moment.",
     };
   }
 

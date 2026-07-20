@@ -39,6 +39,13 @@ export function formatDisplayPhone(phone: string | null | undefined) {
   return phone.trim();
 }
 
+/** Canonical local form stored in public.profiles.phone (matches normalize_listing_phone). */
+export function profilePhoneStorageFormat(input: string) {
+  const e164 = normalizeNigerianPhone(input);
+  const local = e164 ? formatDisplayPhone(e164) : formatDisplayPhone(input);
+  return local.trim() || input.trim();
+}
+
 /** Mask middle digits for display, e.g. 0810•••263 */
 export function maskDisplayPhone(phone?: string) {
   if (!phone) return "No phone";

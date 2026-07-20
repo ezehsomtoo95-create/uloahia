@@ -2,7 +2,7 @@
 
 import { actionError, actionSuccess, type ActionResult } from "@/lib/action-result";
 import { supabaseAdmin } from "@/lib/supabase/service";
-import { normalizeNigerianPhone } from "@/lib/utils/phone";
+import { normalizeNigerianPhone, profilePhoneStorageFormat } from "@/lib/utils/phone";
 import { formatZodError } from "@/lib/validation/common";
 import { signupSchema } from "@/lib/validation/auth";
 
@@ -26,17 +26,18 @@ export async function assertSignupAvailability(
     }
 
     const admin = supabaseAdmin();
-    const { data: phoneProfile, error: phoneError } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("phone", normalizedPhone)
-      .maybeSingle();
 
-    if (phoneError) {
+    const { data: phoneTaken, error: phoneLookupError } = await admin.rpc(
+      "auth_phone_account_exists",
+      { input_phone: parsed.phone },
+    );
+
+    if (phoneLookupError) {
+      console.error("assertSignupAvailability: auth_phone_account_exists failed", phoneLookupError);
       return actionError("Could not validate phone number. Please try again.");
     }
 
-    if (phoneProfile) {
+    if (phoneTaken) {
       return actionError("This phone number is already linked to an account.");
     }
 
@@ -56,7 +57,7 @@ export async function assertSignupAvailability(
       }
     }
 
-    return actionSuccess({ normalizedPhone });
+    return actionSuccess({ normalizedPhone: profilePhoneStorageFormat(parsed.phone) });
   } catch (error) {
     return actionError(formatZodError(error));
   }
