@@ -20,6 +20,7 @@ import {
   resetPasswordSchema,
   signupSchema,
 } from "@/lib/validation/auth";
+import { formatZodError } from "@/lib/validation/common";
 import { AuthCardLayout } from "@/components/auth/auth-card-layout";
 import { SHOW_GOOGLE_SIGN_IN } from "@/lib/constants/auth-features";
 import { cn } from "@/lib/utils/cn";
@@ -50,6 +51,19 @@ const MODE_COPY = {
     button: "Send reset email",
   },
 } as const;
+
+function toAuthBannerMessage(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function toActionErrorMessage(value: unknown, fallback: string) {
+  return toAuthBannerMessage(value) ?? fallback;
+}
 
 export function UnifiedAuthScreenRoot({
   embedded,
@@ -117,6 +131,10 @@ export function UnifiedAuthScreen({
   const [resendTargetEmail, setResendTargetEmail] = useState("");
   const isRedirectingRef = useRef(false);
   const copy = MODE_COPY[mode];
+  const showGoogleAuth =
+    SHOW_GOOGLE_SIGN_IN &&
+    (mode === "login" || (mode === "signup" && !showVerificationScreen));
+  const statusMessage = toAuthBannerMessage(message);
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
@@ -236,46 +254,64 @@ export function UnifiedAuthScreen({
       confirmPassword,
     });
     if (!validation.success) {
-      setMessage(validation.error.issues[0]?.message ?? "Invalid signup details.");
+      setMessage(formatZodError(validation.error));
       return;
     }
 
-    const availability = await assertSignupAvailability(validation.data);
-    if (!availability.success) {
-      setMessage(availability.error);
+    let availability: Awaited<ReturnType<typeof assertSignupAvailability>>;
+    try {
+      availability = await assertSignupAvailability(validation.data);
+    } catch (error) {
+      console.error("signup availability error", error);
+      setMessage("Could not validate signup details. Please try again.");
+      return;
+    }
 
+    if (!availability?.success) {
+      setMessage(
+        toActionErrorMessage(
+          availability?.error,
+          "Could not validate signup details. Please try again.",
+        ),
+      );
       return;
     }
 
     setIsLoading(true);
-    const normalizedPhone = availability.data?.normalizedPhone ?? "";
-    const { data, error } = await supabase.auth.signUp({
-      email: validation.data.email.toLowerCase(),
-      password: validation.data.password,
-      options: {
-        data: {
-          full_name: validation.data.fullName.trim(),
-          phone: normalizedPhone,
+    try {
+      const normalizedPhone = availability.data?.normalizedPhone ?? "";
+      const { data, error } = await supabase.auth.signUp({
+        email: validation.data.email.toLowerCase(),
+        password: validation.data.password,
+        options: {
+          data: {
+            full_name: validation.data.fullName.trim(),
+            phone: normalizedPhone,
+          },
         },
-      },
-    });
-    setIsLoading(false);
-
-    if (error) {
-      showAuthError({
-        message: error.message,
-        code: error.code,
-        status: error.status,
       });
-      return;
-    }
 
-    const signedUpEmail =
-      data.user?.email?.toLowerCase() ?? validation.data.email.toLowerCase();
-    setVerificationEmail(signedUpEmail);
-    setResendTargetEmail(signedUpEmail);
-    setShowVerificationScreen(true);
-    setMessage("");
+      if (error) {
+        showAuthError({
+          message: error.message,
+          code: error.code,
+          status: error.status,
+        });
+        return;
+      }
+
+      const signedUpEmail =
+        data.user?.email?.toLowerCase() ?? validation.data.email.toLowerCase();
+      setVerificationEmail(signedUpEmail);
+      setResendTargetEmail(signedUpEmail);
+      setShowVerificationScreen(true);
+      setMessage("");
+    } catch (error) {
+      console.error("signup error", error);
+      setMessage("Could not complete signup. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleLogin() {
@@ -639,9 +675,9 @@ export function UnifiedAuthScreen({
             </div>
           ) : null}
 
-          {message ? (
+          {statusMessage ? (
             <p className="auth-screen__banner" role="status">
-              {message}
+              {statusMessage}
             </p>
           ) : null}
 
@@ -681,8 +717,7 @@ export function UnifiedAuthScreen({
                   : copy.button}
           </button>
 
-          {SHOW_GOOGLE_SIGN_IN &&
-          (mode === "login" || (mode === "signup" && !showVerificationScreen)) ? (
+          {showGoogleAuth ? (
             <>
               <div className="auth-screen__divider" aria-hidden="true">
                 <span className="auth-screen__divider-line" />
