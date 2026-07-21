@@ -1,12 +1,15 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Clock3, Eye, MapPin, Store } from "lucide-react";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
 import { ReportListingButton } from "@/components/listings/report-listing-button";
+import { ShareListing } from "@/components/listings/share-listing";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
 import { getListingComments } from "@/lib/data/listing-comments";
 import {
   getListingForViewer,
@@ -17,8 +20,64 @@ import {
   getViewerContext,
 } from "@/lib/data/listings";
 import { getPublicSellerById } from "@/lib/data/sellers";
+import {
+  getDefaultListingShareImage,
+  getListingShareUrl,
+  resolveListingShareImage,
+} from "@/lib/share";
 import { formatListingLocation, formatNaira, formatViews, sanitizeListingTitle } from "@/lib/utils/format";
 import { maskDisplayPhone } from "@/lib/utils/phone";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const listing = await getListingForViewer(id);
+
+  if (!listing) {
+    return {
+      title: "Listing not found",
+    };
+  }
+
+  const title = sanitizeListingTitle(listing.title);
+  const priceLabel = formatNaira(listing.price);
+  const locationLabel = formatListingLocation(listing.area, listing.city, 80);
+  const description = `${priceLabel} · ${locationLabel}. ${BRAND_TAGLINE}`;
+  const url = getListingShareUrl(listing.id);
+  const image = listing.imageUrl
+    ? resolveListingShareImage(listing.imageUrl)
+    : getDefaultListingShareImage();
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: `${title} · ${BRAND_NAME}`,
+      description,
+      url,
+      siteName: BRAND_NAME,
+      type: "website",
+      images: [
+        {
+          url: image,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} · ${BRAND_NAME}`,
+      description,
+      images: [image],
+    },
+  };
+}
 
 const ListingImageGallery = dynamic(
   () =>
@@ -221,6 +280,16 @@ export default async function ListingDetailsPage({
                   </button>
                 )
               ) : null}
+              <ShareListing
+                listing={{
+                  id: listing.id,
+                  title: displayTitle,
+                  price: listing.price,
+                  area: listing.area,
+                  city: listing.city,
+                  imageUrl: listing.imageUrl,
+                }}
+              />
               {!isOwnListing ? (
                 <div className="market-pdp-report">
                   <ReportListingButton
