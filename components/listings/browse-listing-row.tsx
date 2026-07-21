@@ -79,7 +79,7 @@ export const BrowseListingRow = memo(function BrowseListingRow({ listing }: { li
                 </div>
                 {listing.verified ? (
                   <span className="listing-card-badge listing-card-badge--inline">
-                    <BadgeCheck size={10} />
+                    <BadgeCheck size={9} />
                     Verified
                   </span>
                 ) : null}

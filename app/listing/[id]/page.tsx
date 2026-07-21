@@ -169,7 +169,7 @@ export default async function ListingDetailsPage({
               <p className="market-pdp-price">{formatNaira(listing.price)}</p>
               {listing.verified ? (
                 <span className="market-pdp-verified">
-                  <BadgeCheck size={14} strokeWidth={2.2} />
+                  <BadgeCheck size={13} strokeWidth={2.2} />
                   Verified
                 </span>
               ) : isAdmin ? (

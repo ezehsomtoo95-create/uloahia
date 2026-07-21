@@ -80,7 +80,7 @@ export const ListingCard = memo(function ListingCard({
           )}
           {listing.verified ? (
             <span className="listing-card-badge">
-              <BadgeCheck size={11} strokeWidth={2.2} />
+              <BadgeCheck size={9} strokeWidth={2.2} />
               {t("card.verified")}
             </span>
           ) : null}
@@ -133,7 +133,7 @@ export const ListingCard = memo(function ListingCard({
           >
             <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
             {listing.sellerVerified ? (
-              <BadgeCheck size={11} strokeWidth={2.2} className="shrink-0 text-primary" />
+              <BadgeCheck size={9} strokeWidth={2.2} className="shrink-0 text-primary" />
             ) : null}
             <span className="truncate">{sellerLabel}</span>
           </Link>
