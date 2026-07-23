@@ -192,7 +192,10 @@ function CategoriesExplorerView({
                           alt=""
                           fill
                           sizes="40px"
+                          loading="lazy"
+                          decoding="async"
                           className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <span className="grid size-full place-items-center text-[12px] font-semibold">
@@ -235,7 +238,10 @@ function CategoriesExplorerView({
                     alt=""
                     fill
                     sizes="640px"
+                    priority
+                    decoding="async"
                     className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="size-full bg-background" />
@@ -338,7 +344,16 @@ function CategoryAccordionItem({
       >
         <span className="relative size-14 shrink-0 overflow-hidden rounded-[12px] border border-border bg-background">
           {image ? (
-            <Image src={image} alt="" fill sizes="56px" className="object-cover" />
+            <Image
+              src={image}
+              alt=""
+              fill
+              sizes="56px"
+              loading="lazy"
+              decoding="async"
+              className="object-cover"
+              unoptimized
+            />
           ) : (
             <span className="grid size-full place-items-center text-[14px] font-semibold text-primary">
               {category.name.slice(0, 1)}

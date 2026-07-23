@@ -9,6 +9,12 @@ type ListingDetailImageProps = {
   priority?: boolean;
   className?: string;
   onError?: () => void;
+  /**
+   * When true, always request the thumb transform even if variant is "hero".
+   * Used by the gallery for off-screen slides so we do not download every
+   * full-resolution photo up front.
+   */
+  forceThumb?: boolean;
 };
 
 export function ListingDetailImage({
@@ -18,10 +24,12 @@ export function ListingDetailImage({
   priority = false,
   className,
   onError,
+  forceThumb = false,
 }: ListingDetailImageProps) {
   const isBlob = src.startsWith("blob:");
+  const effectiveVariant = forceThumb ? "thumb" : variant;
   const optimizedSrc =
-    isBlob ? src : (getListingDetailImageUrl(src, variant) ?? src);
+    isBlob ? src : (getListingDetailImageUrl(src, effectiveVariant) ?? src);
 
   if (variant === "hero") {
     return (
@@ -29,11 +37,16 @@ export function ListingDetailImage({
         src={optimizedSrc}
         alt={alt}
         fill
-        priority={priority}
-        loading={priority ? undefined : "lazy"}
+        priority={priority && !forceThumb}
+        loading={priority && !forceThumb ? undefined : "lazy"}
+        decoding="async"
         // Blob previews + Supabase /render/image — skip Vercel optimizer.
         unoptimized
-        sizes="(max-width: 1024px) 100vw, 640px"
+        sizes={
+          forceThumb
+            ? "100vw"
+            : "(max-width: 1024px) 100vw, 640px"
+        }
         className={cn("object-cover object-center", className)}
         onError={onError}
       />
@@ -47,6 +60,7 @@ export function ListingDetailImage({
       width={72}
       height={72}
       loading="lazy"
+      decoding="async"
       unoptimized
       className={cn("size-full object-cover object-center", className)}
       onError={onError}

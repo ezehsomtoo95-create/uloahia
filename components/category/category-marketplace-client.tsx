@@ -230,8 +230,11 @@ export function CategoryMarketplaceClient({
               alt=""
               fill
               priority
+              fetchPriority="high"
+              decoding="async"
               sizes="(max-width: 1024px) 100vw, 72rem"
               className="object-cover"
+              unoptimized
             />
           ) : (
             <div className="category-marketplace-hero-fallback" />

@@ -8,7 +8,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "icons:pwa": "node scripts/generate-pwa-icons.mjs"
+    "icons:pwa": "node scripts/generate-pwa-icons.mjs",
+    "images:optimize": "node scripts/optimize-static-images.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

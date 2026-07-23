@@ -108,9 +108,7 @@ export async function getApprovedListings(limit = 24) {
   }
 
   const listings = (data as ListingRow[]).map(mapListingRow);
-  const withImages = await Promise.all(
-    listings.map((listing) => attachListingImages(supabase, listing.id, listing)),
-  );
+  const withImages = await ensureListingImages(supabase, listings);
   return attachSellerCards(supabase, withImages);
 }
 
@@ -137,9 +135,7 @@ export async function getAllApprovedListings() {
   }
 
   const listings = (data as ListingRow[]).map(mapListingRow);
-  const withImages = await Promise.all(
-    listings.map((listing) => attachListingImages(supabase, listing.id, listing)),
-  );
+  const withImages = await ensureListingImages(supabase, listings);
   return attachSellerCards(supabase, withImages);
 }
 
@@ -218,9 +214,7 @@ export async function getRelatedListings(listing: Listing, limit = 4) {
   }
 
   const listings = (data as ListingRow[]).map(mapListingRow);
-  const withImages = await Promise.all(
-    listings.map((item) => attachListingImages(supabase, item.id, item)),
-  );
+  const withImages = await ensureListingImages(supabase, listings);
   return attachSellerCards(supabase, withImages);
 }
 
@@ -352,6 +346,21 @@ function mapListingRow(row: ListingRow): Listing {
     images: imageUrls,
     imageUrl: imageUrls[0] ?? null,
   };
+}
+
+async function ensureListingImages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  listings: Listing[],
+) {
+  // Nested `listing_images` usually already populated — only hit storage
+  // rows for listings that came back without images (avoids N+1 on home/browse).
+  if (listings.every((listing) => listing.images.length > 0)) {
+    return listings;
+  }
+
+  return Promise.all(
+    listings.map((listing) => attachListingImages(supabase, listing.id, listing)),
+  );
 }
 
 async function attachListingImages(

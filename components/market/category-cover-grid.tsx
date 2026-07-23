@@ -41,7 +41,10 @@ export function CategoryCoverGrid({
                     alt=""
                     fill
                     sizes="(max-width: 640px) 28vw, (max-width: 1024px) 14vw, 120px"
+                    loading="lazy"
+                    decoding="async"
                     className="category-cover-img"
+                    unoptimized
                   />
                 ) : (
                   <span className="category-cover-fallback">

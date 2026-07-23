@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
+import { getAvatarImageUrl } from "@/lib/utils/storage";
 
 /**
  * Small avatar that always lazy-loads and serves a fixed pixel budget
@@ -32,16 +33,18 @@ export function LazyAvatar({
     );
   }
 
+  const optimizedSrc = getAvatarImageUrl(src, size) ?? src;
+
   return (
     <Image
-      src={src}
+      src={optimizedSrc}
       alt={alt}
       width={size}
       height={size}
       sizes={`${size}px`}
       loading="lazy"
       decoding="async"
-      // Profile avatars are remote (often Supabase); avoid Vercel transforms.
+      // Profile avatars use Supabase /render/image when possible.
       unoptimized
       className={cn("object-cover", className)}
       style={{ width: size, height: size }}

@@ -14,12 +14,13 @@ export function TopBar() {
         <div className="market-topbar-row">
           <Link href="/" className="market-logo text-emerald-50" aria-label={BRAND_NAME}>
             <Image
-              src="/icon.png"
+              src="/icons/logo-mark.webp"
               alt=""
               width={36}
               height={36}
               className="market-logo-icon"
               priority
+              unoptimized
             />
             <span className="market-logo-copy">
               <span className="market-logo-word text-emerald-50">{BRAND_NAME}</span>

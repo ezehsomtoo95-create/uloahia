@@ -96,8 +96,11 @@ export function CategoryImageRail({
                         alt=""
                         fill
                         sizes="120px"
+                        loading="lazy"
+                        decoding="async"
                         draggable={false}
                         className="object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="category-tile-fallback">

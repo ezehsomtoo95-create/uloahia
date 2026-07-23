@@ -47,8 +47,11 @@ export default async function HomePage() {
             alt=""
             fill
             priority
+            fetchPriority="high"
+            decoding="async"
             sizes="(max-width: 1024px) 100vw, 72rem"
             className="object-cover object-center"
+            unoptimized
           />
           <div className="market-hero-veil" />
         </div>

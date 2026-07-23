@@ -1,5 +1,6 @@
 import { BRAND_NAME, BRAND_TAGLINE, DOMAIN } from "@/lib/constants/brand";
 import { formatListingLocation, formatNaira, sanitizeListingTitle } from "@/lib/utils/format";
+import { getListingSharePreviewImageUrl } from "@/lib/utils/storage";
 
 export type ListingShareInput = {
   id: string;
@@ -35,6 +36,11 @@ export function getDefaultListingShareImage() {
 export function resolveListingShareImage(imageUrl?: string | null) {
   if (!imageUrl?.trim()) {
     return DEFAULT_SHARE_IMAGE;
+  }
+
+  const preview = getListingSharePreviewImageUrl(imageUrl);
+  if (preview) {
+    return preview;
   }
 
   const trimmed = imageUrl.trim();

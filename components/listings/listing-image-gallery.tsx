@@ -128,6 +128,9 @@ export function ListingImageGallery({ images, title }: ListingImageGalleryProps)
                   alt={`${title} photo ${index + 1}`}
                   variant="hero"
                   priority={index === 0}
+                  // Only decode full-res for the active slide and its neighbors.
+                  // Far slides keep layout with a cheap thumb until scrolled near.
+                  forceThumb={Math.abs(index - selectedIndex) > 1}
                   onError={() => markImageFailed(url)}
                 />
               </div>
