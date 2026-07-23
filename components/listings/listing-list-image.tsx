@@ -37,6 +37,8 @@ export function ListingListImage({
       sizes={VARIANT_SIZES[variant]}
       priority={priority}
       loading={priority ? undefined : "lazy"}
+      // Already resized via Supabase /render/image — skip Vercel optimizer.
+      unoptimized
       className={cn("object-cover object-center", className)}
     />
   );

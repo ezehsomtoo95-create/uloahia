@@ -118,9 +118,14 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    formats: ["image/avif", "image/webp"],
-    deviceSizes: [384, 640, 750, 828, 1080],
-    imageSizes: [32, 48, 64, 96, 120, 200, 240, 400],
+    // Listing photos are already resized by Supabase Storage Image
+    // Transformation (/render/image). Sending them through Vercel Image
+    // Optimization again burned the free 5,000 transformation quota
+    // (home/browse grids × deviceSizes × unique URLs). Serve images as-is;
+    // next/image still handles layout (fill/sizes/lazy). Local category/
+    // hero assets are static files under /public and do not need Vercel
+    // transforms either.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

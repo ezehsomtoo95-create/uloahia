@@ -41,6 +41,8 @@ export function LazyAvatar({
       sizes={`${size}px`}
       loading="lazy"
       decoding="async"
+      // Profile avatars are remote (often Supabase); avoid Vercel transforms.
+      unoptimized
       className={cn("object-cover", className)}
       style={{ width: size, height: size }}
     />

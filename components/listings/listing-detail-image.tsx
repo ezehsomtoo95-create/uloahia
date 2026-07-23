@@ -31,7 +31,8 @@ export function ListingDetailImage({
         fill
         priority={priority}
         loading={priority ? undefined : "lazy"}
-        unoptimized={isBlob}
+        // Blob previews + Supabase /render/image — skip Vercel optimizer.
+        unoptimized
         sizes="(max-width: 1024px) 100vw, 640px"
         className={cn("object-cover object-center", className)}
         onError={onError}
@@ -46,7 +47,7 @@ export function ListingDetailImage({
       width={72}
       height={72}
       loading="lazy"
-      unoptimized={isBlob}
+      unoptimized
       className={cn("size-full object-cover object-center", className)}
       onError={onError}
     />
