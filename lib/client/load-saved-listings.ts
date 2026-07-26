@@ -5,6 +5,7 @@ import { waitForInitialAuthSession } from "@/lib/client/auth-session";
 import { fetchAuthenticatedSavedListingIds } from "@/lib/client/saved-listings-auth";
 import type { Listing } from "@/lib/types";
 import { formatSavedTime } from "@/lib/utils/format";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { formatSupabaseError } from "@/lib/utils/supabase-error";
 import { resolveListingImageUrl } from "@/lib/utils/storage";
 
@@ -174,7 +175,7 @@ export async function loadSavedListings(): Promise<SavedListingItem[]> {
     ).map((row) => [
       row.id,
       {
-        sellerName: row.full_name?.trim() || row.username || "Seller",
+        sellerName: formatSellerDisplayName(row),
         sellerAvatarUrl: row.avatar_url,
         sellerVerified: Boolean(row.phone_verified),
       },

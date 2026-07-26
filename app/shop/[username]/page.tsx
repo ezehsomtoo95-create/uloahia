@@ -8,6 +8,7 @@ import {
   getSellerActiveListings,
 } from "@/lib/data/sellers";
 import { formatViews } from "@/lib/utils/format";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +20,11 @@ export async function generateMetadata({
 }) {
   const { username } = await params;
   const seller = await getPublicSellerByUsername(username);
+  const name = formatSellerDisplayName(seller);
   return {
-    title: seller ? `${seller.fullName || seller.username} · Shop` : "Shop",
+    title: seller ? `${name} · Shop` : "Shop",
     description: seller
-      ? `Browse active listings from ${seller.fullName || seller.username} on AhiaUlo.`
+      ? `Browse active listings from ${name} on AhiaUlo.`
       : "Seller shop on AhiaUlo",
   };
 }
@@ -46,7 +48,7 @@ export default async function SellerShopPage({
   } = await supabase.auth.getUser();
 
   const locationLabel = [seller.city, seller.state].filter(Boolean).join(", ");
-  const displayName = seller.fullName || seller.username;
+  const displayName = formatSellerDisplayName(seller);
 
   return (
     <main className="market-shop pb-4 pt-3">

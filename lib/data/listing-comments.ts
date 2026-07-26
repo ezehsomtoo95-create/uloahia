@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils/format";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 export type ListingCommentRow = {
   id: string;
@@ -69,8 +70,7 @@ export async function getListingComments(listingId: string): Promise<ListingComm
 
   return data.map((row) => {
     const author = authors.get(row.author_id);
-    const authorName =
-      author?.full_name?.trim() || author?.username?.trim() || "Member";
+    const authorName = formatSellerDisplayName(author, "Member");
 
     return {
       id: row.id,

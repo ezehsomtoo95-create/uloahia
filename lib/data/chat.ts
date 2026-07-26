@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types/engagement";
 import { resolveListingImages } from "@/lib/utils/storage";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 type PublicChatProfileRow = {
   id: string;
@@ -23,17 +24,6 @@ function formatClock(value: string) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function displayNameFromProfile(profile: {
-  full_name?: string | null;
-  username?: string | null;
-} | null | undefined) {
-  const fullName = profile?.full_name?.trim();
-  if (fullName) return fullName;
-  const username = profile?.username?.trim();
-  if (username) return username;
-  return "User";
 }
 
 async function getPublicChatProfilesByIds(userIds: string[]) {
@@ -158,7 +148,7 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
       listingId: row.listing_id,
       listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
       listingImageUrl: imageUrls[0] ?? null,
-      otherPartyName: displayNameFromProfile(other),
+      otherPartyName: formatSellerDisplayName(other, "User"),
       otherPartyUsername: other?.username ?? null,
       otherPartyAvatarUrl: other?.avatar_url ?? null,
       lastMessagePreview: row.last_message_preview,
@@ -222,7 +212,7 @@ export async function getConversationForUser(conversationId: string, userId: str
     listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
     listingImageUrl: imageUrls[0] ?? null,
     listingStatus: (listing as { status?: string } | null)?.status ?? null,
-    otherPartyName: displayNameFromProfile(other),
+    otherPartyName: formatSellerDisplayName(other, "User"),
     otherPartyUsername: other?.username ?? null,
     otherPartyAvatarUrl: other?.avatar_url ?? null,
     otherPartyId,

@@ -9,8 +9,10 @@ import { USERNAME_MAX_LENGTH } from "@/lib/utils/username";
 
 export function ProfileUsernameEditor({
   username,
+  onUsernameChange,
 }: {
   username: string | null;
+  onUsernameChange?: (username: string) => void;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -38,6 +40,7 @@ export function ProfileUsernameEditor({
       }
       setDisplayName(result.username);
       setValue(result.username);
+      onUsernameChange?.(result.username);
       setEditing(false);
       router.refresh();
     });

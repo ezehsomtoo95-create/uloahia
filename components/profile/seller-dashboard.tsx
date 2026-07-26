@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
 import { PhoneNumberManager } from "@/components/profile/phone-number-manager";
@@ -46,6 +49,13 @@ export function SellerDashboard({
   totalViews,
   salesCount,
 }: SellerDashboardProps) {
+  // Bold header tracks live profiles.username (same source as cards/storefront).
+  const [headerName, setHeaderName] = useState(username?.trim() || displayName);
+
+  useEffect(() => {
+    setHeaderName(username?.trim() || displayName);
+  }, [username, displayName]);
+
   const metrics = [
     { label: "Active", value: formatMetric(activeListings) },
     { label: "Views", value: formatMetric(totalViews) },
@@ -55,12 +65,12 @@ export function SellerDashboard({
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <ProfileAvatarUploader avatarUrl={avatarUrl} displayName={displayName} />
+        <ProfileAvatarUploader avatarUrl={avatarUrl} displayName={headerName} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-[1.125rem] font-semibold tracking-tight text-neutral-950 dark:text-neutral-50">
-              {displayName}
+              {headerName}
             </h2>
             {(emailVerified || phoneVerified) && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
@@ -70,7 +80,10 @@ export function SellerDashboard({
             )}
           </div>
 
-          <ProfileUsernameEditor username={username} />
+          <ProfileUsernameEditor
+            username={username}
+            onUsernameChange={setHeaderName}
+          />
           {email ? (
             <p className="mt-0.5 truncate text-[13px] text-neutral-600 dark:text-neutral-400">
               {email}

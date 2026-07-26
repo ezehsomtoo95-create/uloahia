@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createSecurityNotification,
@@ -13,7 +12,8 @@ import {
   isValidE164Phone,
   normalizeNigerianPhone,
 } from "@/lib/utils/phone";
-import { shopPathForUsername, validateUsername } from "@/lib/utils/username";
+import { revalidateSellerProfileSurfaces } from "@/lib/utils/revalidate-seller-profile";
+import { validateUsername } from "@/lib/utils/username";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -43,16 +43,21 @@ export async function updateProfileUsername(
   }
   const { username } = validated;
 
-  const { data: usernameOwner } = await supabaseAdmin()
-    .from("profiles")
-    .select("id")
-    .ilike("username", username)
-    .neq("id", user.id)
-    .maybeSingle();
+  const [{ data: currentProfile }, { data: usernameOwner }] = await Promise.all([
+    supabase.from("profiles").select("username").eq("id", user.id).maybeSingle(),
+    supabaseAdmin()
+      .from("profiles")
+      .select("id")
+      .ilike("username", username)
+      .neq("id", user.id)
+      .maybeSingle(),
+  ]);
 
   if (usernameOwner) {
     return { ok: false, error: "That name is taken." };
   }
+
+  const previousUsername = currentProfile?.username ?? null;
 
   const { error } = await supabase
     .from("profiles")
@@ -63,9 +68,10 @@ export async function updateProfileUsername(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/profile");
-  revalidatePath(shopPathForUsername(username));
-  revalidatePath(`/store/${user.id}`);
+  revalidateSellerProfileSurfaces(user.id, {
+    previousUsername,
+    nextUsername: username,
+  });
   return { ok: true, username };
 }
 
@@ -201,8 +207,7 @@ export async function updateProfilePhone(
     });
   }
 
-  revalidatePath("/profile");
-  revalidatePath(`/store/${user.id}`);
+  revalidateSellerProfileSurfaces(user.id);
   return { ok: true, phone: displayPhone };
 }
 
@@ -226,7 +231,7 @@ export async function beginPhoneChange(): Promise<PhoneChangeActionResult> {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath("/profile");
+  revalidateSellerProfileSurfaces(user.id);
   return { ok: true };
 }
 
@@ -309,7 +314,6 @@ export async function finalizePhoneChange(
     });
   }
 
-  revalidatePath("/profile");
-  revalidatePath(`/store/${user.id}`);
+  revalidateSellerProfileSurfaces(user.id);
   return { ok: true };
 }

@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/service";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 export type AdminKpi = {
   label: string;
@@ -211,23 +212,23 @@ export async function getAdminOverview(
     supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase
       .from("profiles")
-      .select("id, full_name, created_at")
+      .select("id, username, full_name, created_at")
       .gte("created_at", chartWindowStart)
       .order("created_at", { ascending: false }),
     supabase
       .from("listings")
-      .select("id, title, created_at, seller:profiles!seller_id(full_name)")
+      .select("id, title, created_at, seller:profiles!seller_id(username, full_name)")
       .gte("created_at", chartWindowStart)
       .order("created_at", { ascending: false }),
     supabase
       .from("listings")
-      .select("id, title, reviewed_at, seller:profiles!seller_id(full_name)")
+      .select("id, title, reviewed_at, seller:profiles!seller_id(username, full_name)")
       .not("reviewed_at", "is", null)
       .order("reviewed_at", { ascending: false })
       .limit(8),
     supabase
       .from("listings")
-      .select("id, title, created_at, seller:profiles!seller_id(full_name)")
+      .select("id, title, created_at, seller:profiles!seller_id(username, full_name)")
       .eq("status", "sold")
       .order("created_at", { ascending: false })
       .limit(8),
@@ -238,13 +239,13 @@ export async function getAdminOverview(
       .limit(5),
     supabase
       .from("listings")
-      .select("id, title, status, created_at, seller:profiles!seller_id(full_name)")
+      .select("id, title, status, created_at, seller:profiles!seller_id(username, full_name)")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(12),
     supabase
       .from("profiles")
-      .select("id, full_name, created_at")
+      .select("id, username, full_name, created_at")
       .order("created_at", { ascending: false })
       .limit(12),
     supabase
@@ -457,8 +458,8 @@ export async function getAdminOverview(
   ];
 
   type SellerRef =
-    | { full_name: string | null }
-    | { full_name: string | null }[]
+    | { username?: string | null; full_name: string | null }
+    | { username?: string | null; full_name: string | null }[]
     | null;
 
   function sellerName(seller: SellerRef) {
@@ -467,17 +468,17 @@ export async function getAdminOverview(
     }
 
     if (Array.isArray(seller)) {
-      return seller[0]?.full_name?.trim() || "Seller";
+      return formatSellerDisplayName(seller[0]);
     }
 
-    return seller.full_name?.trim() || "Seller";
+    return formatSellerDisplayName(seller);
   }
 
   const activities: AdminActivityItem[] = [
     ...(recentProfilesFeed.data ?? []).slice(0, 4).map((row) => ({
       id: `signup-${row.id}`,
       icon: "👤",
-      text: `${row.full_name?.trim() || "New user"} joined`,
+      text: `${formatSellerDisplayName(row, "New user")} joined`,
       time: formatRelativeTime(row.created_at),
       timestamp: new Date(row.created_at).getTime(),
     })),
@@ -509,7 +510,7 @@ export async function getAdminOverview(
   const notifications: AdminNotification[] = [
     ...(recentProfilesFeed.data ?? []).slice(0, 2).map((row) => ({
       id: `n-signup-${row.id}`,
-      text: `New signup: ${row.full_name?.trim() || "User"}`,
+      text: `New signup: ${formatSellerDisplayName(row, "User")}`,
       time: formatRelativeTime(row.created_at),
       unread: row.created_at >= sevenDaysAgo,
     })),
@@ -547,7 +548,7 @@ export async function getAdminOverview(
     ...(recentSignupsInbox.data ?? []).slice(0, 8).map((row) => ({
       id: `inbox-signup-${row.id}`,
       kind: "signup" as const,
-      title: row.full_name?.trim() || "New user",
+      title: formatSellerDisplayName(row, "New user"),
       meta: "New marketplace signup",
       href: `/admin/users`,
       createdAt: row.created_at,

@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { revalidateSellerProfileSurfaces } from "@/lib/utils/revalidate-seller-profile";
 
 type UploadResult =
   | { ok: true; avatarUrl: string }
@@ -58,7 +58,6 @@ export async function uploadProfileAvatar(formData: FormData): Promise<UploadRes
     return { ok: false, error: profileError.message };
   }
 
-  revalidatePath("/profile");
-  revalidatePath(`/store/${user.id}`);
+  revalidateSellerProfileSurfaces(user.id);
   return { ok: true, avatarUrl };
 }

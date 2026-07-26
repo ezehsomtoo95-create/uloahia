@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Listing } from "@/lib/types";
 import type { PublicSellerProfile } from "@/lib/types/engagement";
 import { resolveListingImages } from "@/lib/utils/storage";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 type PublicSellerRow = {
   id: string;
@@ -121,7 +122,7 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
   }
 
   const seller = await getPublicSellerById(sellerId);
-  const sellerName = seller?.fullName?.trim() || seller?.username || "Seller";
+  const sellerName = formatSellerDisplayName(seller);
   const sellerAvatarUrl = seller?.avatarUrl ?? null;
   const sellerVerified = Boolean(seller?.phoneVerified);
 

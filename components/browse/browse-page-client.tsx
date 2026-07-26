@@ -151,6 +151,7 @@ function BrowsePageContent({
       const matchesQuery =
         !normalizedQuery ||
         listing.title.toLowerCase().includes(normalizedQuery) ||
+        (listing.sellerName?.toLowerCase().includes(normalizedQuery) ?? false) ||
         listing.area.toLowerCase().includes(normalizedQuery) ||
         listing.city.toLowerCase().includes(normalizedQuery) ||
         categoryLabel.includes(normalizedQuery) ||

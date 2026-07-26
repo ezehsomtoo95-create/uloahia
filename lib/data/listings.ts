@@ -6,6 +6,7 @@ import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import type { Listing } from "@/lib/types";
 import { sanitizeListingTitle } from "@/lib/utils/format";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { resolveListingImages } from "@/lib/utils/storage";
 
 type ListingImageRow = {
@@ -433,7 +434,7 @@ async function attachSellerCards(
     (data as PublicSellerCardRow[]).map((row) => [
       row.id,
       {
-        sellerName: row.full_name?.trim() || row.username || "Seller",
+        sellerName: formatSellerDisplayName(row),
         sellerAvatarUrl: row.avatar_url,
         sellerVerified: Boolean(row.phone_verified),
       },

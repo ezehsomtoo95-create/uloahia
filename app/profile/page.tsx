@@ -13,6 +13,7 @@ import { isPendingProfilePhone } from "@/lib/types/engagement";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatDisplayPhone } from "@/lib/utils/phone";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -79,7 +80,12 @@ export default async function ProfilePage() {
 
           <SellerDashboard
             sellerId={user.id}
-            displayName={profile?.full_name || "Your account"}
+            displayName={formatSellerDisplayName(
+              {
+                username: profile?.username ?? publicSeller?.username,
+              },
+              "Your account",
+            )}
             email={user.email ?? null}
             username={profile?.username ?? publicSeller?.username ?? null}
             avatarUrl={profile?.avatar_url ?? publicSeller?.avatarUrl ?? null}

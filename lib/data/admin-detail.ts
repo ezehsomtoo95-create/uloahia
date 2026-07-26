@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCategoryName } from "@/lib/constants/categories";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { resolveListingImageUrl } from "@/lib/utils/storage";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 
@@ -96,8 +97,18 @@ type AdminListingDetailRow = {
   seller_id: string;
   listing_images?: { image_url: string; position: number }[] | null;
   seller?:
-    | { full_name: string | null; phone: string; account_status?: string | null }
-    | { full_name: string | null; phone: string; account_status?: string | null }[]
+    | {
+        username: string | null;
+        full_name: string | null;
+        phone: string;
+        account_status?: string | null;
+      }
+    | {
+        username: string | null;
+        full_name: string | null;
+        phone: string;
+        account_status?: string | null;
+      }[]
     | null;
 };
 
@@ -122,6 +133,7 @@ const ADMIN_LISTING_DETAIL_SELECT = `
     position
   ),
   seller:profiles!seller_id (
+    username,
     full_name,
     phone,
     account_status
@@ -147,6 +159,7 @@ const ADMIN_LISTING_DETAIL_SELECT_BASIC = `
     position
   ),
   seller:profiles!seller_id (
+    username,
     full_name,
     phone
   )
@@ -181,7 +194,7 @@ function mapAdminListingDetailRow(
     images,
     seller: {
       id: data.seller_id,
-      name: seller?.full_name?.trim() || "Seller",
+      name: formatSellerDisplayName(seller),
       phone: formatDisplayPhone(seller?.phone),
       email,
       accountStatus: seller?.account_status ?? "active",
@@ -252,7 +265,7 @@ export async function getAdminListingDetail(
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, phone")
+        .select("username, full_name, phone")
         .eq("id", listingOnly.seller_id)
         .maybeSingle();
 
@@ -330,6 +343,7 @@ export async function getAdminReportDetail(
         status,
         seller_id,
         seller:profiles!seller_id (
+          username,
           full_name
         )
       )
@@ -358,6 +372,6 @@ export async function getAdminReportDetail(
     reason: data.reason,
     createdAt: formatAdminTime(data.created_at),
     sellerId: listing?.seller_id ?? "",
-    sellerName: seller?.full_name?.trim() || "Seller",
+    sellerName: formatSellerDisplayName(seller),
   };
 }

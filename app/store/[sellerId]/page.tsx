@@ -8,6 +8,7 @@ import {
   getSellerActiveListings,
 } from "@/lib/data/sellers";
 import { formatViews } from "@/lib/utils/format";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function generateMetadata({
 }) {
   const { sellerId } = await params;
   const seller = await getPublicSellerById(sellerId);
-  const name = seller?.fullName || seller?.username || "Seller";
+  const name = formatSellerDisplayName(seller);
   return {
     title: `${name} · Store`,
     description: `Browse active listings from ${name} on AhiaUlo.`,
@@ -39,7 +40,7 @@ export default async function SellerStorePage({
 
   const listings = await getSellerActiveListings(seller.id);
   const locationLabel = [seller.city, seller.state].filter(Boolean).join(", ");
-  const displayName = seller.fullName || seller.username || "Seller";
+  const displayName = formatSellerDisplayName(seller);
 
   return (
     <main className="market-shop pb-4 pt-3">

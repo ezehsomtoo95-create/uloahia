@@ -27,6 +27,7 @@ import {
 } from "@/lib/share";
 import { formatListingLocation, formatNaira, formatViews, sanitizeListingTitle } from "@/lib/utils/format";
 import { maskDisplayPhone } from "@/lib/utils/phone";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 export async function generateMetadata({
   params,
@@ -147,8 +148,7 @@ export default async function ListingDetailsPage({
   const soldLabel = `${soldCount} ${soldCount === 1 ? "item" : "items"} sold`;
   const isOwnListing = Boolean(user && listing.sellerId === user.id);
   const storeHref = listing.sellerId ? `/store/${listing.sellerId}` : null;
-  const sellerName =
-    sellerProfile?.fullName || sellerProfile?.username || "Trusted seller";
+  const sellerName = formatSellerDisplayName(sellerProfile, "Trusted seller");
   const displayTitle = sanitizeListingTitle(listing.title);
   const locationLabel = formatListingLocation(listing.area, listing.city, 0);
 

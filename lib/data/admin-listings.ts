@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCategoryName } from "@/lib/constants/categories";
+import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { resolveListingImageUrl } from "@/lib/utils/storage";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 
@@ -42,8 +43,8 @@ type AdminListingRow = {
   views: number;
   listing_images?: { image_url: string; position: number }[] | null;
   seller?:
-    | { full_name: string | null; phone: string }
-    | { full_name: string | null; phone: string }[]
+    | { username: string | null; full_name: string | null; phone: string }
+    | { username: string | null; full_name: string | null; phone: string }[]
     | null;
 };
 
@@ -64,6 +65,7 @@ const ADMIN_LISTING_SELECT = `
     position
   ),
   seller:profiles!seller_id (
+    username,
     full_name,
     phone
   )
@@ -116,7 +118,7 @@ function mapAdminListing(row: AdminListingRow): AdminListing {
     createdAtRaw: row.created_at,
     views: Number(row.views ?? 0),
     imageUrl: resolveListingImageUrl(images[0]?.image_url ?? null),
-    sellerName: seller?.full_name?.trim() || "Seller",
+    sellerName: formatSellerDisplayName(seller),
     sellerPhone: formatDisplayPhone(seller?.phone),
   };
 }
@@ -285,6 +287,7 @@ export async function getAdminReports(
         title,
         seller_id,
         seller:profiles!seller_id (
+          username,
           full_name
         )
       )
@@ -310,7 +313,7 @@ export async function getAdminReports(
       listingTitle: listing?.title ?? "Listing",
       listingId: row.listing_id,
       sellerId: listing?.seller_id ?? "",
-      sellerName: seller?.full_name?.trim() || "Seller",
+      sellerName: formatSellerDisplayName(seller),
       reason: row.reason,
       createdAt: formatAdminTime(row.created_at),
       createdAtRaw: row.created_at,
