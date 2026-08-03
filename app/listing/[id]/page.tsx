@@ -28,6 +28,7 @@ import {
 import { formatListingLocation, formatNaira, formatViews, sanitizeListingTitle } from "@/lib/utils/format";
 import { maskDisplayPhone } from "@/lib/utils/phone";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
+import { DOMAIN } from "@/lib/constants/brand";
 
 export async function generateMetadata({
   params,
@@ -51,6 +52,30 @@ export async function generateMetadata({
   const image = listing.imageUrl
     ? resolveListingShareImage(listing.imageUrl)
     : getDefaultListingShareImage();
+
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": title,
+    "description": listing.description || description,
+    "image": listing.images?.[0] || image,
+    "offers": {
+      "@type": "Offer",
+      "price": listing.price,
+      "priceCurrency": "NGN",
+      "availability": listing.status === "approved" 
+        ? "https://schema.org/InStock" 
+        : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": BRAND_NAME,
+      },
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": listing.city || "Nigeria",
+    },
+  };
 
   return {
     title,
@@ -160,9 +185,71 @@ export default async function ListingDetailsPage({
   const displayTitle = sanitizeListingTitle(listing.title);
   const locationLabel = formatListingLocation(listing.area, listing.city, 0);
 
+  const priceLabel = formatNaira(listing.price);
+  const image = listing.imageUrl
+    ? resolveListingShareImage(listing.imageUrl)
+    : getDefaultListingShareImage();
+
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": displayTitle,
+    "description": listing.description || `${priceLabel} · ${locationLabel}. ${BRAND_TAGLINE}`,
+    "image": listing.images?.[0] || image,
+    "offers": {
+      "@type": "Offer",
+      "price": listing.price,
+      "priceCurrency": "NGN",
+      "availability": listing.status === "approved" 
+        ? "https://schema.org/InStock" 
+        : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Organization",
+        "name": BRAND_NAME,
+      },
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": listing.city || "Nigeria",
+    },
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": `https://${DOMAIN}`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Browse",
+        "item": `https://${DOMAIN}/browse`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": displayTitle,
+        "item": `https://${DOMAIN}/listing/${listing.id}`,
+      },
+    ],
+  };
+
   return (
     <main className="market-pdp listing-detail-main min-h-dvh overflow-x-hidden pb-safe">
       <div className="market-pdp-layout marketplace-listing-body">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
         {listing.status === "approved" && !isAdmin ? (
           <ListingViewTracker listingId={listing.id} sellerId={listing.sellerId} />
         ) : null}

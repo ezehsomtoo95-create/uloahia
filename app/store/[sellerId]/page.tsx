@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/sellers";
 import { formatViews } from "@/lib/utils/format";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
+import { DOMAIN } from "@/lib/constants/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -59,8 +60,38 @@ export default async function SellerStorePage({
   const locationLabel = [seller.city, seller.state].filter(Boolean).join(", ");
   const displayName = formatSellerDisplayName(seller);
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": `https://${DOMAIN}`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Browse",
+        "item": `https://${DOMAIN}/browse`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": displayName,
+        "item": `https://${DOMAIN}/store/${sellerId}`,
+      },
+    ],
+  };
+
   return (
-    <main className="market-shop pb-4 pt-3">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <main className="market-shop pb-4 pt-3">
       <header className="market-shop-header">
         <div className="market-shop-identity">
           <StorefrontAvatar src={seller.avatarUrl} displayName={displayName} />
@@ -123,5 +154,6 @@ export default async function SellerStorePage({
         }
       />
     </main>
+    </>
   );
 }

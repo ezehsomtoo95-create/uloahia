@@ -11,6 +11,7 @@ import {
 import { getAllApprovedListings } from "@/lib/data/listings";
 import { getActiveLocationTree } from "@/lib/data/locations";
 import { mergeAttributeFieldsByKey } from "@/lib/utils/category-attributes";
+import { BRAND_NAME, DOMAIN } from "@/lib/constants/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -67,16 +68,47 @@ export default async function CategoryMarketplacePage({
   );
   const copy = getCategoryMarketplaceCopy(category.slug, category.name);
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": `https://${DOMAIN}`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Categories",
+        "item": `https://${DOMAIN}/categories`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": category.name,
+        "item": `https://${DOMAIN}/category/${category.slug}`,
+      },
+    ],
+  };
+
   return (
-    <CategoryMarketplaceClient
-      category={category}
-      categoryTree={categoryTree}
-      eyebrow={copy.eyebrow}
-      description={copy.description}
-      bannerImage={copy.bannerImage}
-      attributeFields={attributeFields}
-      initialListings={listings}
-      locationTree={locationTree}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <CategoryMarketplaceClient
+        category={category}
+        categoryTree={categoryTree}
+        eyebrow={copy.eyebrow}
+        description={copy.description}
+        bannerImage={copy.bannerImage}
+        attributeFields={attributeFields}
+        initialListings={listings}
+        locationTree={locationTree}
+      />
+    </>
   );
 }

@@ -8,6 +8,7 @@ import {
   HERO_HEADLINE,
   HERO_SUBTITLE,
   SEARCH_PLACEHOLDER,
+  DOMAIN,
 } from "@/lib/constants/brand";
 import { MARKETPLACE_HERO_IMAGE } from "@/lib/constants/category-imagery";
 import { getDiscoveryCategories } from "@/lib/data/categories";
@@ -38,6 +39,34 @@ export const metadata = {
   keywords: ["marketplace", "buy", "sell", "Nigeria", "classifieds", "listings"],
   alternates: {
     canonical: "/",
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": BRAND_NAME,
+  "url": `https://${DOMAIN}`,
+  "logo": `https://${DOMAIN}/icons/icon-512x512.png`,
+  "description": BRAND_TAGLINE,
+  "foundingDate": "2024",
+  "areaServed": "NG",
+  "knowsAbout": ["Marketplace", "Classifieds", "E-commerce"],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": BRAND_NAME,
+  "url": `https://${DOMAIN}`,
+  "description": BRAND_TAGLINE,
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": `https://${DOMAIN}/browse?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
   },
 };
 
@@ -86,6 +115,15 @@ export default async function HomePage() {
       <footer className="market-home-foot">
         {BRAND_NAME} · {BRAND_TAGLINE}
       </footer>
+      
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
     </main>
   );
 }

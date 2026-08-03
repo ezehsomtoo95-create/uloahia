@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CategoriesExplorer } from "@/components/categories/categories-explorer";
 import { getDiscoveryCategories } from "@/lib/data/categories";
+import { BRAND_NAME, DOMAIN } from "@/lib/constants/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,25 @@ export const metadata = {
   alternates: {
     canonical: "/categories",
   },
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `https://${DOMAIN}`,
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Categories",
+      "item": `https://${DOMAIN}/categories`,
+    },
+  ],
 };
 
 type CategoriesPageProps = {
@@ -59,6 +79,11 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
         parents={parents}
         defaultExpandedId={defaultExpandedId}
         initialExpandSlug={expandSlug}
+      />
+      
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
     </main>
   );
