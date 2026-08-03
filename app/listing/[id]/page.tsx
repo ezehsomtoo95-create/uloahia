@@ -55,6 +55,14 @@ export async function generateMetadata({
   return {
     title,
     description,
+    keywords: [
+      "listing",
+      "marketplace",
+      "buy",
+      "sell",
+      locationLabel.toLowerCase(),
+      BRAND_NAME.toLowerCase(),
+    ].filter(Boolean),
     alternates: {
       canonical: url,
     },

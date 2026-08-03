@@ -32,6 +32,15 @@ const HomeCategoryFeed = nextDynamic(
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Buy. Sell. Discover.",
+  description: "Find phones, cars, homes, fashion, jobs, and services — shop with clarity in your area.",
+  keywords: ["marketplace", "buy", "sell", "Nigeria", "classifieds", "listings"],
+  alternates: {
+    canonical: "/",
+  },
+};
+
 export default async function HomePage() {
   const [newListings, discoveryCategories] = await Promise.all([
     getApprovedListings(24),

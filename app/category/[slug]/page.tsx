@@ -25,12 +25,22 @@ export async function generateMetadata({
   const tree = await getActiveCategoryTree();
   const node = findCategoryNode(tree, slug);
   if (!node) {
-    return { title: "Category" };
+    return {
+      title: "Category Not Found",
+      description: "The requested category could not be found.",
+      alternates: {
+        canonical: "/categories",
+      },
+    };
   }
   const copy = getCategoryMarketplaceCopy(node.slug, node.name);
   return {
-    title: `${node.name} marketplace`,
+    title: `${node.name} Marketplace`,
     description: copy.description,
+    keywords: [node.name.toLowerCase(), "marketplace", "buy", "sell", "listings"],
+    alternates: {
+      canonical: `/category/${node.slug}`,
+    },
   };
 }
 

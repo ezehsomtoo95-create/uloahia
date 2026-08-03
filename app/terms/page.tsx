@@ -6,6 +6,10 @@ import { BRAND_NAME, DOMAIN } from "@/lib/constants/brand";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: `Terms governing use of the ${BRAND_NAME} marketplace.`,
+  keywords: ["terms", "service", "legal", "agreement", "marketplace"],
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 const UPDATED = "19 July 2026";

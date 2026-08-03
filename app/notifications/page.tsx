@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Notifications",
   description: "Marketplace alerts for AhiaUlo.",
+  keywords: ["notifications", "alerts", "updates", "marketplace"],
+  alternates: {
+    canonical: "/notifications",
+  },
 };
 
 export default async function NotificationsPage() {

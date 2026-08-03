@@ -20,9 +20,26 @@ export async function generateMetadata({
   const { sellerId } = await params;
   const seller = await getPublicSellerById(sellerId);
   const name = formatSellerDisplayName(seller);
+  
+  if (!seller) {
+    return {
+      title: "Store Not Found",
+      description: "This seller store could not be found.",
+      alternates: {
+        canonical: "/browse",
+      },
+    };
+  }
+  
+  const locationLabel = [seller.city, seller.state].filter(Boolean).join(", ");
+  
   return {
     title: `${name} · Store`,
-    description: `Browse active listings from ${name} on AhiaUlo.`,
+    description: `Browse active listings from ${name}${locationLabel ? ` in ${locationLabel}` : ""} on AhiaUlo.`,
+    keywords: ["store", "seller", "listings", "marketplace", name.toLowerCase()],
+    alternates: {
+      canonical: `/store/${sellerId}`,
+    },
   };
 }
 

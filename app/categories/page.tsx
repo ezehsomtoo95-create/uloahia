@@ -5,8 +5,12 @@ import { getDiscoveryCategories } from "@/lib/data/categories";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Categories",
-  description: "Browse every marketplace category on AhiaUlo.",
+  title: "All Categories",
+  description: "Browse every marketplace category on AhiaUlo. Find products, property, jobs, and services near you.",
+  keywords: ["categories", "browse", "marketplace", "products", "services"],
+  alternates: {
+    canonical: "/categories",
+  },
 };
 
 type CategoriesPageProps = {

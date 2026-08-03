@@ -10,6 +10,10 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Messages",
   description: "Your AhiaUlo conversations with buyers and sellers.",
+  keywords: ["messages", "chat", "conversations", "buyers", "sellers"],
+  alternates: {
+    canonical: "/messages",
+  },
 };
 
 export default async function MessagesPage() {

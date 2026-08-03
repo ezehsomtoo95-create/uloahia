@@ -7,6 +7,7 @@ import {
   getActiveLocationTree,
   getDefaultSellLocation,
 } from "@/lib/data/locations";
+import { BRAND_NAME } from "@/lib/constants/brand";
 
 const SellPageClient = dynamic(
   () =>
@@ -21,6 +22,15 @@ const SellPageClient = dynamic(
     ),
   },
 );
+
+export const metadata = {
+  title: "Sell on AhiaUlo",
+  description: `Create a listing on ${BRAND_NAME}. Post your items for free and reach buyers in your area.`,
+  keywords: ["sell", "list item", "post listing", "marketplace", "Nigeria"],
+  alternates: {
+    canonical: "/sell",
+  },
+};
 
 export default async function SellPage() {
   const [categoryTree, attributeSchemas, locationTree, defaultLocation] =

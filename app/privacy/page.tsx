@@ -5,6 +5,10 @@ import { BRAND_NAME, DOMAIN } from "@/lib/constants/brand";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: `How ${BRAND_NAME} collects, uses, and protects your information.`,
+  keywords: ["privacy", "policy", "data protection", "GDPR", "information"],
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 const UPDATED = "19 July 2026";

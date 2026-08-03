@@ -15,6 +15,15 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDisplayPhone } from "@/lib/utils/phone";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
+export const metadata = {
+  title: "My Account",
+  description: `Manage your ${BRAND_NAME} account, listings, and settings.`,
+  keywords: ["account", "profile", "dashboard", "my listings", "settings"],
+  alternates: {
+    canonical: "/profile",
+  },
+};
+
 export default async function ProfilePage() {
   const supabase = await createClient();
   const {

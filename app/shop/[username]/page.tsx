@@ -21,11 +21,26 @@ export async function generateMetadata({
   const { username } = await params;
   const seller = await getPublicSellerByUsername(username);
   const name = formatSellerDisplayName(seller);
+  
+  if (!seller) {
+    return {
+      title: "Shop Not Found",
+      description: "This seller shop could not be found.",
+      alternates: {
+        canonical: "/browse",
+      },
+    };
+  }
+  
+  const locationLabel = [seller.city, seller.state].filter(Boolean).join(", ");
+  
   return {
-    title: seller ? `${name} · Shop` : "Shop",
-    description: seller
-      ? `Browse active listings from ${name} on AhiaUlo.`
-      : "Seller shop on AhiaUlo",
+    title: `${name} · Shop`,
+    description: `Browse active listings from ${name}${locationLabel ? ` in ${locationLabel}` : ""} on AhiaUlo.`,
+    keywords: ["shop", "seller", "store", "listings", "marketplace", name.toLowerCase()],
+    alternates: {
+      canonical: `/shop/${username}`,
+    },
   };
 }
 
