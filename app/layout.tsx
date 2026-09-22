@@ -132,6 +132,7 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
+    "impact-site-verification": "521bb672-eb40-4315-8d94-c3c74c33e5ad",
   },
   openGraph: {
     title: BRAND_NAME,
