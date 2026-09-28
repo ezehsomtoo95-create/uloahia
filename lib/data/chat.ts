@@ -146,7 +146,9 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
     return {
       id: row.id,
       listingId: row.listing_id,
-      listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
+      listingTitle:
+        (listing as { title?: string } | null)?.title ??
+        (row.listing_id ? "Listing" : "Community"),
       listingImageUrl: imageUrls[0] ?? null,
       otherPartyName: formatSellerDisplayName(other, "User"),
       otherPartyUsername: other?.username ?? null,
@@ -209,7 +211,9 @@ export async function getConversationForUser(conversationId: string, userId: str
   return {
     id: data.id,
     listingId: data.listing_id,
-    listingTitle: (listing as { title?: string } | null)?.title ?? "Listing",
+    listingTitle:
+      (listing as { title?: string } | null)?.title ??
+      (data.listing_id ? "Listing" : "Community"),
     listingImageUrl: imageUrls[0] ?? null,
     listingStatus: (listing as { status?: string } | null)?.status ?? null,
     otherPartyName: formatSellerDisplayName(other, "User"),

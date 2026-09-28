@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Bookmark, Home, MessageCircle, PlusCircle, Search, User } from "lucide-react";
+import {
+  Bell,
+  Bookmark,
+  Home,
+  MessageCircle,
+  MessagesSquare,
+  PlusCircle,
+  Search,
+  User,
+} from "lucide-react";
 import { useEngagementBadges } from "@/components/layout/engagement-badges-provider";
 import { useSavedListings } from "@/components/listings/saved-listings-provider";
 import { BRAND_TAGLINE } from "@/lib/constants/brand";
@@ -10,6 +19,7 @@ import { cn } from "@/lib/utils/cn";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home, exact: true },
+  { href: "/community", label: "Community", icon: MessagesSquare },
   { href: "/browse", label: "Browse", icon: Search },
   { href: "/sell", label: "Sell", icon: PlusCircle, emphasized: true },
   { href: "/messages", label: "Messages", icon: MessageCircle },

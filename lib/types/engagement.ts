@@ -13,10 +13,14 @@ export type ReportListingReason = (typeof REPORT_LISTING_REASONS)[number];
 export type NotificationType =
   | "chat_message"
   | "listing_comment"
+  | "listing_comment_reply"
+  | "security"
   | "listing_approved"
   | "listing_rejected"
   | "listing_reported"
-  | "listing_expires_soon";
+  | "listing_expires_soon"
+  | "community_reply"
+  | "community_like";
 
 export type AppNotification = {
   id: string;
@@ -32,7 +36,8 @@ export type AppNotification = {
 
 export type ConversationSummary = {
   id: string;
-  listingId: string;
+  /** Null when this is a listing-less Community direct conversation. */
+  listingId: string | null;
   listingTitle: string;
   listingImageUrl: string | null;
   otherPartyName: string;

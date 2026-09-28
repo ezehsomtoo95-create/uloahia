@@ -7,6 +7,7 @@ import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import type { ChatMessage } from "@/lib/types/engagement";
 import { cn } from "@/lib/utils/cn";
 import { shopPathForUsername } from "@/lib/utils/username";
+import { ReportButton, ReportSheet } from "@/components/safety/report-sheet";
 
 const MessageBubble = memo(function MessageBubble({ message }: { message: ChatMessage }) {
   return (
@@ -108,7 +109,8 @@ export function ConversationThread({
   isBlocked,
 }: {
   conversationId: string;
-  listingId: string;
+  /** Null for Community (listing-less) conversations. */
+  listingId: string | null;
   listingTitle: string;
   otherPartyId: string;
   otherPartyName: string;
@@ -128,6 +130,7 @@ export function ConversationThread({
   const profileHref = otherPartyUsername
     ? shopPathForUsername(otherPartyUsername)
     : `/store/${otherPartyId}`;
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     void markConversationRead(conversationId);
@@ -187,10 +190,18 @@ export function ConversationThread({
           </h1>
         </Link>
         <p className="mt-0.5 text-[12px] text-muted">
-          About{" "}
-          <Link href={`/listing/${listingId}`} className="text-primary hover:underline">
-            {listingTitle}
-          </Link>
+          {listingId ? (
+            <>
+              About{" "}
+              <Link href={`/listing/${listingId}`} className="text-primary hover:underline">
+                {listingTitle}
+              </Link>
+            </>
+          ) : (
+            <>
+              {listingTitle} conversation
+            </>
+          )}
           {otherPartyUsername ? (
             <>
               {" · "}
@@ -200,6 +211,9 @@ export function ConversationThread({
             </>
           ) : null}
         </p>
+        <div className="mt-2 flex justify-end">
+          <ReportButton onClick={() => setReportOpen(true)} label="Report conversation" />
+        </div>
       </header>
 
       <div ref={messagesRef} className="chat-thread-messages">
@@ -221,6 +235,14 @@ export function ConversationThread({
         conversationId={conversationId}
         isBlocked={isBlocked}
         onSent={handleSent}
+      />
+
+      <ReportSheet
+        contentType="chat_conversation"
+        contentId={conversationId}
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        isAuthenticated={true}
       />
     </div>
   );
