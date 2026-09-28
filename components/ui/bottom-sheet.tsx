@@ -35,8 +35,21 @@ export function BottomSheet({
       return;
     }
 
+    // Robust background scroll-lock. Plain `overflow: hidden` on <body> does
+    // not actually stop scrolling in iOS Safari, which made sheets behave
+    // differently on iPhone vs Android. Freezing the body keeps them identical.
     const previousOverflow = document.body.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+
     document.body.style.overflow = "hidden";
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+    }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -47,6 +60,12 @@ export function BottomSheet({
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        window.scrollTo(0, scrollY);
+      }
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onClose]);
@@ -69,7 +88,7 @@ export function BottomSheet({
     >
       <div
         className={cn(
-          "flex max-h-[min(72vh,520px)] w-full flex-col rounded-t-[16px] border border-border bg-surface shadow-xl",
+          "bottom-sheet-panel flex w-full flex-col rounded-t-[16px] border border-border bg-surface shadow-xl",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
           className,
         )}

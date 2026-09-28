@@ -10,7 +10,7 @@ export const ACTION_BUTTON_COMPACT =
   "box-border inline-flex h-6 shrink-0 items-center justify-center whitespace-nowrap rounded-md border px-1.5 text-[10px] font-medium leading-none";
 
 export function actionButtonClass(
-  variant: "default" | "danger" | "sold" = "default",
+  variant: "default" | "danger" | "sold" | "boost" = "default",
   size: "default" | "compact" = "default",
 ) {
   return cn(
@@ -18,6 +18,8 @@ export function actionButtonClass(
     "border-border/70 bg-foreground/[0.04]",
     variant === "danger" && "text-red-400/75",
     variant === "sold" && "text-muted",
+    variant === "boost" &&
+      "border-primary/40 bg-primary text-primary-foreground shadow-sm",
     variant === "default" && "text-foreground/80",
   );
 }

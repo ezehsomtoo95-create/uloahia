@@ -524,8 +524,16 @@ function SellPageContent({
           <button
             type="button"
             onClick={() => {
-              setPublished(false);
+              // A truly fresh form: nothing may carry over from the previous
+              // listing (photos, previews, title, price, condition, category,
+              // description, location or any temporary upload state).
+              setForm(createEmptyForm(defaultLocation));
+              setPhotoPreviews([]);
               setStepIndex(0);
+              setPublished(false);
+              setUpdated(false);
+              setErrorMessage("");
+              setIsPublishing(false);
             }}
             className="market-empty-cta mt-2 w-full max-w-xs"
           >
@@ -827,7 +835,8 @@ function DetailsStep({
       <Field label="Parent category">
         <CustomSelect
           value={form.parentCategoryId}
-          onChange={(value) =>
+          onChange={(value) => {
+            const parent = categoryTree.find((category) => category.id === value);
             setForm((prev) =>
               prev
                 ? {
@@ -836,11 +845,13 @@ function DetailsStep({
                     categoryId: "",
                     category: "",
                     attributes: {},
-                    condition: "",
+                    // Keep the user's Condition unless the new parent category
+                    // genuinely does not support conditions.
+                    condition: parent?.showCondition === false ? "" : prev.condition,
                   }
                 : prev,
-            )
-          }
+            );
+          }}
           options={categoryTree.map((category) => ({
             label: category.name,
             value: category.id,
@@ -1036,7 +1047,7 @@ function PreviewStep(props: {
 }) {
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+      <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
         <div className="relative aspect-square w-full overflow-hidden rounded-none bg-background">
           {props.coverPreview ? (
             <PreviewImage
