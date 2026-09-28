@@ -35,6 +35,8 @@ type ListingRow = {
   status: "pending" | "approved" | "rejected" | "sold";
   views: number;
   is_featured?: boolean | null;
+  boost_started_at?: string | null;
+  boost_expires_at?: string | null;
   created_at: string;
   listing_images?: ListingImageRow[] | null;
   categories?:
@@ -64,6 +66,8 @@ const LISTING_SELECT = `
   status,
   views,
   is_featured,
+  boost_started_at,
+  boost_expires_at,
   created_at,
   listing_images (
     image_url,
@@ -100,6 +104,41 @@ export async function getApprovedListings(limit = 24) {
       message: error.message,
       details: error.details,
       hint: error.hint,
+    });
+    return [];
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  const listings = (data as ListingRow[]).map(mapListingRow);
+  const withImages = await ensureListingImages(supabase, listings);
+  return attachSellerCards(supabase, withImages);
+}
+
+/**
+ * Approved listings with an active boost window. Used for the "Featured
+ * Listings" section on the home marketplace. Only real, live boosted listings
+ * are returned — no fabricated entries.
+ */
+export async function getBoostedListings(limit = 8) {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(LISTING_SELECT)
+    .eq("status", "approved")
+    .lte("boost_started_at", now)
+    .gt("boost_expires_at", now)
+    .order("boost_started_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[listings] getBoostedListings failed", {
+      code: error.code,
+      message: error.message,
     });
     return [];
   }
@@ -207,14 +246,19 @@ export async function getRelatedListings(listing: Listing, limit = 4) {
     .eq("status", "approved")
     .neq("id", listing.id)
     .or(`city.eq.${listing.city},category.eq.${listing.category}`)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
 
   if (error || !data) {
     return [];
   }
 
-  const listings = (data as ListingRow[]).map(mapListingRow);
+  const listings = (data as ListingRow[])
+    .map(mapListingRow)
+    .sort((first, second) => {
+      const boostOrder = Number(Boolean(second.isBoosted)) - Number(Boolean(first.isBoosted));
+      return boostOrder || (second.createdAtMs ?? 0) - (first.createdAtMs ?? 0);
+    })
+    .slice(0, limit);
   const withImages = await ensureListingImages(supabase, listings);
   return attachSellerCards(supabase, withImages);
 }
@@ -342,11 +386,39 @@ function mapListingRow(row: ListingRow): Listing {
     views: row.views,
     verified: row.status === "approved",
     isFeatured: Boolean(row.is_featured),
+    boostExpiresAt: row.boost_expires_at ?? null,
+    isBoosted: computeActiveBoost({
+      status: row.status,
+      boostStartedAt: row.boost_started_at,
+      boostExpiresAt: row.boost_expires_at,
+    }),
     createdAt: formatRelativeTime(row.created_at),
     createdAtMs: new Date(row.created_at).getTime(),
     images: imageUrls,
     imageUrl: imageUrls[0] ?? null,
   };
+}
+
+/**
+ * A boost is active only while the listing is approved and the current time is
+ * inside [started_at, expires_at). Expiry is derived server-side — the frontend
+ * never decides boost status.
+ */
+export function computeActiveBoost(input: {
+  status: Listing["status"];
+  boostStartedAt?: string | null;
+  boostExpiresAt?: string | null;
+}): boolean {
+  if (input.status !== "approved") {
+    return false;
+  }
+  const started = input.boostStartedAt;
+  const expires = input.boostExpiresAt;
+  if (!started || !expires) {
+    return false;
+  }
+  const now = Date.now();
+  return new Date(started).getTime() <= now && new Date(expires).getTime() > now;
 }
 
 async function ensureListingImages(

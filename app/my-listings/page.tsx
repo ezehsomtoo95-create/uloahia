@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, Eye } from "lucide-react";
+import { BadgeCheck, Eye, Sparkles } from "lucide-react";
 import { deleteListing, relistListing } from "@/app/my-listings/actions";
 import { actionButtonClass } from "@/components/my-listings/action-button-styles";
 import { ListingListImage } from "@/components/listings/listing-list-image";
@@ -8,7 +8,7 @@ import { BRAND_NAME } from "@/lib/constants/brand";
 import { getCurrentUser, getMyListings } from "@/lib/data/listings";
 import type { Listing } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
-import { formatNaira, formatViews } from "@/lib/utils/format";
+import { formatBoostExpiryDate, formatNaira, formatViews } from "@/lib/utils/format";
 import { redirect } from "next/navigation";
 
 export default async function MyListingsPage() {
@@ -108,11 +108,53 @@ function MyListingManageRow({ listing }: { listing: Listing }) {
                 </span>
               </>
             ) : null}
+            {listing.isBoosted ? (
+              <>
+                <span aria-hidden>·</span>
+                <span
+                  className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary"
+                  title={
+                    listing.boostExpiresAt
+                      ? `Boosted until ${formatBoostExpiryDate(listing.boostExpiresAt)}`
+                      : "Boosted"
+                  }
+                >
+                  <Sparkles size={10} strokeWidth={2.2} aria-hidden />
+                  <span className="whitespace-nowrap">
+                    {listing.boostExpiresAt
+                      ? `Until ${formatBoostExpiryDate(listing.boostExpiresAt)}`
+                      : "Boosted"}
+                  </span>
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
       </Link>
 
       <div className="my-listing-row-actions">
+        {listing.status === "approved" ? (
+          listing.isBoosted ? (
+            <button
+              type="button"
+              disabled
+              aria-label="Listing is already boosted"
+              className={cn(
+                actionButtonClass("boost", "compact"),
+                "w-[3.75rem] cursor-not-allowed px-1 opacity-60",
+              )}
+            >
+              Boosted
+            </button>
+          ) : (
+            <Link
+              href={`/boost/${listing.id}`}
+              className={cn(actionButtonClass("boost", "compact"), "w-[3.75rem] px-1")}
+            >
+              Boost
+            </Link>
+          )
+        ) : null}
         {isSold || listing.status === "rejected" ? (
           <ActionForm action={relistListing} listingId={listing.id} label="Relist" />
         ) : null}

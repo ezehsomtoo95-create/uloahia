@@ -66,6 +66,31 @@ export function getSellerInitials(name: string | null | undefined) {
   return (parts[0]?.[0] ?? "S").toUpperCase();
 }
 
+/** Human-friendly date like "31 August, 2026" (deterministic, no ICU drift). */
+export function formatBoostExpiryDate(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  return `${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
+}
+
 export function formatSavedTime(savedAt: string) {
   const savedTime = new Date(savedAt).getTime();
   const diffMs = Date.now() - savedTime;

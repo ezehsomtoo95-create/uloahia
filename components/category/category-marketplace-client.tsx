@@ -184,9 +184,14 @@ export function CategoryMarketplaceClient({
       case "popular":
         return next.sort((a, b) => b.views - a.views);
       default:
-        return next.sort(
-          (a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0),
-        );
+        // Newest, with an active boost lifting the listing above non-boosted
+        // ones (a stable ranking adjustment — other sorts are unchanged).
+        return next.sort((a, b) => {
+          const aBoost = a.isBoosted ? 1 : 0;
+          const bBoost = b.isBoosted ? 1 : 0;
+          if (aBoost !== bBoost) return bBoost - aBoost;
+          return (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0);
+        });
     }
   }, [filteredListings, sort]);
 

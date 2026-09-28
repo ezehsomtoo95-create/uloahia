@@ -12,7 +12,7 @@ import {
 } from "@/lib/constants/brand";
 import { MARKETPLACE_HERO_IMAGE } from "@/lib/constants/category-imagery";
 import { getDiscoveryCategories } from "@/lib/data/categories";
-import { getApprovedListings } from "@/lib/data/listings";
+import { getApprovedListings, getBoostedListings } from "@/lib/data/listings";
 
 const HomeCategoryFeed = nextDynamic(
   () =>
@@ -71,8 +71,9 @@ const websiteSchema = {
 };
 
 export default async function HomePage() {
-  const [newListings, discoveryCategories] = await Promise.all([
+  const [newListings, boostedListings, discoveryCategories] = await Promise.all([
     getApprovedListings(24),
+    getBoostedListings(8),
     getDiscoveryCategories(),
   ]);
 
@@ -110,7 +111,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <HomeCategoryFeed categories={discoveryCategories} listings={newListings} />
+      <HomeCategoryFeed
+        categories={discoveryCategories}
+        listings={newListings}
+        boostedListings={boostedListings}
+      />
 
       <footer className="market-home-foot">
         {BRAND_NAME} · {BRAND_TAGLINE}

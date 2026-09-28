@@ -108,6 +108,9 @@ export type Listing = {
   views: number;
   verified: boolean;
   isFeatured?: boolean;
+  /** Active boost: server rows set this when approved and now() within window. */
+  isBoosted?: boolean;
+  boostExpiresAt?: string | null;
   createdAt: string;
   createdAtMs?: number;
   images: string[];

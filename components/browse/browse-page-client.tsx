@@ -185,9 +185,14 @@ function BrowsePageContent({
       case "popular":
         return next.sort((first, second) => second.views - first.views);
       default:
-        return next.sort(
-          (first, second) => (second.createdAtMs ?? 0) - (first.createdAtMs ?? 0),
-        );
+        // Newest, with an active boost lifting the listing above non-boosted
+        // ones (a stable ranking adjustment — other sorts are unchanged).
+        return next.sort((first, second) => {
+          const firstBoost = first.isBoosted ? 1 : 0;
+          const secondBoost = second.isBoosted ? 1 : 0;
+          if (firstBoost !== secondBoost) return secondBoost - firstBoost;
+          return (second.createdAtMs ?? 0) - (first.createdAtMs ?? 0);
+        });
     }
   }, [filteredListings, sort]);
 

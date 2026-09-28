@@ -108,6 +108,8 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
       area,
       status,
       views,
+      boost_started_at,
+      boost_expires_at,
       created_at,
       listing_images ( image_url, position ),
       categories ( id, name, slug )
@@ -126,7 +128,7 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
   const sellerAvatarUrl = seller?.avatarUrl ?? null;
   const sellerVerified = Boolean(seller?.phoneVerified);
 
-  return data.map((row) => {
+  const listings = data.map((row) => {
     const images = [...((row.listing_images ?? []) as ListingImageRow[])].sort(
       (a, b) => a.position - b.position,
     );
@@ -159,7 +161,14 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
       description: row.description,
       status: row.status,
       views: row.views,
-      verified: true,
+      verified: row.status === "approved",
+      boostExpiresAt: row.boost_expires_at ?? null,
+      isBoosted:
+        row.status === "approved" &&
+        row.boost_started_at != null &&
+        new Date(row.boost_started_at).getTime() <= Date.now() &&
+        row.boost_expires_at != null &&
+        new Date(row.boost_expires_at).getTime() > Date.now(),
       createdAt: new Date(row.created_at).toLocaleDateString("en-NG", {
         day: "numeric",
         month: "short",
@@ -171,5 +180,10 @@ export async function getSellerActiveListings(sellerId: string): Promise<Listing
       sellerAvatarUrl,
       sellerVerified,
     } satisfies Listing;
+  });
+
+  return listings.sort((first, second) => {
+    const boostOrder = Number(Boolean(second.isBoosted)) - Number(Boolean(first.isBoosted));
+    return boostOrder || second.createdAtMs - first.createdAtMs;
   });
 }

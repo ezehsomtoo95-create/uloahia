@@ -2,7 +2,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Clock3, Eye, MapPin, Store } from "lucide-react";
+import { BadgeCheck, Clock3, Eye, MapPin, Sparkles, Store } from "lucide-react";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
@@ -25,7 +25,13 @@ import {
   getListingShareUrl,
   resolveListingShareImage,
 } from "@/lib/share";
-import { formatListingLocation, formatNaira, formatViews, sanitizeListingTitle } from "@/lib/utils/format";
+import {
+  formatBoostExpiryDate,
+  formatListingLocation,
+  formatNaira,
+  formatViews,
+  sanitizeListingTitle,
+} from "@/lib/utils/format";
 import { maskDisplayPhone } from "@/lib/utils/phone";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { DOMAIN } from "@/lib/constants/brand";
@@ -262,11 +268,24 @@ export default async function ListingDetailsPage({
           <section className="market-pdp-offer">
             <div className="market-pdp-offer-top">
               <p className="market-pdp-price">{formatNaira(listing.price)}</p>
-              {listing.verified ? (
-                <span className="market-pdp-verified">
-                  <BadgeCheck size={13} strokeWidth={2.2} />
-                  Verified
-                </span>
+              {listing.verified || listing.isBoosted ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {listing.verified ? (
+                    <span className="market-pdp-verified">
+                      <BadgeCheck size={13} strokeWidth={2.2} />
+                      Verified
+                    </span>
+                  ) : null}
+                  {listing.isBoosted ? (
+                    <span className="market-pdp-verified market-pdp-boosted">
+                      <Sparkles size={13} strokeWidth={2.2} />
+                      Boosted
+                      {listing.boostExpiresAt
+                        ? ` until ${formatBoostExpiryDate(listing.boostExpiresAt)}`
+                        : ""}
+                    </span>
+                  ) : null}
+                </div>
               ) : isAdmin ? (
                 <span className="market-pdp-status">{listing.status}</span>
               ) : null}
@@ -358,6 +377,28 @@ export default async function ListingDetailsPage({
                 isAuthenticated={Boolean(user)}
                 isOwnListing={isOwnListing}
               />
+              {isOwnListing ? (
+                listing.isBoosted ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-2 flex h-[52px] w-full cursor-not-allowed items-center justify-center gap-2 rounded-[14px] bg-primary/60 px-4 text-[15px] font-semibold text-primary-foreground"
+                  >
+                    <Sparkles size={16} aria-hidden />
+                    {listing.boostExpiresAt
+                      ? `Boosted until ${formatBoostExpiryDate(listing.boostExpiresAt)}`
+                      : "Boosted"}
+                  </button>
+                ) : (
+                  <Link
+                    href={`/boost/${listing.id}`}
+                    className="mt-2 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-primary px-4 text-[15px] font-semibold text-primary-foreground"
+                  >
+                    <Sparkles size={16} aria-hidden />
+                    Boost this listing
+                  </Link>
+                )
+              ) : null}
               {!isOwnListing ? (
                 sellerPhone ? (
                   <ListingWhatsappContact

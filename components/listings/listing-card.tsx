@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { memo } from "react";
-import { BadgeCheck, Eye, MapPin } from "lucide-react";
+import { BadgeCheck, Eye, MapPin, Sparkles } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { ListingCardSaveButton } from "@/components/listings/listing-card-save-button";
 import { ListingListImage } from "@/components/listings/listing-list-image";
@@ -53,6 +53,12 @@ export const ListingCard = memo(function ListingCard({
   const storeHref = listing.sellerId ? `/store/${listing.sellerId}` : null;
   const sellerLabel = listing.sellerName || t("card.seller");
   const isList = variant === "list";
+  // NOTE: this is the pre-Phase-2 behaviour and is deliberately NOT widened to
+  // `status === "approved"`. Browse/home only ever show approved listings, so
+  // keying the badge off `status` would paint "Verified" on every listing
+  // regardless of whether the seller actually is - making the badge cheaper
+  // than it is today. Phase 2 replaces this with the real verification tier.
+  const showVerifiedBadge = listing.verified;
 
   return (
     <article className={cn("listing-card", isList && "listing-card--list")}>
@@ -78,11 +84,21 @@ export const ListingCard = memo(function ListingCard({
               <span>No photo</span>
             </div>
           )}
-          {listing.verified ? (
-            <span className="listing-card-badge">
-              <BadgeCheck size={9} strokeWidth={2.2} />
-              {t("card.verified")}
-            </span>
+          {showVerifiedBadge || listing.isBoosted ? (
+            <div className="listing-card-badges">
+              {showVerifiedBadge ? (
+                <span className="listing-card-badge">
+                  <BadgeCheck size={9} strokeWidth={2.2} />
+                  {t("card.verified")}
+                </span>
+              ) : null}
+              {listing.isBoosted ? (
+                <span className="listing-card-badge listing-card-badge--boost">
+                  <Sparkles size={9} strokeWidth={2.2} />
+                  Boosted
+                </span>
+              ) : null}
+            </div>
           ) : null}
           {listing.condition ? (
             <span className="listing-card-condition bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">

@@ -10,6 +10,7 @@ const AUTH_REQUIRED_PREFIXES = [
   "/messages",
   "/notifications",
   "/profile/complete",
+  "/boost",
 ];
 
 const AUTH_EXEMPT_PREFIXES = ["/login", "/signup", "/auth", "/update-password"];
