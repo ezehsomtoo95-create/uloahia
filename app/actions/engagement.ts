@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { consumeRateLimit, runContentSafety } from "@/lib/safety/guard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
 import {
@@ -129,6 +130,32 @@ export async function sendConversationMessage(
 
   if (conversation.buyer_blocked_at || conversation.seller_blocked_at) {
     return { ok: false, error: "This conversation is unavailable." };
+  }
+
+  // Soft safety scan: normal chats flow untouched; only obvious harm is stopped.
+  // Flags are recorded for review — nobody reads conversations manually.
+  const allowedMsg = await consumeRateLimit(
+    supabase,
+    user.id,
+    "chat_message",
+    100,
+    60 * 60,
+  );
+  if (!allowedMsg) {
+    return { ok: false, error: "You are sending messages very quickly. Please slow down." };
+  }
+
+  const safety = await runContentSafety(
+    supabase,
+    user.id,
+    trimmed,
+    "chat_message",
+  );
+  if (safety.kind === "block") {
+    return {
+      ok: false,
+      error: safety.message ?? "This message looks unsafe and was not sent.",
+    };
   }
 
   const { error } = await supabase.from("messages").insert({
