@@ -11,6 +11,7 @@ export type ListingCommentRow = {
   authorId: string;
   authorName: string;
   authorAvatarUrl: string | null;
+  parentId: string | null;
 };
 
 type PublicAuthorRow = {
@@ -29,10 +30,11 @@ export async function getListingComments(listingId: string): Promise<ListingComm
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("listing_comments")
-    .select("id, body, created_at, author_id")
+    .select("id, body, created_at, author_id, parent_id")
     .eq("listing_id", listingId)
+    .eq("hidden", false)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
   if (error) {
     console.error("[listing-comments] select failed", {
@@ -79,6 +81,7 @@ export async function getListingComments(listingId: string): Promise<ListingComm
       authorId: row.author_id,
       authorName,
       authorAvatarUrl: author?.avatar_url ?? null,
+      parentId: row.parent_id ?? null,
     };
   });
 }

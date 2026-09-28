@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { consumeRateLimit, runContentSafety } from "@/lib/safety/guard";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -54,8 +55,104 @@ export async function postListingComment(
     };
   }
 
+  const allowedComment = await consumeRateLimit(
+    supabase,
+    user.id,
+    "listing_comment",
+    20,
+    60 * 60,
+  );
+  if (!allowedComment) {
+    return {
+      ok: false,
+      error: "You have commented on several listings recently. Try again shortly.",
+    };
+  }
+
+  const safety = await runContentSafety(
+    supabase,
+    user.id,
+    trimmed,
+    "listing_comment",
+  );
+  if (safety.kind === "block") {
+    return { ok: false, error: safety.message };
+  }
+
   const { error } = await supabase.from("listing_comments").insert({
     listing_id: listingId,
+    author_id: user.id,
+    body: trimmed,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/listing/${listingId}`);
+  return { ok: true };
+}
+
+export async function postListingCommentReply(
+  listingId: string,
+  parentCommentId: string,
+  body: string,
+): Promise<ActionResult> {
+  const { supabase, user } = await getAuthedClient();
+
+  if (!user) {
+    return { ok: false, error: "Sign in to reply." };
+  }
+
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Reply cannot be empty." };
+  }
+  if (trimmed.length > 1000) {
+    return { ok: false, error: "Reply is too long." };
+  }
+
+  // Verify the parent comment exists and belongs to this listing
+  const { data: parentComment } = await supabase
+    .from("listing_comments")
+    .select("id, listing_id, author_id")
+    .eq("id", parentCommentId)
+    .eq("listing_id", listingId)
+    .maybeSingle();
+
+  if (!parentComment) {
+    return { ok: false, error: "Comment not found." };
+  }
+
+  // Self-replies are allowed; the DB trigger simply skips the notification
+  // so users are never notified about their own replies.
+  const allowedReply = await consumeRateLimit(
+    supabase,
+    user.id,
+    "listing_comment_reply",
+    30,
+    60 * 60,
+  );
+  if (!allowedReply) {
+    return {
+      ok: false,
+      error: "You are replying very quickly. Please slow down a little.",
+    };
+  }
+
+  const safety = await runContentSafety(
+    supabase,
+    user.id,
+    trimmed,
+    "listing_comment",
+  );
+  if (safety.kind === "block") {
+    return { ok: false, error: safety.message };
+  }
+
+  const { error } = await supabase.from("listing_comments").insert({
+    listing_id: listingId,
+    parent_id: parentCommentId,
     author_id: user.id,
     body: trimmed,
   });
