@@ -8,6 +8,7 @@ import {
   categoryOverviewHref,
 } from "@/lib/categories/discovery";
 import { getCategoryImage } from "@/lib/constants/category-imagery";
+import { useAutoScrollRail } from "@/lib/hooks/use-auto-scroll-rail";
 import { useDragScroll } from "@/lib/hooks/use-drag-scroll";
 import { useHorizontalWheelScroll } from "@/lib/hooks/use-horizontal-wheel-scroll";
 import { cn } from "@/lib/utils/cn";
@@ -31,6 +32,7 @@ export function CategoryImageRail({
   size = "md",
   allHref = CATEGORIES_INDEX_HREF,
   categoryHref = categoryOverviewHref,
+  autoScroll = false,
 }: {
   categories: CategoryVisualItem[];
   active?: string | "All";
@@ -40,10 +42,13 @@ export function CategoryImageRail({
   size?: "sm" | "md" | "lg";
   allHref?: string;
   categoryHref?: (slug: string) => string;
+  /** Slow continuous drift that pauses on user interaction (Home page). */
+  autoScroll?: boolean;
 }) {
   const interactive = Boolean(onSelect);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  useAutoScrollRail(scrollRef, { enabled: autoScroll });
   useDragScroll(scrollRef);
   useHorizontalWheelScroll(scrollRef);
 

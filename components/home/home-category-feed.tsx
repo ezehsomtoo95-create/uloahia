@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ListingCard } from "@/components/listings/listing-card";
+import { CommunityHomeCard } from "@/components/community/community-home-card";
 import { CategoryDiscoveryStrip } from "@/components/market/category-discovery-strip";
 import { EmptyState } from "@/components/market/empty-state";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -15,16 +16,25 @@ import { cn } from "@/lib/utils/cn";
 type HomeCategoryFeedProps = {
   categories: CategoryWithCount[];
   listings: Listing[];
+  /** Active boosted listings (approved + within boost window) from the server. */
+  boostedListings?: Listing[];
 };
 
-export function HomeCategoryFeed({ categories, listings }: HomeCategoryFeedProps) {
+export function HomeCategoryFeed({
+  categories,
+  listings,
+  boostedListings = [],
+}: HomeCategoryFeedProps) {
   const { t } = useLocale();
   const [viewMode, setViewMode] = useListingViewMode("grid");
 
-  const featuredListings = useMemo(
-    () => listings.filter((item) => item.isFeatured).slice(0, 8),
-    [listings],
-  );
+  const featuredListings = useMemo(() => {
+    // Paid boosts are the primary featured pool; fall back to admin-featured
+    // listings so the section stays useful when nothing is boosted.
+    const boostedIds = new Set(boostedListings.map((item) => item.id));
+    const adminFeatured = listings.filter((item) => item.isFeatured && !boostedIds.has(item.id));
+    return [...boostedListings, ...adminFeatured].slice(0, 8);
+  }, [boostedListings, listings]);
 
   const exploreListings = useMemo(() => {
     const featuredIds = new Set(featuredListings.map((item) => item.id));
@@ -43,8 +53,10 @@ export function HomeCategoryFeed({ categories, listings }: HomeCategoryFeedProps
         <div className="market-block-head market-block-head--tight">
           <h2 className="market-block-title">{t("home.shopByCategory")}</h2>
         </div>
-        <CategoryDiscoveryStrip categories={discoveryCategories} />
+        <CategoryDiscoveryStrip categories={discoveryCategories} autoScroll />
       </section>
+
+      <CommunityHomeCard />
 
       {featuredListings.length > 0 ? (
         <section className="market-block">

@@ -10,6 +10,8 @@ import {
 type CategoryDiscoveryStripProps = {
   categories: CategoryDiscoveryItem[];
   size?: "sm" | "md" | "lg";
+  /** Opt-in slow auto-drift (used on the Home "Shop by category" strip). */
+  autoScroll?: boolean;
 };
 
 /**
@@ -19,6 +21,7 @@ type CategoryDiscoveryStripProps = {
 export function CategoryDiscoveryStrip({
   categories,
   size = "sm",
+  autoScroll = false,
 }: CategoryDiscoveryStripProps) {
   return (
     <CategoryImageRail
@@ -26,6 +29,7 @@ export function CategoryDiscoveryStrip({
       showAll
       showBrowseAllLink
       size={size}
+      autoScroll={autoScroll}
       allHref={CATEGORIES_INDEX_HREF}
       categoryHref={categoryOverviewHref}
     />
