@@ -92,7 +92,7 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN
     RETURN QUERY SELECT true, true;
     RETURN;
-  END IF;
+  END;
 
   -- Notify admins through the EXISTING notification system (no new infra).
   -- Link points at the reports section of the existing single-page admin
