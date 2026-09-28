@@ -42,4 +42,10 @@ next-env.d.ts
 /public/fallback-*.js
 /public/fallback-*.js.map
 
-.vercel
+# Supabase CLI local state (linked project ref, pooler url, version probes).
+# Machine-specific; `supabase link` regenerates it. It was previously tracked
+# and removed from the index in Phase 1.
+/supabase/.temp/
+
+# Local deploy/build logs
+/deploy-out.txt
