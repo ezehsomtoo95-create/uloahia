@@ -41,6 +41,9 @@ export function LegalPageShell({
           <Link href="/terms" className="legal-page__link">
             Terms of Service
           </Link>
+          <Link href="/prohibited-items" className="legal-page__link">
+            Prohibited Items
+          </Link>
           <a href={SUPPORT_MAILTO_HREF} className="legal-page__link">
             Contact support
           </a>
