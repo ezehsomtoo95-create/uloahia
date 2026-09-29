@@ -9,7 +9,10 @@ import { ListingListImage } from "@/components/listings/listing-list-image";
 import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import type { Listing } from "@/lib/types";
-import { toVerificationTier } from "@/lib/types/engagement";
+import {
+  isDisplayableVerificationTier,
+  toVerificationTier,
+} from "@/lib/types/engagement";
 import { cn } from "@/lib/utils/cn";
 import {
   formatListingLocation,
@@ -58,8 +61,11 @@ export const ListingCard = memo(function ListingCard({
   // The seller's real verification tier. Absent until migration 0055 is
   // applied, in which case no trust chip renders at all - deliberately better
   // than the old blanket "Verified", which keyed off `listing.verified` and
-  // therefore appeared on almost every card.
-  const hasTierBadge = toVerificationTier(listing.sellerVerificationTier) !== "none";
+  // therefore appeared on almost every card. phone_verified is retired and is
+  // rejected here too.
+  const hasTierBadge = isDisplayableVerificationTier(
+    toVerificationTier(listing.sellerVerificationTier),
+  );
 
   return (
     <article className={cn("listing-card", isList && "listing-card--list")}>

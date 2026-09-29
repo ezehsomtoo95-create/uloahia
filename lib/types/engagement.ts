@@ -34,7 +34,6 @@ export type VerificationTier = (typeof VERIFICATION_TIERS)[number];
 
 /** Tiers a user can actually hold today. */
 export const ACHIEVABLE_VERIFICATION_TIERS = [
-  "phone_verified",
   "id_verified",
 ] as const;
 
@@ -67,14 +66,9 @@ type TierMeta = {
  * an accusation.
  */
 export const VERIFICATION_TIER_META: Record<
-  Exclude<VerificationTier, "none">,
+  Exclude<VerificationTier, "none" | "phone_verified">,
   TierMeta
 > = {
-  phone_verified: {
-    label: "Phone verified",
-    shortLabel: "Phone",
-    description: "This seller confirmed ownership of the phone number on file.",
-  },
   id_verified: {
     label: "ID verified",
     shortLabel: "ID",
@@ -93,6 +87,23 @@ export const VERIFICATION_TIER_META: Record<
   },
 };
 
+/**
+ * phone_verified is RETIRED (migration 0056) and deliberately has no entry in
+ * VERIFICATION_TIER_META, so no code path can render it even if a stale row
+ * somehow reappears in the database. A confirmed phone number shows the
+ * seller can receive WhatsApp - it is not an identity check, so it was never
+ * a trust signal worth displaying.
+ *
+ * The value remains in VERIFICATION_TIERS and VERIFICATION_TIER_STRENGTH for
+ * the historical record and so existing rows still parse. If it is ever
+ * reinstated, it needs a VERIFICATION_TIER_META entry again.
+ */
+export function isDisplayableVerificationTier(
+  tier: VerificationTier,
+): tier is Exclude<VerificationTier, "none" | "phone_verified"> {
+  return tier !== "none" && tier !== "phone_verified";
+}
+
 /** Ordered strongest-first, for "highest tier wins" logic. */
 export const VERIFICATION_TIER_STRENGTH: Record<VerificationTier, number> = {
   none: 0,
@@ -103,11 +114,10 @@ export const VERIFICATION_TIER_STRENGTH: Record<VerificationTier, number> = {
 };
 
 export function verificationTierLabel(tier: VerificationTier): string | null {
-  if (tier === "none") return null;
-  return VERIFICATION_TIER_META[tier].label;
+  return isDisplayableVerificationTier(tier) ? VERIFICATION_TIER_META[tier].label : null;
 }
 
-/** The strongest of several tiers (a seller may be both phone and ID verified). */
+/** The strongest of several tiers, ignoring the retired phone tier. */
 export function highestVerificationTier(
   tiers: readonly VerificationTier[],
 ): VerificationTier {

@@ -1,7 +1,8 @@
 "use client";
 
-import { BadgeCheck, IdCard, Store } from "lucide-react";
+import { IdCard, Store } from "lucide-react";
 import {
+  isDisplayableVerificationTier,
   toVerificationTier,
   VERIFICATION_TIER_META,
   type VerificationTier,
@@ -18,13 +19,16 @@ import { cn } from "@/lib/utils/cn";
  * A seller with tier "none" renders nothing. There is deliberately no "Not
  * verified" state: a badge that appears to warn buyers about an unconfigured
  * seller reads as an accusation and would be wrong most of the time.
+ *
+ * phone_verified is retired (migration 0056) and has no META entry, so
+ * isDisplayableVerificationTier rejects it here as well as at the type level -
+ * defence in depth against a stale DB row being rendered.
  */
 
 const ICONS = {
-  phone_verified: BadgeCheck,
   id_verified: IdCard,
   shop_verified: Store,
-  business_verified: BadgeCheck,
+  business_verified: IdCard,
 } as const;
 
 type SellerTierBadgeProps = {
@@ -43,7 +47,7 @@ export function SellerTierBadge({
   className,
 }: SellerTierBadgeProps) {
   const resolved = toVerificationTier(tier);
-  if (resolved === "none") {
+  if (!isDisplayableVerificationTier(resolved)) {
     return null;
   }
 
