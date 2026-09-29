@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { ColdStartSplash } from "@/components/layout/cold-start-splash";
 import { EngagementBadgesProvider } from "@/components/layout/engagement-badges-provider";
 import { TopBar } from "@/components/layout/top-bar";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -50,6 +51,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SavedListingsProvider>
         <EngagementBadgesProvider>
           <ErrorBoundary title="Marketplace unavailable">
+            {/* Cold start only, and bound to real hydration rather than a
+                timer - see the component for why there is no minimum duration. */}
+            <ColdStartSplash />
             <div className="marketplace-root bg-background text-foreground">
               {!isAdmin ? <TopBar /> : null}
               <div
