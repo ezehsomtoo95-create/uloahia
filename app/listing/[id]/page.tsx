@@ -7,6 +7,7 @@ import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
 import { ListingReportButton } from "@/components/listings/listing-report-button";
+import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
 import { ShareListing } from "@/components/listings/share-listing";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
@@ -334,7 +335,11 @@ export default async function ListingDetailsPage({
                     {sellerProfile ? ` · ${sellerProfile.activeListingCount} active` : null}
                   </p>
                   <div className="market-pdp-seller-trust">
-                    {sellerProfile?.phoneVerified ? <span>Phone on file</span> : null}
+                    <SellerTierBadge
+                      tier={sellerProfile?.verificationTier}
+                      size="md"
+                      fullLabel
+                    />
                     {sellerPhone ? (
                       <span>{maskDisplayPhone(sellerPhone)}</span>
                     ) : (

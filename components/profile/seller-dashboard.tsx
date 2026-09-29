@@ -6,6 +6,8 @@ import { BadgeCheck } from "lucide-react";
 import { PhoneNumberManager } from "@/components/profile/phone-number-manager";
 import { ProfileAvatarUploader } from "@/components/profile/profile-avatar-uploader";
 import { ProfileUsernameEditor } from "@/components/profile/profile-username-editor";
+import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
+import type { VerificationTier } from "@/lib/types/engagement";
 import { cn } from "@/lib/utils/cn";
 
 type SellerDashboardProps = {
@@ -18,6 +20,8 @@ type SellerDashboardProps = {
   locationLabel: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
+  /** Strongest tier held. Optional until migration 0055 is applied. */
+  verificationTier?: VerificationTier;
   phoneLabel: string | null;
   phoneRaw: string;
   needsPhone: boolean;
@@ -42,6 +46,7 @@ export function SellerDashboard({
   locationLabel,
   emailVerified,
   phoneVerified,
+  verificationTier,
   phoneLabel,
   phoneRaw,
   needsPhone,
@@ -72,12 +77,13 @@ export function SellerDashboard({
             <h2 className="text-[1.125rem] font-semibold tracking-tight text-neutral-950 dark:text-neutral-50">
               {headerName}
             </h2>
-            {(emailVerified || phoneVerified) && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <BadgeCheck size={12} strokeWidth={2.2} />
-                Verified
-              </span>
-            )}
+            {/* Previously: a flat "Verified" chip shown when the seller had
+                EITHER a confirmed email or a phone number. Since email is
+                created at signup, that made the chip near-universal and it
+                said nothing about which check had actually passed. Now it
+                states the specific tier, and shows nothing when there is
+                none. */}
+            <SellerTierBadge tier={verificationTier} size="md" fullLabel />
           </div>
 
           <ProfileUsernameEditor

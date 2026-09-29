@@ -1,3 +1,5 @@
+import type { VerificationTier } from "@/lib/types/engagement";
+
 export type ListingStatus = "pending" | "approved" | "rejected" | "sold";
 
 export type ListingCondition =
@@ -119,7 +121,14 @@ export type Listing = {
   sellerName?: string;
   sellerAvatarUrl?: string | null;
   sellerJoinedAt?: string;
+  /** @deprecated Pre-tiers alias for phone verification. Use sellerVerificationTier. */
   sellerVerified?: boolean;
+  /**
+   * Strongest verification tier held by this listing's seller. Optional:
+   * arrives with migration 0055, so a deploy before that migration leaves it
+   * undefined and the card renders no trust badge.
+   */
+  sellerVerificationTier?: VerificationTier;
   responseTime?: string;
   soldItemsCount?: number;
   sellerPhone?: string | null;

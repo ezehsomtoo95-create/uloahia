@@ -2,10 +2,19 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Listing } from "@/lib/types";
-import type { PublicSellerProfile } from "@/lib/types/engagement";
+import {
+  toVerificationTier,
+  type PublicSellerProfile,
+} from "@/lib/types/engagement";
 import { resolveListingImages } from "@/lib/utils/storage";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
+/**
+ * Shape returned by get_public_seller_profile_by_id / _by_username (migration
+ * 0055). `verification_tier` is optional so this mapper also accepts the
+ * legacy RPCs' rows during a rolling deploy, where the column does not exist
+ * yet.
+ */
 type PublicSellerRow = {
   id: string;
   username: string | null;
@@ -14,7 +23,8 @@ type PublicSellerRow = {
   state: string | null;
   city: string | null;
   created_at: string;
-  phone_verified: boolean;
+  phone_verified?: boolean;
+  verification_tier?: string | null;
   active_listing_count: number;
   total_views: number | string;
 };
@@ -44,6 +54,7 @@ function mapPublicSeller(row: PublicSellerRow, requireUsername = true): PublicSe
       year: "numeric",
     }),
     phoneVerified: Boolean(row.phone_verified),
+    verificationTier: toVerificationTier(row.verification_tier),
     emailVerified: true,
     activeListingCount: Number(row.active_listing_count ?? 0),
     totalViews: Number(row.total_views ?? 0),
@@ -59,7 +70,10 @@ export async function getPublicSellerByUsername(username: string) {
     // keep raw trim if already decoded / invalid encoding
   }
 
-  const { data, error } = await supabase.rpc("get_public_seller_by_username", {
+  // Additive switch: the new RPC (migration 0055) has the wider RETURNS TABLE
+  // that includes verification_tier. The old get_public_seller_by_username is
+  // left in place and untouched, so this call is trivially reversible.
+  const { data, error } = await supabase.rpc("get_public_seller_profile_by_username", {
     shop_username: decoded,
   });
 
@@ -72,7 +86,8 @@ export async function getPublicSellerByUsername(username: string) {
 
 export async function getPublicSellerById(sellerId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_public_seller_by_id", {
+  // Additive switch, mirroring getPublicSellerByUsername above.
+  const { data, error } = await supabase.rpc("get_public_seller_profile_by_id", {
     seller_uuid: sellerId,
   });
 

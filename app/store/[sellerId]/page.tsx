@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, MapPin } from "lucide-react";
 import { ListingCatalog } from "@/components/market/listing-catalog";
+import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
 import { StorefrontAvatar } from "@/components/store/storefront-avatar";
 import {
   getPublicSellerById,
@@ -123,16 +124,11 @@ export default async function SellerStorePage({
         </p>
 
         <div className="market-shop-trust">
-          {seller.phoneVerified ? (
-            <span>
-              <BadgeCheck size={12} strokeWidth={2.2} />
-              Phone verified
-            </span>
-          ) : null}
-          <span>
-            <BadgeCheck size={12} strokeWidth={2.2} />
-            Email account
-          </span>
+          {/* The old page showed a "Phone verified" chip (conditional) plus an
+              unconditional "Email account" chip. Email is created at signup, so
+              that second badge was true of every seller ever and diluted the
+              one badge that meant something. Both are replaced by the tier. */}
+          <SellerTierBadge tier={seller.verificationTier} size="md" fullLabel />
         </div>
       </header>
 

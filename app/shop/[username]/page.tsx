@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, MapPin } from "lucide-react";
 import { ListingCatalog } from "@/components/market/listing-catalog";
+import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
 import { StorefrontAvatar } from "@/components/store/storefront-avatar";
 import {
   getPublicSellerByUsername,
@@ -127,16 +128,10 @@ export default async function SellerShopPage({
         </p>
 
         <div className="market-shop-trust">
-          {seller.phoneVerified ? (
-            <span>
-              <BadgeCheck size={12} strokeWidth={2.2} />
-              Phone verified
-            </span>
-          ) : null}
-          <span>
-            <BadgeCheck size={12} strokeWidth={2.2} />
-            Email account
-          </span>
+          {/* Same change as /store/[sellerId]: the unconditional "Email
+              account" chip was true of every seller and diluted the badge
+              beside it. */}
+          <SellerTierBadge tier={seller.verificationTier} size="md" fullLabel />
         </div>
 
         <p className="market-shop-hint">

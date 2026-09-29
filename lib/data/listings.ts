@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 
 import type { Listing } from "@/lib/types";
+import { toVerificationTier } from "@/lib/types/engagement";
 import { sanitizeListingTitle } from "@/lib/utils/format";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
@@ -469,7 +470,8 @@ type PublicSellerCardRow = {
   username: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  phone_verified: boolean;
+  phone_verified?: boolean;
+  verification_tier?: string | null;
 };
 
 async function attachSellerCards(
@@ -488,7 +490,10 @@ async function attachSellerCards(
     return listings;
   }
 
-  const { data, error } = await supabase.rpc("get_public_sellers_by_ids", {
+  // Additive switch to the tier-aware RPC (migration 0055). The original
+  // get_public_sellers_by_ids is left intact and still used by any caller that
+  // has not migrated.
+  const { data, error } = await supabase.rpc("get_public_seller_cards", {
     seller_uuids: sellerIds,
   });
 
@@ -508,7 +513,9 @@ async function attachSellerCards(
       {
         sellerName: formatSellerDisplayName(row),
         sellerAvatarUrl: row.avatar_url,
+        // Retained for older call sites; the tier is the real signal now.
         sellerVerified: Boolean(row.phone_verified),
+        sellerVerificationTier: toVerificationTier(row.verification_tier),
       },
     ]),
   );

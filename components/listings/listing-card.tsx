@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { memo } from "react";
-import { BadgeCheck, Eye, MapPin, Sparkles } from "lucide-react";
+import { Eye, MapPin, Sparkles } from "lucide-react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { ListingCardSaveButton } from "@/components/listings/listing-card-save-button";
 import { ListingListImage } from "@/components/listings/listing-list-image";
+import { SellerTierBadge } from "@/components/seller/seller-tier-badge";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import type { Listing } from "@/lib/types";
+import { toVerificationTier } from "@/lib/types/engagement";
 import { cn } from "@/lib/utils/cn";
 import {
   formatListingLocation,
@@ -53,12 +55,11 @@ export const ListingCard = memo(function ListingCard({
   const storeHref = listing.sellerId ? `/store/${listing.sellerId}` : null;
   const sellerLabel = listing.sellerName || t("card.seller");
   const isList = variant === "list";
-  // NOTE: this is the pre-Phase-2 behaviour and is deliberately NOT widened to
-  // `status === "approved"`. Browse/home only ever show approved listings, so
-  // keying the badge off `status` would paint "Verified" on every listing
-  // regardless of whether the seller actually is - making the badge cheaper
-  // than it is today. Phase 2 replaces this with the real verification tier.
-  const showVerifiedBadge = listing.verified;
+  // The seller's real verification tier. Absent until migration 0055 is
+  // applied, in which case no trust chip renders at all - deliberately better
+  // than the old blanket "Verified", which keyed off `listing.verified` and
+  // therefore appeared on almost every card.
+  const hasTierBadge = toVerificationTier(listing.sellerVerificationTier) !== "none";
 
   return (
     <article className={cn("listing-card", isList && "listing-card--list")}>
@@ -84,13 +85,14 @@ export const ListingCard = memo(function ListingCard({
               <span>No photo</span>
             </div>
           )}
-          {showVerifiedBadge || listing.isBoosted ? (
+          {/* The image-overlay trust chip, keyed to the seller's real tier
+              rather than the old `listing.verified` flag. A seller with no
+              tier simply shows no chip, instead of the blanket "Verified" that
+              used to appear on almost every card. */}
+          {hasTierBadge || listing.isBoosted ? (
             <div className="listing-card-badges">
-              {showVerifiedBadge ? (
-                <span className="listing-card-badge">
-                  <BadgeCheck size={9} strokeWidth={2.2} />
-                  {t("card.verified")}
-                </span>
+              {hasTierBadge ? (
+                <SellerTierBadge tier={listing.sellerVerificationTier} />
               ) : null}
               {listing.isBoosted ? (
                 <span className="listing-card-badge listing-card-badge--boost">
@@ -148,9 +150,7 @@ export const ListingCard = memo(function ListingCard({
             onClick={(event) => event.stopPropagation()}
           >
             <SellerAvatar name={sellerLabel} avatarUrl={listing.sellerAvatarUrl} />
-            {listing.sellerVerified ? (
-              <BadgeCheck size={9} strokeWidth={2.2} className="shrink-0 text-primary" />
-            ) : null}
+            <SellerTierBadge tier={listing.sellerVerificationTier} />
             <span className="truncate">{sellerLabel}</span>
           </Link>
         ) : (

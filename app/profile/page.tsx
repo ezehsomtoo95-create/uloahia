@@ -102,6 +102,7 @@ export default async function ProfilePage() {
             locationLabel={locationLabel}
             emailVerified={Boolean(user.email_confirmed_at)}
             phoneVerified={Boolean(profile?.phone_verified_at)}
+            verificationTier={publicSeller?.verificationTier}
             phoneLabel={
               profile?.phone && !needsPhone ? formatDisplayPhone(profile.phone) : null
             }
