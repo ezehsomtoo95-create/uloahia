@@ -98,6 +98,7 @@ export default async function ProfilePage() {
           <IdVerificationPanel
             tier={publicSeller?.verificationTier ?? profile?.verification_tier ?? "none"}
             request={verificationRequest}
+            phoneEverVerified={Boolean(profile?.phone_verified_at)}
           />
 
           <SellerDashboard

@@ -40,9 +40,12 @@ export type MyVerificationRequest = {
 export function IdVerificationPanel({
   tier,
   request,
+  phoneEverVerified = false,
 }: {
   tier: VerificationTier;
   request: MyVerificationRequest;
+  /** True when the seller previously completed phone OTP (retired in 0056). */
+  phoneEverVerified?: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -50,9 +53,32 @@ export function IdVerificationPanel({
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [formOpen, setFormOpen] = useState(false);
 
   const resolvedTier = toVerificationTier(tier);
   const status = request?.status ?? null;
+
+  function submit() {
+    const file = fileRef.current?.files?.[0];
+    if (!file) {
+      setError("Choose a photo of your ID first.");
+      return;
+    }
+    setError("");
+    const formData = new FormData();
+    formData.set("document", file);
+    formData.set("docType", docType);
+    startTransition(async () => {
+      const result = await submitVerificationDoc(formData);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setFileName(null);
+      if (fileRef.current) fileRef.current.value = "";
+      router.refresh();
+    });
+  }
 
   if (resolvedTier === "id_verified" || status === "approved") {
     return (
@@ -106,6 +132,54 @@ export function IdVerificationPanel({
     );
   }
 
+  // UNVERIFIED_NOTICE: after migration 0056 retired the phone tier, sellers who
+  // had a confirmed phone lost a visible signal without explanation. This is
+  // the one place that change is acknowledged, and it doubles as the entry
+  // point into ID verification. `phoneEverVerified` is true only for a seller
+  // who completed OTP, so nobody without that history sees this copy.
+  const showUnverifiedNotice =
+    resolvedTier === "none" && status === null && phoneEverVerified;
+
+  if (showUnverifiedNotice) {
+    return (
+      <section className="rounded-[14px] border border-primary/25 bg-primary/[0.04] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <ShieldCheck size={15} className="text-primary" aria-hidden />
+          <p className="text-[13px] font-semibold">
+            You&apos;re not showing a trust badge yet
+          </p>
+        </div>
+        <p className="mt-1 text-[12px] text-muted">
+          We no longer show a badge for a confirmed phone number — that only
+          meant you could receive a message, not that you&apos;re who you say you
+          are. Verify your ID instead and buyers will see a badge that means
+          something.
+        </p>
+        <button
+          type="button"
+          onClick={() => setFormOpen(true)}
+          className="mt-2 h-9 cursor-pointer rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground"
+        >
+          Verify my ID
+        </button>
+        {formOpen ? (
+          <div className="mt-3">
+            <VerificationForm
+              docType={docType}
+              setDocType={setDocType}
+              fileRef={fileRef}
+              fileName={fileName}
+              setFileName={setFileName}
+              error={error}
+              pending={pending}
+              onSubmit={submit}
+            />
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-[14px] border border-border bg-surface p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -124,73 +198,92 @@ export function IdVerificationPanel({
         </p>
       ) : null}
 
-      <form
-        className="mt-3 space-y-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const file = fileRef.current?.files?.[0];
-          if (!file) {
-            setError("Choose a photo of your ID first.");
-            return;
-          }
-          setError("");
-          const formData = new FormData();
-          formData.set("document", file);
-          formData.set("docType", docType);
-          startTransition(async () => {
-            const result = await submitVerificationDoc(formData);
-            if (!result.ok) {
-              setError(result.error);
-              return;
-            }
-            setFileName(null);
-            if (fileRef.current) fileRef.current.value = "";
-            router.refresh();
-          });
-        }}
-      >
-        <div className="flex flex-wrap gap-1.5">
-          {DOC_TYPES.map((d) => (
-            <button
-              key={d.value}
-              type="button"
-              onClick={() => setDocType(d.value)}
-              className={cn(
-                "rounded-full border px-2.5 py-1 text-[11px] font-medium transition duration-app",
-                docType === d.value
-                  ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-border text-muted",
-              )}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-
-        <label className="flex cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-dashed border-border px-3 py-2.5 text-[12px]">
-          <span className="truncate text-muted">
-            {fileName ?? "Choose a photo of your ID (JPG, PNG, WebP, under 5MB)"}
-          </span>
-          <Upload size={14} aria-hidden className="shrink-0 text-muted" />
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
-          />
-        </label>
-
-        {error ? <p className="text-[12px] text-red-500">{error}</p> : null}
-
-        <button
-          type="submit"
-          disabled={pending || !fileName}
-          className="h-10 w-full cursor-pointer rounded-full bg-primary text-[13px] font-semibold text-primary-foreground disabled:opacity-50"
-        >
-          {pending ? "Submitting…" : "Submit for review"}
-        </button>
-      </form>
+      <div className="mt-3">
+        <VerificationForm
+          docType={docType}
+          setDocType={setDocType}
+          fileRef={fileRef}
+          fileName={fileName}
+          setFileName={setFileName}
+          error={error}
+          pending={pending}
+          onSubmit={submit}
+        />
+      </div>
     </section>
+  );
+}
+
+type VerificationFormProps = {
+  docType: VerificationDocType;
+  setDocType: (value: VerificationDocType) => void;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+  fileName: string | null;
+  setFileName: (name: string | null) => void;
+  error: string;
+  pending: boolean;
+  onSubmit: () => void;
+};
+
+function VerificationForm({
+  docType,
+  setDocType,
+  fileRef,
+  fileName,
+  setFileName,
+  error,
+  pending,
+  onSubmit,
+}: VerificationFormProps) {
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {DOC_TYPES.map((d) => (
+          <button
+            key={d.value}
+            type="button"
+            onClick={() => setDocType(d.value)}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-[11px] font-medium transition duration-app",
+              docType === d.value
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-border text-muted",
+            )}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+
+      <label className="flex cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-dashed border-border px-3 py-2.5 text-[12px]">
+        <span className="truncate text-muted">
+          {fileName ?? "Choose a photo of your ID (JPG, PNG, WebP, under 5MB)"}
+        </span>
+        <Upload size={14} aria-hidden className="shrink-0 text-muted" />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+        />
+      </label>
+
+      {error ? <p className="text-[12px] text-red-500">{error}</p> : null}
+
+      <button
+        type="submit"
+        disabled={pending || !fileName}
+        className="h-10 w-full cursor-pointer rounded-full bg-primary text-[13px] font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        {pending ? "Submitting…" : "Submit for review"}
+      </button>
+    </form>
   );
 }

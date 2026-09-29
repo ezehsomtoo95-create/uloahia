@@ -6,6 +6,7 @@ import { assertIsAdmin } from "@/lib/admin/auth";
 import { adminError, adminSuccess, type AdminActionResult } from "@/lib/admin/results";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
+import { isPendingProfilePhone } from "@/lib/types/engagement";
 
 /**
  * Admin-side ID verification review.
@@ -113,6 +114,27 @@ export async function approveVerificationRequest(
   }
   if (request.status !== "pending") {
     return adminError("This request has already been reviewed.");
+  }
+
+  // A seller with no contactable number is a dead end on a marketplace where
+  // WhatsApp is the primary contact channel: an ID badge on a listing nobody
+  // can reach through is worse than no badge. Blocking at approval time (not
+  // upload time) means a seller who adds a number later can still be approved
+  // on the submission they already made.
+  const { data: sellerProfile, error: sellerError } = await admin
+    .from("profiles")
+    .select("phone, phone_verified_at")
+    .eq("id", request.user_id)
+    .maybeSingle();
+
+  if (sellerError) {
+    return adminError(sellerError.message);
+  }
+
+  if (!sellerProfile?.phone || isPendingProfilePhone(sellerProfile.phone)) {
+    return adminError(
+      "This seller has no complete phone number on file. Ask them to add one first, then approve.",
+    );
   }
 
   const { error: tierError } = await admin
