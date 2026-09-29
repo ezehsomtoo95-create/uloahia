@@ -230,10 +230,23 @@ html,
 body {
   max-width: 100%;
   overflow-x: hidden;
-}
-
-body {
+  /*
+   * Pull-to-refresh, iOS standalone.
+   *
+   * iOS 16.4+ shows its own pull-to-refresh gesture in a home-screen web app,
+   * but only while the document can overscroll at the top of the page. Setting
+   * `overscroll-behavior: none` anywhere on the root - or `contain` on an
+   * ancestor of the scroller - breaks scroll chaining and the gesture never
+   * fires. That is why swiping down did nothing in the installed app while the
+   * same page in a Safari tab refreshed normally.
+   *
+   * So: the root keeps Y overscrolling (that is the refresh gesture), and only
+   * the X axis is clamped, to stop horizontal rubber-banding leaking from a
+   * child scroller. The x/y axes are not independent on iOS, which is why this
+   * is scoped as narrowly as possible and left to `auto` on Y.
+   */
   overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
 }
 
 select option {

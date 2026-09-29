@@ -20,8 +20,28 @@ const ICONS_DIR = path.join(ROOT, "public", "icons");
 const RAW_SOURCE = path.join(ICONS_DIR, "icon-source-raw.png");
 const MASTER_SIZE = 1024;
 
+/**
+ * Fraction of the canvas the logo may occupy, on EVERY variant.
+ *
+ * 0.80 is the Android maskable safe-area guideline: when the OS masks the
+ * icon into a circle, squircle or rounded square it keeps roughly the middle
+ * 80%, so anything beyond that gets clipped. Using the same value for the
+ * transparent and opaque outputs means one number governs the whole set and
+ * iOS home screens and Android launchers agree.
+ *
+ * Previously the master inset the logo to 92%, which looked cramped on a home
+ * screen and left the maskable variants with almost no safe area.
+ */
+const LOGO_INSET = 0.8;
+
 /** Matches CSS `--background: #faf7f0` */
 const APP_BG = { r: 250, g: 247, b: 240, alpha: 1 };
+
+/** Matches CSS `--muted: #6b6760` - the splash tagline is secondary to the logo. */
+const APP_TAGLINE_COLOR = "#6b6760";
+
+/** Matches BRAND_TAGLINE in lib/constants/brand.ts: "Buy. Sell. Discover." */
+const APP_TAGLINE = "Buy. Sell. Discover.";
 
 const SQUARE_OUTPUTS = [
   { file: path.join(ICONS_DIR, "icon-192x192.png"), size: 192, opaque: false },
@@ -196,7 +216,7 @@ async function buildTransparentMaster(sourcePath) {
 
   const meta = await sharp(trimmed).metadata();
   const maxSide = Math.max(meta.width ?? MASTER_SIZE, meta.height ?? MASTER_SIZE);
-  const contentSize = Math.round(MASTER_SIZE * 0.92);
+  const contentSize = Math.round(MASTER_SIZE * LOGO_INSET);
   const scale = contentSize / maxSide;
 
   const fitted = await sharp(trimmed)
@@ -276,9 +296,32 @@ async function logoOnlyBuffer(sourcePng) {
     .toBuffer();
 }
 
+/**
+ * Render the "Buy. Sell. Discover." tagline as an SVG and composite it under
+ * the logo.
+ *
+ * Uses SVG <text> rather than a bitmap font because sharp has no text
+ * rendering of its own, and a system font stack keeps it dependency-free. The
+ * font-size is tuned against the splash width so the line never wraps, and the
+ * fill is the brand's muted foreground so it reads as secondary to the logo.
+ */
+function taglineSvg(width, fontSize) {
+  const height = Math.round(fontSize * 1.4);
+  // letter-spacing in em; a touch of tracking at display size reads better
+  const escaped = APP_TAGLINE;
+  return Buffer.from(
+    `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">` +
+      `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" ` +
+      `font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" ` +
+      `font-size="${fontSize}px" font-weight="500" letter-spacing="0.06em" ` +
+      `fill="${APP_TAGLINE_COLOR}">${escaped}</text>` +
+      `</svg>`,
+  );
+}
+
 async function writeSplash(sourcePng, width, height, outFile) {
   const logoSrc = await logoOnlyBuffer(sourcePng);
-  const logoSize = Math.round(Math.min(width, height) * 0.32);
+  const logoSize = Math.round(Math.min(width, height) * 0.26);
   const logo = await sharp(logoSrc)
     .trim({ threshold: 0 })
     .resize(logoSize, logoSize, {
@@ -288,6 +331,19 @@ async function writeSplash(sourcePng, width, height, outFile) {
     .png()
     .toBuffer();
 
+  // Tagline sized off the canvas so it stays proportional from a 750x1334
+  // iPhone SE splash up to a 2048x2732 iPad one.
+  const fontSize = Math.round(Math.min(width, height) * 0.045);
+  const tagWidth = Math.round(width * 0.7);
+  const tagHeight = Math.round(fontSize * 1.4);
+  const tagline = await sharp(taglineSvg(tagWidth, fontSize))
+    .png()
+    .toBuffer();
+
+  // Logo centred slightly above true centre, tagline just beneath it, so the
+  // pair reads as one lockup rather than two floating elements.
+  const logoTop = Math.round(height / 2 - logoSize / 2 - tagHeight * 0.9);
+
   await sharp({
     create: {
       width,
@@ -296,11 +352,14 @@ async function writeSplash(sourcePng, width, height, outFile) {
       background: APP_BG,
     },
   })
-    .composite([{ input: logo, gravity: "centre" }])
+    .composite([
+      { input: logo, gravity: "north", top: logoTop, left: Math.round((width - logoSize) / 2) },
+      { input: tagline, gravity: "north", top: logoTop + logoSize + Math.round(fontSize * 0.5), left: Math.round((width - tagWidth) / 2) },
+    ])
     .png()
     .toFile(outFile);
 
-  console.log(`wrote ${path.relative(ROOT, outFile)} (${width}x${height})`);
+  console.log(`wrote ${path.relative(ROOT, outFile)} (${width}x${height}, logo + tagline)`);
 }
 
 async function main() {

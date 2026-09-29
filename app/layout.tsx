@@ -10,6 +10,21 @@ import { BRAND_NAME, DOMAIN, TAGLINE } from "@/lib/constants/brand";
 import { localeInitScript } from "@/lib/i18n/locale";
 import { themeInitScript } from "@/lib/theme/theme";
 
+/**
+ * Icon cache-buster, shared with app/manifest.ts.
+ *
+ * iOS pins a home-screen apple-touch-icon for weeks and offers no supported
+ * way to force a re-fetch, so a changed URL is the only reliable lever. Bump
+ * ICONS_V whenever the icon artwork is regenerated. Without it, a corrected
+ * icon can ship and never appear on anyone's device.
+ */
+const ICONS_V = "2";
+
+/** Appends the cache-busting version to a public icon path. */
+function ic(path: string) {
+  return `${path}?v=${ICONS_V}`;
+}
+
 const manrope = Manrope({
   variable: "--font-marketplace",
   subsets: ["latin"],
@@ -29,69 +44,72 @@ export const metadata: Metadata = {
   },
   description: TAGLINE,
   applicationName: BRAND_NAME,
-  manifest: "/manifest.json",
+  // Served by app/manifest.ts. The static public/manifest.json that used to
+  // shadow this was removed: two manifests drift, and only one of them is
+  // type-checked against MetadataRoute.Manifest.
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: BRAND_NAME,
     startupImage: [
       {
-        url: "/icons/apple-splash-1290x2796.png",
+        url: ic("/icons/apple-splash-1290x2796.png"),
         media:
           "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-1179x2556.png",
+        url: ic("/icons/apple-splash-1179x2556.png"),
         media:
           "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-1170x2532.png",
+        url: ic("/icons/apple-splash-1170x2532.png"),
         media:
           "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-1284x2778.png",
+        url: ic("/icons/apple-splash-1284x2778.png"),
         media:
           "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-1125x2436.png",
+        url: ic("/icons/apple-splash-1125x2436.png"),
         media:
           "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-1242x2688.png",
+        url: ic("/icons/apple-splash-1242x2688.png"),
         media:
           "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)",
       },
       {
-        url: "/icons/apple-splash-828x1792.png",
+        url: ic("/icons/apple-splash-828x1792.png"),
         media:
           "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)",
       },
       {
-        url: "/icons/apple-splash-750x1334.png",
+        url: ic("/icons/apple-splash-750x1334.png"),
         media:
           "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)",
       },
       {
-        url: "/icons/apple-splash-2048x2732.png",
+        url: ic("/icons/apple-splash-2048x2732.png"),
         media:
           "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)",
       },
       {
-        url: "/icons/apple-splash-1668x2388.png",
+        url: ic("/icons/apple-splash-1668x2388.png"),
         media:
           "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)",
       },
       {
-        url: "/icons/apple-splash-1640x2360.png",
+        url: ic("/icons/apple-splash-1640x2360.png"),
         media:
           "(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2)",
       },
       {
-        url: "/icons/apple-splash-1536x2048.png",
+        url: ic("/icons/apple-splash-1536x2048.png"),
         media:
           "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)",
       },
@@ -102,31 +120,31 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-      { url: "/icon.png", sizes: "any", type: "image/png" },
+      { url: ic("/favicon-32x32.png"), sizes: "32x32", type: "image/png" },
+      { url: ic("/favicon-16x16.png"), sizes: "16x16", type: "image/png" },
+      { url: ic("/icons/icon-192x192.png"), sizes: "192x192", type: "image/png" },
+      { url: ic("/icons/icon-512x512.png"), sizes: "512x512", type: "image/png" },
+      { url: ic("/icon.png"), sizes: "any", type: "image/png" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: ic("/apple-touch-icon.png"), sizes: "180x180", type: "image/png" },
       {
-        url: "/icons/apple-touch-icon-152x152.png",
+        url: ic("/icons/apple-touch-icon-152x152.png"),
         sizes: "152x152",
         type: "image/png",
       },
       {
-        url: "/icons/apple-touch-icon-167x167.png",
+        url: ic("/icons/apple-touch-icon-167x167.png"),
         sizes: "167x167",
         type: "image/png",
       },
       {
-        url: "/icons/apple-touch-icon-180x180.png",
+        url: ic("/icons/apple-touch-icon-180x180.png"),
         sizes: "180x180",
         type: "image/png",
       },
     ],
-    shortcut: [{ url: "/icons/icon-192x192.png", type: "image/png" }],
+    shortcut: [{ url: ic("/icons/icon-192x192.png"), type: "image/png" }],
   },
   other: {
     "mobile-web-app-capable": "yes",
