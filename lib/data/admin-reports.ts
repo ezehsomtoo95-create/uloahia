@@ -3,6 +3,7 @@ import {
   contentReportTypeLabel,
   isListingReportType,
 } from "@/lib/safety/constants";
+import { formatAdminTime } from "@/lib/utils/admin-time";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
 /**
@@ -56,16 +57,6 @@ type ReportRow = {
   status: string;
   created_at: string;
 };
-
-export function formatAdminTime(value: string) {
-  return new Date(value).toLocaleString("en-NG", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function excerpt(text: string, max = 160) {
   const clean = String(text ?? "").replace(/\s+/g, " ").trim();

@@ -6,6 +6,7 @@ import {
   MapPin,
   Package,
   Settings,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
@@ -16,6 +17,10 @@ export const ADMIN_NAV = [
   { href: "/admin#admin-locations", label: "Locations", icon: MapPin, section: "admin-locations" },
   { href: "/admin#admin-users", label: "Users", icon: Users, section: "admin-users" },
   { href: "/admin#admin-reports", label: "Reports", icon: Flag, section: "admin-reports" },
+  // A real route, not a dashboard anchor: the queue needs a status filter and
+  // its own loading/error boundary, which a section on the single-page admin
+  // cannot provide.
+  { href: "/admin/verification", label: "ID Verification", icon: ShieldCheck, section: "admin-verification" },
   { href: "/admin#admin-analytics", label: "Analytics", icon: BarChart3, section: "admin-analytics" },
   { href: "/admin#admin-settings", label: "Settings", icon: Settings, section: "admin-settings" },
 ] as const;

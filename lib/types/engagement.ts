@@ -204,6 +204,32 @@ export type PublicSellerProfile = {
   // Future: ratings, followers
 };
 
+/** ID document types a seller can submit (matches the 0055 CHECK constraint). */
+export const VERIFICATION_DOC_TYPES = [
+  "government_id",
+  "national_id",
+  "drivers_licence",
+  "passport",
+] as const;
+
+export type VerificationDocTypeValue = (typeof VERIFICATION_DOC_TYPES)[number];
+
+export const VERIFICATION_DOC_TYPE_LABELS: Record<
+  VerificationDocTypeValue,
+  string
+> = {
+  government_id: "Government ID",
+  national_id: "National ID",
+  drivers_licence: "Driver's licence",
+  passport: "Passport",
+};
+
+export function verificationDocTypeLabel(value: string | undefined): string {
+  return VERIFICATION_DOC_TYPE_LABELS[
+    (value ?? "government_id") as VerificationDocTypeValue
+  ] ?? "ID document";
+}
+
 export function isPendingProfilePhone(phone: string | null | undefined) {
   if (!phone) {
     return true;

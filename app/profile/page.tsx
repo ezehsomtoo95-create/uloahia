@@ -8,6 +8,8 @@ import { SellerDashboard } from "@/components/profile/seller-dashboard";
 import { resolveAdminAccess } from "@/lib/admin/resolve-admin-access";
 import { BRAND_NAME } from "@/lib/constants/brand";
 import { getMyListings, getSellerSoldCount } from "@/lib/data/listings";
+import { getMyVerificationRequest } from "@/lib/data/admin-verification";
+import { IdVerificationPanel } from "@/components/profile/id-verification-panel";
 import { getPublicSellerById } from "@/lib/data/sellers";
 import { isPendingProfilePhone } from "@/lib/types/engagement";
 
@@ -32,7 +34,9 @@ export default async function ProfilePage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("phone, full_name, state, city, username, avatar_url, phone_verified_at, created_at")
+        .select(
+          "phone, full_name, state, city, username, avatar_url, phone_verified_at, verification_tier, created_at",
+        )
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
@@ -44,6 +48,10 @@ export default async function ProfilePage() {
         getSellerSoldCount(user.id),
       ])
     : [null, [], 0];
+
+  const verificationRequest = user
+    ? await getMyVerificationRequest(supabase)
+    : null;
 
   const adminAccess = user
     ? await resolveAdminAccess(supabase, {
@@ -86,6 +94,11 @@ export default async function ProfilePage() {
               Your {BRAND_NAME} account, performance, and listings.
             </p>
           </header>
+
+          <IdVerificationPanel
+            tier={publicSeller?.verificationTier ?? profile?.verification_tier ?? "none"}
+            request={verificationRequest}
+          />
 
           <SellerDashboard
             sellerId={user.id}
