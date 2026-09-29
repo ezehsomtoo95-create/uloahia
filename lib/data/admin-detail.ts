@@ -43,16 +43,16 @@ export type AdminUserDetail = {
   accountStatus: string;
 };
 
-export type AdminReportDetail = {
-  id: string;
-  listingId: string;
-  listingTitle: string;
-  listingStatus: string;
-  reason: string;
-  createdAt: string;
-  sellerId: string;
-  sellerName: string;
-};
+export type { AdminReportDetail } from "@/lib/data/admin-reports";
+
+/** Re-exported from the unified report queue; see lib/data/admin-reports. */
+export async function getAdminReportDetail(
+  supabase: SupabaseClient,
+  reportId: string,
+) {
+  const { getAdminReportDetail: load } = await import("@/lib/data/admin-reports");
+  return load(supabase, reportId);
+}
 
 function formatAdminTime(value: string) {
   return new Date(value).toLocaleString("en-NG", {
@@ -326,52 +326,3 @@ export async function getAdminUserDetail(
   };
 }
 
-export async function getAdminReportDetail(
-  supabase: SupabaseClient,
-  reportId: string,
-): Promise<AdminReportDetail | null> {
-  const { data, error } = await supabase
-    .from("reports")
-    .select(
-      `
-      id,
-      reason,
-      created_at,
-      listing_id,
-      listing:listings (
-        title,
-        status,
-        seller_id,
-        seller:profiles!seller_id (
-          username,
-          full_name
-        )
-      )
-    `,
-    )
-    .eq("id", reportId)
-    .eq("status", "open")
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  const listing = Array.isArray(data.listing) ? data.listing[0] : data.listing;
-  const seller = listing?.seller
-    ? Array.isArray(listing.seller)
-      ? listing.seller[0]
-      : listing.seller
-    : null;
-
-  return {
-    id: data.id,
-    listingId: data.listing_id,
-    listingTitle: listing?.title ?? "Listing",
-    listingStatus: listing?.status ?? "unknown",
-    reason: data.reason,
-    createdAt: formatAdminTime(data.created_at),
-    sellerId: listing?.seller_id ?? "",
-    sellerName: formatSellerDisplayName(seller),
-  };
-}

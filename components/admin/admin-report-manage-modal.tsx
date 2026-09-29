@@ -107,7 +107,9 @@ export function AdminReportManageModal({
           aria-modal="true"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <p className="text-[15px] font-semibold">Reported Listing</p>
+            <p className="text-[15px] font-semibold">
+              Reported {detail?.contentTypeLabel ?? "content"}
+            </p>
             <button
               type="button"
               onClick={onClose}
@@ -126,18 +128,37 @@ export function AdminReportManageModal({
             ) : (
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-[16px] font-semibold">{detail.listingTitle}</h3>
+                  <h3 className="text-[16px] font-semibold">{detail.contentLabel}</h3>
                   <p className="mt-1 text-[12px] text-muted">Reported {detail.createdAt}</p>
                 </div>
+                {detail.contentExcerpt ? (
+                  <div className="rounded-[12px] border border-border p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                      Reported content
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed">
+                      {detail.contentExcerpt}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="rounded-[12px] border border-border p-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
                     Reason
                   </p>
                   <p className="mt-1 text-[13px]">{detail.reason}</p>
+                  {detail.details ? (
+                    <p className="mt-2 whitespace-pre-wrap text-[12px] leading-relaxed text-muted">
+                      {detail.details}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-[12px] italic text-muted">
+                      The reporter left no further detail.
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[12px]">
-                  <Info label="Listing status" value={detail.listingStatus} />
-                  <Info label="Seller" value={detail.sellerName} />
+                  <Info label="Reported by" value={detail.reporterName} />
+                  <Info label="Reported user" value={detail.reportedUserName} />
                 </div>
 
                 {error ? <p className="text-[12px] text-red-400/90">{error}</p> : null}
@@ -151,38 +172,52 @@ export function AdminReportManageModal({
                   >
                     Dismiss report
                   </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => setDeleteOpen(true)}
-                    className={actionButtonClass("danger")}
-                  >
-                    Delete listing
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => runAction(() => suspendReportedSeller(detail.id))}
-                    className={actionButtonClass()}
-                  >
-                    Suspend seller
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onViewListing(detail.listingId)}
-                    className={actionButtonClass()}
-                  >
-                    View listing
-                  </button>
-                  {detail.sellerId ? (
-                    <button
-                      type="button"
-                      onClick={() => onViewSeller(detail.sellerId)}
+                  {/* Listing-only actions are hidden (not just disabled) for
+                      other content types, so a moderator is never offered a
+                      "delete listing" button on a community report. */}
+                  {detail.isListingReport ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => setDeleteOpen(true)}
+                        className={actionButtonClass("danger")}
+                      >
+                        Delete listing
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => runAction(() => suspendReportedSeller(detail.id))}
+                        className={actionButtonClass()}
+                      >
+                        Suspend seller
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onViewListing(detail.listingId!)}
+                        className={actionButtonClass()}
+                      >
+                        View listing
+                      </button>
+                    </>
+                  ) : (
+                    <a
+                      href={detail.contentHref}
+                      target="_blank"
+                      rel="noreferrer"
                       className={actionButtonClass()}
                     >
-                      View seller
-                    </button>
-                  ) : null}
+                      View content
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onViewSeller(detail.reportedUserId)}
+                    className={actionButtonClass()}
+                  >
+                    View reported user
+                  </button>
                 </div>
               </div>
             )}

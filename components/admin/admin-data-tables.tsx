@@ -20,6 +20,16 @@ const SECTION_LINKS = [
   { label: "Reports", href: "/admin#admin-reports" },
 ] as const;
 
+/** Narrows the single reports queue in place, by content type. */
+const REPORT_TYPE_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "listing_report", label: "Listings" },
+  { value: "community_post", label: "Community posts" },
+  { value: "community_reply", label: "Replies" },
+  { value: "listing_comment", label: "Comments" },
+  { value: "chat_conversation", label: "Chats" },
+] as const;
+
 const SORTS: { value: AdminTableSort; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
@@ -175,6 +185,8 @@ export function AdminDataTables({
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  /** Narrows the unified reports queue; "all" = no filter. */
+  const reportTypeFilter = searchParams.get("type") ?? "all";
 
   useEffect(() => {
     setListings(initialListings);
@@ -312,16 +324,40 @@ export function AdminDataTables({
   );
 
   const reportsTable = (
-    <TableShell isEmpty={reports.length === 0} emptyMessage="No reported listings">
+    <div className="space-y-2">
+      {/* One queue for every content type. The filter narrows it in place
+          rather than splitting reports across separate views. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {REPORT_TYPE_FILTERS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => updateParams({ type: item.value === "all" ? undefined : item.value })}
+            className={cn(
+              "rounded-full border px-2.5 py-1 text-[11px] font-medium transition duration-app",
+              reportTypeFilter === item.value
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-border text-muted hover:text-foreground",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <TableShell isEmpty={reports.length === 0} emptyMessage="No open reports">
       <AdminTableGrid
         header={TABLE_HEADER}
         rows={
           <>
             {reports.slice(0, 50).map((report) => (
               <AdminTableRow key={report.id}>
-                <AdminUserCell primary={report.listingTitle} secondary={report.reason} />
+                <AdminUserCell
+                  primary={report.contentLabel}
+                  secondary={`${report.contentTypeLabel} · ${report.reason} · by ${report.reportedUserName}`}
+                />
                 <AdminStatusCell>
-                  <span className={statusClass("reported")}>Reported</span>
+                  <span className={statusClass("reported")}>{report.contentTypeLabel}</span>
                 </AdminStatusCell>
                 <AdminCreatedCell value={report.createdAt} />
                 <AdminViewsCell value="—" />
@@ -339,7 +375,8 @@ export function AdminDataTables({
           </>
         }
       />
-    </TableShell>
+      </TableShell>
+    </div>
   );
 
   return (

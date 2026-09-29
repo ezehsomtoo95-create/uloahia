@@ -6,7 +6,7 @@ import { BadgeCheck, Clock3, Eye, MapPin, Sparkles, Store } from "lucide-react";
 import { ListingChatButton } from "@/components/listings/listing-chat-button";
 import { ListingViewTracker } from "@/components/listings/listing-view-tracker";
 import { ListingWhatsappContact } from "@/components/listings/listing-whatsapp-contact";
-import { ReportListingButton } from "@/components/listings/report-listing-button";
+import { ListingReportButton } from "@/components/listings/listing-report-button";
 import { ShareListing } from "@/components/listings/share-listing";
 import { LazyAvatar } from "@/components/ui/lazy-avatar";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/constants/brand";
@@ -426,9 +426,9 @@ export default async function ListingDetailsPage({
                   imageUrl: listing.imageUrl,
                 }}
               />
-              {!isOwnListing ? (
+              {!isOwnListing && listing.status === "approved" ? (
                 <div className="market-pdp-report">
-                  <ReportListingButton
+                  <ListingReportButton
                     listingId={listing.id}
                     isAuthenticated={Boolean(user)}
                   />

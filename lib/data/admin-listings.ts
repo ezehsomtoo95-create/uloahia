@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCategoryName } from "@/lib/constants/categories";
+import type { AdminReportRow } from "@/lib/data/admin-reports";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 import { resolveListingImageUrl } from "@/lib/utils/storage";
 import { formatDisplayPhone } from "@/lib/utils/phone";
@@ -191,16 +192,8 @@ export type AdminUserRow = {
   accountStatus: string;
 };
 
-export type AdminReportRow = {
-  id: string;
-  listingTitle: string;
-  listingId: string;
-  sellerId: string;
-  sellerName: string;
-  reason: string;
-  createdAt: string;
-  createdAtRaw: string;
-};
+/** Re-exported from the unified report queue; defined in lib/data/admin-reports. */
+export type { AdminReportRow } from "@/lib/data/admin-reports";
 
 function sortListings(listings: AdminListing[], sort: AdminTableSort) {
   const next = [...listings];
@@ -274,51 +267,12 @@ export async function getAdminUsers(
 
 export async function getAdminReports(
   supabase: SupabaseClient,
-): Promise<AdminReportRow[]> {
-  const { data, error } = await supabase
-    .from("reports")
-    .select(
-      `
-      id,
-      reason,
-      created_at,
-      listing_id,
-      listing:listings (
-        title,
-        seller_id,
-        seller:profiles!seller_id (
-          username,
-          full_name
-        )
-      )
-    `,
-    )
-    .eq("status", "open")
-    .order("created_at", { ascending: false });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data.map((row) => {
-    const listing = Array.isArray(row.listing) ? row.listing[0] : row.listing;
-    const seller = listing?.seller
-      ? Array.isArray(listing.seller)
-        ? listing.seller[0]
-        : listing.seller
-      : null;
-
-    return {
-      id: row.id,
-      listingTitle: listing?.title ?? "Listing",
-      listingId: row.listing_id,
-      sellerId: listing?.seller_id ?? "",
-      sellerName: formatSellerDisplayName(seller),
-      reason: row.reason,
-      createdAt: formatAdminTime(row.created_at),
-      createdAtRaw: row.created_at,
-    };
-  });
+  options: { contentType?: string } = {},
+) {
+  // Implementation lives in lib/data/admin-reports; re-exported here so
+  // existing import paths keep working.
+  const { getAdminReports: load } = await import("@/lib/data/admin-reports");
+  return load(supabase, options);
 }
 
 export async function getAdminTableData(
@@ -327,6 +281,8 @@ export async function getAdminTableData(
     tab?: "listings" | "users" | "reports";
     q?: string;
     sort?: AdminTableSort;
+    /** Narrow the reports tab to one content type ("all" = no filter). */
+    contentType?: string;
   } = {},
 ) {
   const tab = options.tab ?? "listings";
@@ -353,13 +309,19 @@ export async function getAdminTableData(
   }
 
   if (tab === "reports") {
-    const reports = await getAdminReports(supabase);
+    const reports = await getAdminReports(supabase, {
+      contentType: options.contentType,
+    });
     const needle = query.trim().toLowerCase();
     const filtered = needle
       ? reports.filter(
           (report) =>
-            report.listingTitle.toLowerCase().includes(needle) ||
-            report.reason.toLowerCase().includes(needle),
+            report.contentLabel.toLowerCase().includes(needle) ||
+            report.reason.toLowerCase().includes(needle) ||
+            report.contentTypeLabel.toLowerCase().includes(needle) ||
+            report.reportedUserName.toLowerCase().includes(needle) ||
+            report.reporterName.toLowerCase().includes(needle) ||
+            (report.details ?? "").toLowerCase().includes(needle),
         )
       : reports;
 

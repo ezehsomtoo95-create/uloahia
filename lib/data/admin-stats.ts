@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/service";
+import { contentReportTypeLabel } from "@/lib/safety/constants";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { formatSellerDisplayName } from "@/lib/utils/seller-display";
 
@@ -209,7 +210,10 @@ export async function getAdminOverview(
       .select("id", { count: "exact", head: true })
       .eq("status", "sold")
       .gte("reviewed_at", todayStart),
-    supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase
+      .from("content_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open"),
     supabase
       .from("profiles")
       .select("id, username, full_name, created_at")
@@ -233,8 +237,9 @@ export async function getAdminOverview(
       .order("created_at", { ascending: false })
       .limit(8),
     supabase
-      .from("reports")
-      .select("id, reason, created_at, listing:listings(title)")
+      .from("content_reports")
+      .select("id, content_type, reason, created_at")
+      .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
@@ -450,7 +455,7 @@ export async function getAdminOverview(
       hint: "Approved listings sample",
     },
     {
-      label: "Reported listings",
+      label: "Open reports",
       value: String(reportedListings),
       tone: reportedListings === 0 ? "good" : "bad",
       hint: reportsResult.error ? "Limited access" : reportedListings === 0 ? "No open reports" : "Open cases",
@@ -524,10 +529,9 @@ export async function getAdminOverview(
         unread: true,
       })),
     ...(recentReportsFeed.data ?? []).slice(0, 2).map((row) => {
-      const listing = Array.isArray(row.listing) ? row.listing[0] : row.listing;
       return {
         id: `n-report-${row.id}`,
-        text: `Reported listing: ${listing?.title ?? "Listing"}`,
+        text: `New ${contentReportTypeLabel(row.content_type)} report: ${row.reason}`,
         time: formatRelativeTime(row.created_at),
         unread: true,
       };

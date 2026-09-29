@@ -1,14 +1,12 @@
-export const REPORT_LISTING_REASONS = [
-  "Scam",
-  "Duplicate",
-  "Wrong category",
-  "Fake item",
-  "Prohibited item",
-  "Spam",
-  "Other",
-] as const;
-
-export type ReportListingReason = (typeof REPORT_LISTING_REASONS)[number];
+/**
+ * RETIRED: the legacy listing-report reason vocabulary.
+ *
+ * Listing reports now use REPORT_REASONS (lib/safety/constants.ts), the merged
+ * list shared with community posts, replies, comments and chats. Migration
+ * 0054 widens the content_reports.reason CHECK to match and maps the old
+ * values across: Scam / Fake item -> Scam / fraud, Duplicate -> Duplicate
+ * listing, the rest pass through unchanged.
+ */
 
 export type NotificationType =
   | "chat_message"

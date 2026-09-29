@@ -4,10 +4,6 @@ import { revalidatePath } from "next/cache";
 import { consumeRateLimit, runContentSafety } from "@/lib/safety/guard";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/service";
-import {
-  REPORT_LISTING_REASONS,
-  type ReportListingReason,
-} from "@/lib/types/engagement";
 import { isPendingProfilePhone } from "@/lib/types/engagement";
 import { normalizeNigerianPhone } from "@/lib/utils/phone";
 import { validateUsername } from "@/lib/utils/username";
@@ -193,45 +189,12 @@ export async function markConversationRead(conversationId: string): Promise<Acti
   return { ok: true, conversationId };
 }
 
-export async function reportListing(
-  listingId: string,
-  reason: ReportListingReason,
-): Promise<ActionResult> {
-  const { supabase, user } = await requireUser();
-  if (!user) {
-    return { ok: false, error: "Sign in to report a listing." };
-  }
-
-  if (!REPORT_LISTING_REASONS.includes(reason)) {
-    return { ok: false, error: "Choose a valid report reason." };
-  }
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id, seller_id, status")
-    .eq("id", listingId)
-    .maybeSingle();
-
-  if (!listing || listing.status !== "approved") {
-    return { ok: false, error: "Listing not found." };
-  }
-
-  if (listing.seller_id === user.id) {
-    return { ok: false, error: "You cannot report your own listing." };
-  }
-
-  const { error } = await supabase.from("reports").insert({
-    listing_id: listingId,
-    reporter_id: user.id,
-    reason,
-  });
-
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
-  return { ok: true };
-}
+/**
+ * RETIRED: listing reports now go through submitContentReport()
+ * (app/actions/moderation.ts) with content_type = "listing_report", which
+ * writes to the unified content_reports queue. This action wrote to the
+ * legacy `reports` table, which the admin dashboard no longer reads.
+ */
 
 export async function markNotificationRead(notificationId: string): Promise<ActionResult> {
   const { supabase, user } = await requireUser();

@@ -372,19 +372,26 @@ export async function deleteUserById(userId: string): Promise<AdminActionResult>
 }
 
 export async function dismissReportById(reportId: string): Promise<AdminActionResult> {
-  const { profile } = await requireAdmin();
+  const { user } = await requireAdmin();
 
   try {
     await assertAdminCanMutate();
-
   } catch {
     return adminError("Not authorized to update reports.");
   }
 
+  // content_reports.status is 'open' | 'resolved'; the outcome is recorded in
+  // `resolution` so a dismissal and a removal stay distinguishable later.
   const { error } = await supabaseAdmin()
-    .from("reports")
-    .update({ status: "dismissed" })
-    .eq("id", reportId);
+    .from("content_reports")
+    .update({
+      status: "resolved",
+      resolution: "dismissed",
+      resolved_by: user.id,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", reportId)
+    .eq("status", "open");
 
   if (error) {
     return adminError(error.message);
@@ -395,20 +402,35 @@ export async function dismissReportById(reportId: string): Promise<AdminActionRe
 }
 
 export async function deleteReportedListing(reportId: string): Promise<AdminActionResult> {
-  const { supabase } = await requireAdmin();
+  const { supabase, user } = await requireAdmin();
   const report = await getAdminReportDetail(supabase, reportId);
 
   if (!report) {
     return adminError("Report not found.");
   }
 
+  // SAFETY: the queue now spans every content type. Only a listing report has
+  // a listing to delete; without this guard a moderator clicking "delete
+  // listing" on a community report would act on the wrong row.
+  if (!report.isListingReport || !report.listingId) {
+    return adminError("This report is not about a listing.");
+  }
+
   try {
     await deleteListingRecord(report.listingId);
 
+    // Resolve every open report against that listing, not just this one.
     await supabaseAdmin()
-      .from("reports")
-      .update({ status: "dismissed" })
-      .eq("listing_id", report.listingId);
+      .from("content_reports")
+      .update({
+        status: "resolved",
+        resolution: "content_removed",
+        resolved_by: user.id,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("content_type", "listing_report")
+      .eq("content_id", report.listingId)
+      .eq("status", "open");
 
     revalidateAdminPaths(report.listingId);
     return adminSuccess();
@@ -421,11 +443,20 @@ export async function suspendReportedSeller(reportId: string): Promise<AdminActi
   const { supabase } = await requireAdmin();
   const report = await getAdminReportDetail(supabase, reportId);
 
-  if (!report?.sellerId) {
+  if (!report) {
+    return adminError("Report not found.");
+  }
+
+  // Same guard as deleteReportedListing: only listing reports have a seller.
+  if (!report.isListingReport) {
+    return adminError("This report is not about a listing.");
+  }
+
+  if (!report.reportedUserId) {
     return adminError("Seller not found.");
   }
 
-  return suspendUserById(report.sellerId);
+  return suspendUserById(report.reportedUserId);
 }
 
 export async function approveAllPending(): Promise<AdminActionResult> {
