@@ -170,14 +170,17 @@ export async function withdrawVerificationDoc(
     return { ok: false, error: "This request has already been reviewed." };
   }
 
-  const { error: removeError } = await supabase.storage
-    .from("verification-docs")
-    .remove([request.doc_path]);
-
-  if (removeError) {
-    return { ok: false, error: removeError.message };
-  }
-
+  // ORDER MATTERS. The row is deleted FIRST and the object second, deliberately.
+  //
+  // The previous order (object, then row) was a data-integrity trap: if the row
+  // delete failed, the queue kept a pending row pointing at a file that no
+  // longer existed, so an admin opening the queue would see a broken preview
+  // and a seller could never withdraw again. That is precisely the failure this
+  // bug produced.
+  //
+  // Deleting the row first inverts that: a storage failure leaves an orphaned
+  // object with no queue entry pointing at it, which is invisible to users and
+  // cheap to clean up - a far better outcome than a corrupt review queue.
   const { error: deleteError } = await supabase
     .from("verification_requests")
     .delete()
@@ -186,6 +189,19 @@ export async function withdrawVerificationDoc(
 
   if (deleteError) {
     return { ok: false, error: deleteError.message };
+  }
+
+  // Best-effort cleanup. The withdraw has already succeeded from the seller's
+  // point of view, so a storage failure here must not surface as an error.
+  const { error: removeError } = await supabase.storage
+    .from("verification-docs")
+    .remove([request.doc_path]);
+
+  if (removeError) {
+    console.error(
+      "[verification] withdrew row but could not delete document",
+      { requestId: request.id, path: request.doc_path, error: removeError.message },
+    );
   }
 
   return { ok: true };
